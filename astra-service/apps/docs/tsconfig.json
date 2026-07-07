@@ -1,0 +1,9 @@
+{
+  "extends": "@astra/config/typescript/react",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": ["vite/client"]
+  },
+  "include": ["src"]
+}

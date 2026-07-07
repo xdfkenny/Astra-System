@@ -1,0 +1,55 @@
+[package]
+name = "astra-payment-sidecar"
+version = "0.1.0"
+edition = "2021"
+authors = ["Astra Systems <engineering@astra.systems>"]
+description = "Local Verifone payment sidecar for Astra kiosks"
+license = "MIT"
+repository = "https://github.com/astra-systems/astra-service"
+rust-version = "1.75"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.35", features = ["full", "signal", "time", "rt-multi-thread"] }
+
+# HTTP server
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["trace", "cors", "limit"] }
+hyper = { version = "1.0", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Cryptography
+uuid = { version = "1.6", features = ["v7", "serde"] }
+ring = "0.17"
+base64 = "0.21"
+
+# Configuration & CLI
+clap = { version = "4.4", features = ["derive", "env", "cargo"] }
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Logging & Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+
+# Utilities
+chrono = { version = "0.4", features = ["serde"] }
+async-trait = "0.1"
+hex = "0.4"
+
+[dev-dependencies]
+tokio-test = "0.4"
+reqwest = { version = "0.11", features = ["json"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

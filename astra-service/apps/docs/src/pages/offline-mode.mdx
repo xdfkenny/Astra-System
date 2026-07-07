@@ -1,0 +1,43 @@
+# Offline Mode
+
+Astra-Service treats offline operation as a first-class state, not an error. Kiosks continue to serve customers for up to 48 hours without cloud connectivity.
+
+## When offline mode activates
+
+A kiosk enters offline mode when it cannot reach `https://api.astra.internal/health` for 30 seconds. Health checks run every 10 seconds.
+
+## Local data layer
+
+Each kiosk stores the following in encrypted SQLite (SQLCipher):
+
+- Full menu catalog with categories, items, modifiers, and prices.
+- Current inventory counts with reserved-stock soft holds.
+- Pending transactions and offline payment tokens.
+- Employee biometric hashes for offline authentication.
+- Cart state and Ghost Cart replicas.
+
+Catalogs refresh every 6 hours while online. If a kiosk has been offline longer, it still serves the cached catalog but marks prices as stale.
+
+## Graceful degradation
+
+| Capability | Online behavior | Offline behavior |
+| ---------- | --------------- | ---------------- |
+| Payment | Verifone auth + cloud settlement | Terminal auth + signed local token queued for settlement |
+| Inventory | Cloud DB + P2P sync | P2P CRDT sync only |
+| New orders | Persisted to cloud + outbox | Stored locally + P2P replicated |
+| Employee auth | WebAuthn / biometric sync | Local biometric hash verification |
+| Software updates | Downloaded and applied automatically | Deferred until online |
+
+## 48-hour resilience
+
+- Inventory syncs every 30 seconds when online and every 5 seconds via P2P mesh.
+- Payment tokens have a 48-hour TTL and must be uploaded before expiry.
+- If connectivity is restored after 48 hours, the kiosk enters **reconciliation mode**, requiring a store manager to verify the offline queue before settlement proceeds.
+
+## Extended offline window
+
+If a store will remain offline beyond 48 hours, managers can enable **extended offline mode**:
+
+- Increases token TTL to 72 hours.
+- Requires a manager PIN.
+- All transactions are documented for manual reconciliation.

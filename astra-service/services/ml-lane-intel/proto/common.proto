@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package astra.common.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/astra-systems/astra-service/proto/gen/go/common;common";
+
+// Monetary value represented as an integer amount in the smallest currency unit
+// (e.g., cents) plus an ISO-4217 currency code.
+message Money {
+  string currency = 1 [json_name = "currency"];
+  int64 amount_cents = 2 [json_name = "amount_cents"];
+}
+
+// Generic timestamp wrapper used by entities that track creation, modification,
+// and soft-deletion times.
+message Timestamped {
+  google.protobuf.Timestamp created_at = 1 [json_name = "created_at"];
+  google.protobuf.Timestamp updated_at = 2 [json_name = "updated_at"];
+  google.protobuf.Timestamp deleted_at = 3 [json_name = "deleted_at"];
+}
+
+// A UUID value, typically a UUIDv7 string used for globally ordered identifiers.
+message UUID {
+  string value = 1 [json_name = "value"];
+}
+
+// Hybrid Logical Clock (HLC) combining wall-clock time, a logical counter, and
+// the originating node identity to establish causality without synchronized clocks.
+message HLC {
+  int64 physical_time_ms = 1 [json_name = "physical_time_ms"];
+  int32 logical_counter = 2 [json_name = "logical_counter"];
+  string node_id = 3 [json_name = "node_id"];
+}
+
+// Standard pagination request used by list RPCs.
+message PaginationRequest {
+  int32 page = 1 [json_name = "page"];
+  int32 page_size = 2 [json_name = "page_size"];
+  string cursor = 3 [json_name = "cursor"];
+}
+
+// Standard pagination response returned by list RPCs.
+message PaginationResponse {
+  int32 page = 1 [json_name = "page"];
+  int32 page_size = 2 [json_name = "page_size"];
+  int64 total = 3 [json_name = "total"];
+  string next_cursor = 4 [json_name = "next_cursor"];
+  bool has_more = 5 [json_name = "has_more"];
+}
+
+// Context attached to auditable operations identifying the actor, scope, and
+// request tracing information.
+message AuditMetadata {
+  string actor_id = 1 [json_name = "actor_id"];
+  string actor_type = 2 [json_name = "actor_type"];
+  string tenant_id = 3 [json_name = "tenant_id"];
+  string lane_id = 4 [json_name = "lane_id"];
+  string kiosk_id = 5 [json_name = "kiosk_id"];
+  string trace_id = 6 [json_name = "trace_id"];
+  string source_ip = 7 [json_name = "source_ip"];
+}
+
+// Structured error detail returned by RPCs to communicate domain or validation
+// failures to callers.
+message ErrorDetail {
+  string code = 1 [json_name = "code"];
+  string message = 2 [json_name = "message"];
+  string target = 3 [json_name = "target"];
+  map<string, string> details = 4 [json_name = "details"];
+}

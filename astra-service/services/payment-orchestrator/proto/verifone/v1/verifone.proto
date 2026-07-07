@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package astra.verifone.v1;
+
+option go_package = "github.com/astra-systems/astra-service/services/payment-orchestrator/internal/client/verifonepb;verifonepb";
+
+// VerifoneFFI is the gRPC surface exposed by the Rust syncd verifone-ffi sidecar.
+service VerifoneFFI {
+  rpc Authorize(AuthorizeRequest) returns (AuthorizeResponse);
+  rpc Capture(CaptureRequest) returns (CaptureResponse);
+  rpc Settle(SettleRequest) returns (SettleResponse);
+}
+
+message AuthorizeRequest {
+  string payment_id = 1;
+  string order_id = 2;
+  string kiosk_id = 3;
+  int64 amount_cents = 4;
+  string currency = 5;
+  string method = 6;
+}
+
+message AuthorizeResponse {
+  string status = 1; // APPROVED, DECLINED, ERROR
+  string verifone_token = 2;
+  string auth_code = 3;
+  string decline_reason = 4;
+  string card_brand = 5;
+  string card_last_four = 6;
+  string receipt_text = 7;
+}
+
+message CaptureRequest {
+  string payment_id = 1;
+  string verifone_token = 2;
+}
+
+message CaptureResponse {
+  string status = 1;
+  string decline_reason = 2;
+}
+
+message SettleRequest {
+  string payment_id = 1;
+  string verifone_token = 2;
+}
+
+message SettleResponse {
+  string status = 1;
+  string decline_reason = 2;
+}

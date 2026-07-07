@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1.7
+
+# Astra-Service Update Server (Go)
+# Multi-stage distroless build with BuildKit cache mounts.
+
+ARG GO_VERSION=1.25
+ARG ALPINE_VERSION=3.21
+
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine${ALPINE_VERSION} AS builder
+
+RUN apk add --no-cache git ca-certificates tzdata
+
+WORKDIR /build
+
+COPY services/update-server/go.mod services/update-server/go.sum ./services/update-server/
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    cd services/update-server && go mod download -x
+
+COPY services/update-server/ ./services/update-server/
+
+ARG TARGETOS
+ARG TARGETARCH
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    cd services/update-server && \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -ldflags="-s -w -extldflags=-static" \
+    -o /tmp/update-server \
+    ./cmd
+
+FROM gcr.io/distroless/static-debian12:nonroot
+
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=builder /tmp/update-server /usr/local/bin/update-server
+
+USER nonroot:nonroot
+
+EXPOSE 8080
+STOPSIGNAL SIGTERM
+
+ENTRYPOINT ["/usr/local/bin/update-server"]

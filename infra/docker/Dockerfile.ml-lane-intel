@@ -1,0 +1,80 @@
+# syntax=docker/dockerfile:1.7
+
+# Astra-Service ML Lane Intelligence (Python/FastAPI)
+# Multi-stage build with a non-root runtime user.
+
+ARG PYTHON_VERSION=3.13
+
+# ── Build stage ─────────────────────────────────────────────────────────────
+FROM python:${PYTHON_VERSION}-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /build
+
+# Build tools required for opencv-python-headless and grpcio wheels.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY astra-service/services/ml-lane-intel/pyproject.toml \
+     astra-service/services/ml-lane-intel/README.md ./
+COPY astra-service/services/ml-lane-intel/src ./src
+COPY astra-service/services/ml-lane-intel/proto ./proto
+COPY astra-service/services/ml-lane-intel/models ./models
+
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --upgrade pip setuptools wheel \
+    && pip install -e ".[dev]" \
+    && python -m models.download_model --output models/yolov8n.onnx --force
+
+# ── Runtime stage ───────────────────────────────────────────────────────────
+FROM python:${PYTHON_VERSION}-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    MODEL_PATH=/app/models/yolov8n.onnx \
+    HOST=0.0.0.0 \
+    PORT=8080
+
+# Runtime libraries needed by OpenCV and ONNX Runtime.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --gid 1000 astra && \
+    useradd --uid 1000 --gid astra --shell /bin/false --create-home astra
+
+WORKDIR /app
+
+COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder /build/models /app/models
+COPY --from=builder /build/src ./src
+COPY --from=builder /build/proto ./proto
+COPY --from=builder /build/pyproject.toml /build/README.md ./
+
+ENV PATH="/opt/venv/bin:$PATH"
+
+USER astra
+
+EXPOSE 8080
+STOPSIGNAL SIGTERM
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
+
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

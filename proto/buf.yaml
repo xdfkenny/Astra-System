@@ -1,0 +1,11 @@
+version: v2
+modules:
+  - path: proto
+    excludes:
+      - proto/google
+lint:
+  use:
+    - DEFAULT
+breaking:
+  use:
+    - FILE

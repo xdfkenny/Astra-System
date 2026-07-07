@@ -1,0 +1,139 @@
+@layer base {
+  :root {
+    /* Colors — neutrals */
+    --astra-color-slate-50: #f8fafc;
+    --astra-color-slate-100: #f1f5f9;
+    --astra-color-slate-200: #e2e8f0;
+    --astra-color-slate-300: #cbd5e1;
+    --astra-color-slate-400: #94a3b8;
+    --astra-color-slate-500: #64748b;
+    --astra-color-slate-600: #475569;
+    --astra-color-slate-700: #334155;
+    --astra-color-slate-800: #1e293b;
+    --astra-color-slate-900: #0f172a;
+    --astra-color-slate-950: #020617;
+
+    /* Colors — semantic */
+    --astra-color-primary: #0d9488;
+    --astra-color-primary-hover: #0f766e;
+    --astra-color-cta: #f59e0b;
+    --astra-color-cta-hover: #d97706;
+    --astra-color-error: #f43f5e;
+    --astra-color-error-hover: #e11d48;
+    --astra-color-success: #10b981;
+    --astra-color-warning: #f59e0b;
+    --astra-color-info: #0ea5e9;
+    --astra-color-background: #f8fafc;
+    --astra-color-surface: #ffffff;
+    --astra-color-surface-elevated: #ffffff;
+    --astra-color-text-primary: #0f172a;
+    --astra-color-text-secondary: #64748b;
+    --astra-color-text-disabled: #94a3b8;
+    --astra-color-border: #e2e8f0;
+
+    /* Spacing */
+    --astra-space-0: 0px;
+    --astra-space-1: 4px;
+    --astra-space-2: 8px;
+    --astra-space-3: 12px;
+    --astra-space-4: 16px;
+    --astra-space-5: 20px;
+    --astra-space-6: 24px;
+    --astra-space-8: 32px;
+    --astra-space-10: 40px;
+    --astra-space-12: 48px;
+    --astra-space-14: 56px;
+    --astra-space-16: 64px;
+    --astra-space-20: 80px;
+    --astra-space-24: 96px;
+    --astra-space-28: 112px;
+    --astra-space-32: 128px;
+    --astra-space-36: 144px;
+    --astra-space-40: 160px;
+    --astra-space-44: 176px;
+    --astra-space-48: 192px;
+    --astra-space-52: 208px;
+    --astra-space-56: 224px;
+    --astra-space-60: 240px;
+    --astra-space-64: 256px;
+    --astra-space-72: 288px;
+    --astra-space-80: 320px;
+    --astra-space-96: 384px;
+
+    /* Typography */
+    --astra-font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --astra-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", monospace;
+    --astra-text-xs: 12px;
+    --astra-text-sm: 14px;
+    --astra-text-base: 16px;
+    --astra-text-lg: 18px;
+    --astra-text-xl: 20px;
+    --astra-text-2xl: 24px;
+    --astra-text-3xl: 30px;
+    --astra-text-4xl: 36px;
+    --astra-text-5xl: 48px;
+    --astra-text-6xl: 60px;
+    --astra-weight-light: 300;
+    --astra-weight-normal: 400;
+    --astra-weight-medium: 500;
+    --astra-weight-semibold: 600;
+    --astra-weight-bold: 700;
+    --astra-leading-tight: 1.25;
+    --astra-leading-snug: 1.375;
+    --astra-leading-normal: 1.5;
+    --astra-leading-relaxed: 1.625;
+    --astra-tracking-tight: -0.025em;
+    --astra-tracking-normal: 0em;
+    --astra-tracking-wide: 0.025em;
+
+    /* Elevation */
+    --astra-radius: 4px;
+    --astra-radius-sm: 2px;
+    --astra-radius-md: 6px;
+    --astra-radius-lg: 8px;
+    --astra-radius-xl: 12px;
+    --astra-radius-2xl: 16px;
+    --astra-radius-full: 9999px;
+    --astra-shadow: 0 1px 3px 0 rgb(15 23 42 / 0.1), 0 1px 2px -1px rgb(15 23 42 / 0.1);
+    --astra-shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+    --astra-shadow-md: 0 4px 6px -1px rgb(15 23 42 / 0.1), 0 2px 4px -2px rgb(15 23 42 / 0.1);
+    --astra-shadow-lg: 0 10px 15px -3px rgb(15 23 42 / 0.1), 0 4px 6px -4px rgb(15 23 42 / 0.1);
+    --astra-shadow-xl: 0 20px 25px -5px rgb(15 23 42 / 0.1), 0 8px 10px -6px rgb(15 23 42 / 0.1);
+    --astra-shadow-2xl: 0 25px 50px -12px rgb(15 23 42 / 0.25);
+
+    /* Motion */
+    --astra-duration-0: 0ms;
+    --astra-duration-75: 75ms;
+    --astra-duration-100: 100ms;
+    --astra-duration-150: 150ms;
+    --astra-duration-200: 200ms;
+    --astra-duration-300: 300ms;
+    --astra-duration-500: 500ms;
+    --astra-duration-700: 700ms;
+    --astra-duration-1000: 1000ms;
+    --astra-ease-linear: linear;
+    --astra-ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --astra-ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --astra-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --astra-ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* Z-index */
+    --astra-z-auto: auto;
+    --astra-z-0: 0;
+    --astra-z-10: 10;
+    --astra-z-20: 20;
+    --astra-z-30: 30;
+    --astra-z-40: 40;
+    --astra-z-50: 50;
+    --astra-z-100: 100;
+    --astra-z-200: 200;
+    --astra-z-300: 300;
+    --astra-z-400: 400;
+    --astra-z-500: 500;
+    --astra-z-top: 9999;
+
+    /* Subtle borders */
+    --astra-border-subtle-color: rgb(15 23 42 / 0.1);
+    --astra-border-subtle: 0.5px solid rgb(15 23 42 / 0.1);
+  }
+}

@@ -1,0 +1,32 @@
+[package]
+name = "astra-chaos"
+version = "0.1.0"
+edition = "2021"
+authors = ["Astra Systems <engineering@astra.systems>"]
+description = "Chaos engineering CLI for Astra kiosk mesh networks"
+license = "MIT"
+repository = "https://github.com/astra-systems/astra-service"
+rust-version = "1.75"
+
+[dependencies]
+clap = { version = "4.4", features = ["derive", "env", "cargo"] }
+humantime = "2.1"
+rand = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+[dev-dependencies]
+tempfile = "3.9"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[profile.dev]
+opt-level = 1

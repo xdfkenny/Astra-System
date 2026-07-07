@@ -1,0 +1,482 @@
+# Astra-Service — Production Stack
+# Uses the hardened production Dockerfiles under infra/docker/.
+# Intended for Docker Swarm or compose with a compatible orchestrator.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml ps
+
+x-service-prod: &service-prod
+  restart: unless-stopped
+  read_only: true
+  tmpfs:
+    - /tmp:noexec,nosuid,size=100m
+  security_opt:
+    - seccomp:./infra/docker/seccomp.json
+    - apparmor:astra-go-service
+  cap_drop:
+    - ALL
+  cap_add:
+    - NET_BIND_SERVICE
+  networks:
+    - astra-net
+  deploy:
+    replicas: 2
+    resources:
+      limits:
+        cpus: "1.0"
+        memory: 512M
+      reservations:
+        cpus: "0.25"
+        memory: 128M
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: astra-postgres
+    restart: unless-stopped
+    user: "70:70"
+    read_only: true
+    environment:
+      POSTGRES_USER: astra
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-astra-service}
+      POSTGRES_DB: astra_service
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    security_opt:
+      - seccomp:./infra/docker/seccomp.json
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U astra -d astra_service"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - astra-net
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    container_name: astra-redis
+    restart: unless-stopped
+    user: "999:1000"
+    read_only: true
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    security_opt:
+      - seccomp:./infra/docker/seccomp.json
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - astra-net
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+  nats:
+    image: nats:2-alpine
+    restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: >
+      --jetstream
+      --store_dir /data/jetstream
+      --max_memory_store 1GB
+      --max_file_store 4GB
+    volumes:
+      - nats_data:/data/jetstream
+    security_opt:
+      - seccomp:./infra/docker/seccomp.json
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - astra-net
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.60
+    container_name: astra-jaeger
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=1g
+    ports:
+      - "16686:16686"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    cap_drop:
+      - ALL
+    networks:
+      - astra-net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.111
+    restart: unless-stopped
+    read_only: true
+    command: ["--config=/etc/otelcol-contrib/otel-collector.yml"]
+    volumes:
+      - ./infra/otel/otel-collector.yml:/etc/otelcol-contrib/otel-collector.yml:ro
+    cap_drop:
+      - ALL
+    networks:
+      - astra-net
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+  gateway:
+    <<: *service-prod
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.gateway
+    image: astra/gateway:latest
+    environment:
+      ASTRA_ENV: production
+      ASTRA_PORT: 8080
+      ASTRA_NATS_URL: nats://nats:4222
+      ASTRA_REDIS_URL: redis://redis:6379/0
+      ASTRA_POSTGRES_URL: postgres://astra:astra_service@postgres:5432/astra_service?sslmode=require
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  menu-service:
+    <<: *service-prod
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.menu-service
+    image: astra/menu-service:latest
+    environment:
+      ASTRA_ENV: production
+      ASTRA_PORT: 8085
+      ASTRA_NATS_URL: nats://nats:4222
+      ASTRA_POSTGRES_URL: postgres://astra:astra_service@postgres:5432/astra_service?sslmode=require
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  cart-service:
+    <<: *service-prod
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.cart-service
+    image: astra/cart-service:latest
+    environment:
+      ASTRA_ENV: production
+      ASTRA_PORT: 8081
+      ASTRA_NATS_URL: nats://nats:4222
+      ASTRA_POSTGRES_URL: postgres://astra:astra_service@postgres:5432/astra_service?sslmode=require
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  order-service:
+    <<: *service-prod
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.order-service
+    image: astra/order-service:latest
+    environment:
+      ASTRA_ENV: production
+      ASTRA_PORT: 8083
+      ASTRA_NATS_URL: nats://nats:4222
+      ASTRA_POSTGRES_URL: postgres://astra:astra_service@postgres:5432/astra_service?sslmode=require
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  inventory-service:
+    <<: *service-prod
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.inventory-service
+    image: astra/inventory-service:latest
+    environment:
+      ASTRA_ENV: production
+      ASTRA_PORT: 8082
+      ASTRA_NATS_URL: nats://nats:4222
+      ASTRA_POSTGRES_URL: postgres://astra:astra_service@postgres:5432/astra_service?sslmode=require
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  payment-orchestrator:
+    <<: *service-prod
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.payment-orchestrator
+    image: astra/payment-orchestrator:latest
+    environment:
+      ASTRA_ENV: production
+      ASTRA_PORT: 8086
+      ASTRA_NATS_URL: nats://nats:4222
+      ASTRA_POSTGRES_URL: postgres://astra:astra_service@postgres:5432/astra_service?sslmode=require
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  sync-service:
+    <<: *service-prod
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.sync-service
+    image: astra/sync-service:latest
+    environment:
+      ASTRA_ENV: production
+      ASTRA_PORT: 8087
+      ASTRA_NATS_URL: nats://nats:4222
+      ASTRA_POSTGRES_URL: postgres://astra:astra_service@postgres:5432/astra_service?sslmode=require
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  webauthn-service:
+    <<: *service-prod
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.webauthn-service
+    image: astra/webauthn-service:latest
+    environment:
+      ASTRA_ENV: production
+      ASTRA_GRPC_PORT: 8090
+      ASTRA_HTTP_PORT: 8091
+      ASTRA_POSTGRES_URL: postgres://astra:astra_service@postgres:5432/astra_service?sslmode=require
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  admin-graphql:
+    <<: *service-prod
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.admin-graphql
+    image: astra/admin-graphql:latest
+    environment:
+      ASTRA_ENV: production
+      ASTRA_PORT: 8092
+      ASTRA_POSTGRES_URL: postgres://astra:astra_service@postgres:5432/astra_service?sslmode=require
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  update-server:
+    <<: *service-prod
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.update-server
+    image: astra/update-server:latest
+    environment:
+      ASTRA_ENV: production
+      ASTRA_PORT: 8080
+    ports:
+      - "8090:8080"
+
+  ml-lane-intel:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.ml-lane-intel
+    container_name: astra-ml-lane-intel
+    image: astra/ml-lane-intel:latest
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=500m
+    security_opt:
+      - seccomp:./infra/docker/seccomp.json
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    environment:
+      ASTRA_ENV: production
+      HOST: 0.0.0.0
+      PORT: 8080
+      MODEL_PATH: /app/models/yolov8n.onnx
+    networks:
+      - astra-net
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "1.0"
+          memory: 1G
+
+  kiosk:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.kiosk
+    image: astra/kiosk:latest
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=50m
+      - /var/cache/nginx:noexec,nosuid,size=50m
+      - /var/run:noexec,nosuid,size=10m
+    security_opt:
+      - seccomp:./infra/docker/seccomp.json
+      - apparmor:astra-kiosk
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - SETGID
+      - SETUID
+    environment:
+      ASTRA_API_URL: http://gateway:8080
+    ports:
+      - "80:80"
+    depends_on:
+      - gateway
+    networks:
+      - astra-net
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  syncd:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.syncd
+    image: astra/syncd:latest
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+    security_opt:
+      - seccomp:./infra/docker/seccomp.json
+      - apparmor:astra-syncd
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    environment:
+      ASTRA_ENV: production
+    volumes:
+      - syncd_data:/var/lib/astra-syncd
+    ports:
+      - "4499:4499"
+    depends_on:
+      - nats
+    networks:
+      - astra-net
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+volumes:
+  postgres_data:
+  redis_data:
+  nats_data:
+  syncd_data:
+
+networks:
+  astra-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+

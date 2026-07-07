@@ -1,0 +1,182 @@
+syntax = "proto3";
+
+package astra.webauthn.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+
+option go_package = "github.com/astra-systems/astra-service/proto/gen/go/webauthn;webauthn";
+
+// WebAuthnService manages credential registration and authentication ceremonies
+// for employees and admin users. It stores credentials in the existing users
+// and employees PostgreSQL tables.
+service WebAuthnService {
+  // BeginRegistration returns options for creating a new WebAuthn credential.
+  rpc BeginRegistration(BeginRegistrationRequest) returns (BeginRegistrationResponse) {
+    option (google.api.http) = {
+      post: "/v1/webauthn/register/begin"
+      body: "*"
+    };
+  }
+
+  // FinishRegistration validates an attestation and persists the credential.
+  rpc FinishRegistration(FinishRegistrationRequest) returns (FinishRegistrationResponse) {
+    option (google.api.http) = {
+      post: "/v1/webauthn/register/finish"
+      body: "*"
+    };
+  }
+
+  // BeginAuthentication returns assertion options for an existing credential.
+  rpc BeginAuthentication(BeginAuthenticationRequest) returns (BeginAuthenticationResponse) {
+    option (google.api.http) = {
+      post: "/v1/webauthn/authenticate/begin"
+      body: "*"
+    };
+  }
+
+  // FinishAuthentication validates a signed assertion and returns the actor.
+  rpc FinishAuthentication(FinishAuthenticationRequest) returns (FinishAuthenticationResponse) {
+    option (google.api.http) = {
+      post: "/v1/webauthn/authenticate/finish"
+      body: "*"
+    };
+  }
+}
+
+// ActorType distinguishes employees (kiosk-facing) from admin users.
+enum ActorType {
+  ACTOR_TYPE_UNSPECIFIED = 0;
+  ACTOR_TYPE_EMPLOYEE = 1;
+  ACTOR_TYPE_USER = 2;
+}
+
+// PublicKeyCredentialDescriptor mirrors the WebAuthn credential descriptor.
+message PublicKeyCredentialDescriptor {
+  string type = 1;
+  bytes id = 2;
+  repeated string transports = 3;
+}
+
+// PublicKeyCredentialCreationOptions contains the parameters needed to create
+// a new credential on the client.
+message PublicKeyCredentialCreationOptions {
+  bytes challenge = 1;
+  RelyingParty relying_party = 2;
+  UserEntity user = 3;
+  repeated PublicKeyCredentialParameters pub_key_cred_params = 4;
+  int64 timeout_ms = 5;
+  string attestation = 6;
+  AuthenticatorSelection authenticator_selection = 7;
+  repeated PublicKeyCredentialDescriptor exclude_credentials = 8;
+}
+
+// RelyingParty identifies the application that owns the credential.
+message RelyingParty {
+  string id = 1;
+  string name = 2;
+}
+
+// UserEntity describes the actor a credential is being registered for.
+message UserEntity {
+  bytes id = 1;
+  string name = 2;
+  string display_name = 3;
+}
+
+// PublicKeyCredentialParameters describes supported signature algorithms.
+message PublicKeyCredentialParameters {
+  string type = 1;
+  int64 alg = 2;
+}
+
+// AuthenticatorSelection constrains the type of authenticator that may be used.
+message AuthenticatorSelection {
+  string authenticator_attachment = 1;
+  string resident_key = 2;
+  string user_verification = 3;
+}
+
+// AuthenticatorAttestationResponse carries the raw attestation from the client.
+message AuthenticatorAttestationResponse {
+  bytes client_data_json = 1;
+  bytes attestation_object = 2;
+  repeated string transports = 3;
+}
+
+// AuthenticatorAssertionResponse carries the raw assertion from the client.
+message AuthenticatorAssertionResponse {
+  bytes client_data_json = 1;
+  bytes authenticator_data = 2;
+  bytes signature = 3;
+  bytes user_handle = 4;
+}
+
+// BeginRegistrationRequest initiates a registration ceremony.
+message BeginRegistrationRequest {
+  string actor_id = 1;
+  ActorType actor_type = 2;
+  string store_id = 3;
+  string tenant_id = 4;
+}
+
+// BeginRegistrationResponse contains the options required by the client to
+// create a credential.
+message BeginRegistrationResponse {
+  PublicKeyCredentialCreationOptions options = 1;
+  string challenge = 2;
+}
+
+// FinishRegistrationRequest submits the attestation for validation and storage.
+message FinishRegistrationRequest {
+  string actor_id = 1;
+  ActorType actor_type = 2;
+  string challenge = 3;
+  string credential_id = 4;
+  AuthenticatorAttestationResponse attestation = 5;
+}
+
+// FinishRegistrationResponse reports the persisted credential.
+message FinishRegistrationResponse {
+  bool success = 1;
+  string credential_id = 2;
+  string actor_id = 3;
+  ActorType actor_type = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+// BeginAuthenticationRequest initiates an authentication ceremony.
+message BeginAuthenticationRequest {
+  string actor_id = 1;
+  ActorType actor_type = 2;
+  string store_id = 3;
+  string kiosk_id = 4;
+  string tenant_id = 5;
+}
+
+// BeginAuthenticationResponse contains the challenge and assertion options.
+message BeginAuthenticationResponse {
+  string challenge = 1;
+  string rp_id = 2;
+  repeated PublicKeyCredentialDescriptor allow_credentials = 3;
+  string user_verification = 4;
+  int64 timeout_ms = 5;
+}
+
+// FinishAuthenticationRequest submits a signed assertion for verification.
+message FinishAuthenticationRequest {
+  string actor_id = 1;
+  ActorType actor_type = 2;
+  string challenge = 3;
+  string credential_id = 4;
+  AuthenticatorAssertionResponse assertion = 5;
+}
+
+// FinishAuthenticationResponse reports whether the assertion is valid.
+message FinishAuthenticationResponse {
+  bool valid = 1;
+  string actor_id = 2;
+  ActorType actor_type = 3;
+  string credential_id = 4;
+  google.protobuf.Timestamp authenticated_at = 5;
+}

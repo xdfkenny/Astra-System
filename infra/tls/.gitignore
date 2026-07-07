@@ -1,0 +1,8 @@
+# Generated PKI artifacts — never commit private keys or certificates.
+out/
+config/
+*.pem
+*.csr
+*-key.pem
+*.srl
+*.json

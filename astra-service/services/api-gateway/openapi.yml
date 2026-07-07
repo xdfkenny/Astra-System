@@ -1,0 +1,614 @@
+openapi: 3.1.0
+info:
+  title: Astra-Service API
+  description: |
+    Production-grade, offline-first self-checkout API. All endpoints require
+    HMAC-SHA256 request signing via `X-Astra-Kiosk-Id`, `X-Astra-Timestamp`,
+    and `X-Astra-Signature` headers except public health checks.
+  version: 1.0.0
+  contact:
+    name: Astra-Service Engineering
+    email: engineering@astra.systems
+  license:
+    name: MIT
+    identifier: MIT
+
+servers:
+  - url: https://kiosk.astra-service.internal/v1
+    description: Production gateway
+  - url: http://localhost:8080/v1
+    description: Local development
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      summary: Gateway liveness probe
+      responses:
+        '200':
+          description: Gateway is alive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /readyz:
+    get:
+      operationId: readinessCheck
+      summary: Gateway readiness probe
+      responses:
+        '200':
+          description: Gateway is ready to serve traffic
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /menu:
+    get:
+      operationId: getMenu
+      summary: Fetch the store menu catalog
+      parameters:
+        - $ref: '#/components/parameters/KioskIdHeader'
+        - $ref: '#/components/parameters/TimestampHeader'
+        - $ref: '#/components/parameters/SignatureHeader'
+      responses:
+        '200':
+          description: Menu catalog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuCatalog'
+
+  /menu/stream:
+    get:
+      operationId: streamMenuUpdates
+      summary: SSE stream for live menu/price updates
+      parameters:
+        - $ref: '#/components/parameters/KioskIdHeader'
+      responses:
+        '200':
+          description: Server-sent event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /carts/{cartId}/items:
+    post:
+      operationId: addCartItem
+      summary: Add an item to a cart
+      parameters:
+        - name: cartId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/KioskIdHeader'
+        - $ref: '#/components/parameters/TimestampHeader'
+        - $ref: '#/components/parameters/SignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCartItemRequest'
+      responses:
+        '202':
+          description: Item addition accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandAcceptedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Idempotency key already used
+
+  /carts/{cartId}/items/{lineId}:
+    delete:
+      operationId: removeCartItem
+      summary: Remove a line item from a cart
+      parameters:
+        - name: cartId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: lineId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/KioskIdHeader'
+        - $ref: '#/components/parameters/TimestampHeader'
+        - $ref: '#/components/parameters/SignatureHeader'
+      responses:
+        '204':
+          description: Item removed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /orders:
+    post:
+      operationId: createOrder
+      summary: Create an order from a finalized cart
+      parameters:
+        - $ref: '#/components/parameters/KioskIdHeader'
+        - $ref: '#/components/parameters/TimestampHeader'
+        - $ref: '#/components/parameters/SignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /orders/{orderId}:
+    get:
+      operationId: getOrder
+      summary: Get order status
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/KioskIdHeader'
+        - $ref: '#/components/parameters/TimestampHeader'
+        - $ref: '#/components/parameters/SignatureHeader'
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '404':
+          description: Order not found
+
+  /payments/initiate:
+    post:
+      operationId: initiatePayment
+      summary: Initiate a payment via the local Verifone sidecar
+      description: |
+        Proxies to the loopback-only Verifone sidecar. The gateway itself never
+        touches card data; it only forwards the opaque authorization result.
+      parameters:
+        - $ref: '#/components/parameters/KioskIdHeader'
+        - $ref: '#/components/parameters/TimestampHeader'
+        - $ref: '#/components/parameters/SignatureHeader'
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiatePaymentRequest'
+      responses:
+        '200':
+          description: Payment authorization result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentAuthorizationResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '502':
+          description: Verifone sidecar unavailable
+
+  /payments/offline-token:
+    post:
+      operationId: submitOfflineToken
+      summary: Submit an offline payment token for cloud settlement
+      description: |
+        Used by the Raft-leader kiosk to upload locally-signed offline payment
+        tokens when connectivity is restored.
+      parameters:
+        - $ref: '#/components/parameters/KioskIdHeader'
+        - $ref: '#/components/parameters/TimestampHeader'
+        - $ref: '#/components/parameters/SignatureHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OfflinePaymentToken'
+      responses:
+        '202':
+          description: Token queued for settlement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandAcceptedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: HMAC signature verification failed
+
+  /admin/fleet-health:
+    get:
+      operationId: getFleetHealth
+      summary: Real-time fleet, mesh, and payment-lane health
+      parameters:
+        - $ref: '#/components/parameters/KioskIdHeader'
+        - $ref: '#/components/parameters/TimestampHeader'
+        - $ref: '#/components/parameters/SignatureHeader'
+      responses:
+        '200':
+          description: Fleet health snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FleetHealthResponse'
+
+components:
+  parameters:
+    KioskIdHeader:
+      name: X-Astra-Kiosk-Id
+      in: header
+      required: true
+      schema:
+        type: string
+    TimestampHeader:
+      name: X-Astra-Timestamp
+      in: header
+      required: true
+      schema:
+        type: string
+    SignatureHeader:
+      name: X-Astra-Signature
+      in: header
+      required: true
+      schema:
+        type: string
+    IdempotencyKeyHeader:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, ready]
+        time:
+          type: string
+          format: date-time
+
+    MenuCatalog:
+      type: object
+      required: [categories, items]
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/MenuCategory'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MenuItem'
+
+    MenuCategory:
+      type: object
+      required: [categoryId, name, displayOrder]
+      properties:
+        categoryId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        displayOrder:
+          type: integer
+        imageUrl:
+          type: string
+        blurhash:
+          type: string
+
+    MenuItem:
+      type: object
+      required: [itemId, categoryId, name, priceCents, isAvailable]
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        categoryId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        priceCents:
+          type: integer
+          minimum: 0
+        isAvailable:
+          type: boolean
+        plu:
+          type: string
+        barcode:
+          type: string
+        imageUrl:
+          type: string
+        blurhash:
+          type: string
+
+    AddCartItemRequest:
+      type: object
+      required: [menuItemId, nameSnapshot, unitPriceCentsSnapshot, quantity]
+      properties:
+        menuItemId:
+          type: string
+          format: uuid
+        nameSnapshot:
+          type: string
+        unitPriceCentsSnapshot:
+          type: integer
+        quantity:
+          type: integer
+          minimum: 1
+        modifiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModifierSelection'
+
+    ModifierSelection:
+      type: object
+      required: [modifierId, optionId, priceDeltaCents]
+      properties:
+        modifierId:
+          type: string
+        optionId:
+          type: string
+        priceDeltaCents:
+          type: integer
+
+    CommandAcceptedResponse:
+      type: object
+      required: [correlationId, status]
+      properties:
+        correlationId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [accepted]
+
+    CreateOrderRequest:
+      type: object
+      required: [cartId, storeId, kioskId, items, totalCents]
+      properties:
+        cartId:
+          type: string
+          format: uuid
+        storeId:
+          type: string
+          format: uuid
+        kioskId:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        subtotalCents:
+          type: integer
+        taxCents:
+          type: integer
+        discountCents:
+          type: integer
+        totalCents:
+          type: integer
+
+    OrderResponse:
+      type: object
+      required: [orderId, status]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, paid, fulfilled, cancelled, refunded]
+        orderNumber:
+          type: string
+        totalCents:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+
+    OrderItem:
+      type: object
+      required: [itemId, nameSnapshot, priceCentsSnapshot, quantity, lineTotalCents]
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        nameSnapshot:
+          type: string
+        priceCentsSnapshot:
+          type: integer
+        quantity:
+          type: integer
+        lineTotalCents:
+          type: integer
+
+    InitiatePaymentRequest:
+      type: object
+      required: [cartId, amountCents, method]
+      properties:
+        cartId:
+          type: string
+          format: uuid
+        amountCents:
+          type: integer
+          minimum: 1
+        method:
+          type: string
+          enum: [credit_debit, nfc_apple_pay, nfc_google_pay, qr_code, cash_recycler]
+        currency:
+          type: string
+          default: USD
+
+    PaymentAuthorizationResult:
+      type: object
+      required: [authorizationId, status, method, amountCents, opaqueToken]
+      properties:
+        authorizationId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [authorized, declined, cancelled, pending, network_error]
+        method:
+          type: string
+        amountCents:
+          type: integer
+        approvalCode:
+          type: string
+        declineReason:
+          type: string
+        cardBrand:
+          type: string
+        cardLastFour:
+          type: string
+          pattern: '^\d{4}$'
+        receiptText:
+          type: string
+        opaqueToken:
+          type: string
+          description: PCI-safe opaque token from the Verifone terminal
+
+    OfflinePaymentToken:
+      type: object
+      required:
+        - tokenId
+        - kioskId
+        - cartId
+        - amountCents
+        - currency
+        - method
+        - verifoneOpaqueToken
+        - createdAtMs
+        - expiresAtMs
+        - hmacSignature
+      properties:
+        tokenId:
+          type: string
+          format: uuid
+        kioskId:
+          type: string
+        cartId:
+          type: string
+          format: uuid
+        amountCents:
+          type: integer
+        currency:
+          type: string
+        method:
+          type: string
+        verifoneOpaqueToken:
+          type: string
+        createdAtMs:
+          type: integer
+        expiresAtMs:
+          type: integer
+        hmacSignature:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+        synced:
+          type: boolean
+
+    FleetHealthResponse:
+      type: object
+      required: [nodes, paymentLanes, generatedAtMs]
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/KioskHealth'
+        paymentLanes:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentLaneHealth'
+        generatedAtMs:
+          type: integer
+
+    KioskHealth:
+      type: object
+      required: [kioskId, storeId, health, isLeader]
+      properties:
+        kioskId:
+          type: string
+        storeId:
+          type: string
+        health:
+          type: string
+          enum: [healthy, degraded, failed]
+        isLeader:
+          type: boolean
+        syncLagMs:
+          type: integer
+        paymentSuccessRate:
+          type: number
+        meshPeers:
+          type: array
+          items:
+            type: string
+
+    PaymentLaneHealth:
+      type: object
+      required: [laneId, state]
+      properties:
+        laneId:
+          type: string
+        state:
+          type: string
+          enum: [closed, half_open, open]
+        failures:
+          type: integer
+        lastFailureAtMs:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        correlationId:
+          type: string
+          format: uuid

@@ -1,0 +1,30 @@
+# Git hooks — kept fast (<10s) so kiosk-firmware engineers don't skip them.
+pre-commit:
+  parallel: true
+  commands:
+    lint-staged-ts:
+      glob: "*.{ts,tsx}"
+      run: pnpm eslint --fix {staged_files} && pnpm prettier --write {staged_files}
+      stage_fixed: true
+    fmt-rust:
+      glob: "*.rs"
+      run: cd {git_root} && cargo fmt --manifest-path daemons/astra-syncd/Cargo.toml -- --check
+    fmt-go:
+      glob: "*.go"
+      run: gofmt -l {staged_files}
+    conventional-commit-check:
+      run: echo "Commit message validated in commit-msg hook"
+
+commit-msg:
+  commands:
+    conventional-commits:
+      run: pnpm dlx commitlint --edit {1}
+
+pre-push:
+  commands:
+    typecheck:
+      run: pnpm turbo run typecheck
+    cargo-test:
+      run: cd {git_root}/daemons/astra-syncd && cargo test --quiet
+    go-test:
+      run: cd {git_root} && go test ./... -race -count=1

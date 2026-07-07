@@ -1,0 +1,60 @@
+# Payment Flow
+
+Astra-Service integrates with Verifone terminals through a Rust FFI bridge. Payments work both online and offline, with tokens settled when connectivity returns.
+
+## Online payment flow
+
+1. Customer taps to start a session; the kiosk creates a UUID v7 cart.
+2. Items are added; cart totals are computed in a Web Worker.
+3. At checkout, the kiosk calls `VxStartTransaction(amount, currency)` via the Rust Verifone FFI bridge.
+4. The Verifone terminal prompts for card or NFC and performs online authorization.
+5. On success, `VxProcessPayment` returns an opaque token and authorization code.
+6. The kiosk records the transaction, prints the ESC/POS receipt, and decrements inventory via P2P sync.
+
+## Offline payment flow
+
+Steps 1–3 are identical. In offline mode:
+
+4. The terminal performs authorization independently or falls back to offline PIN authorization.
+5. The kiosk signs the payment result with HMAC-SHA256 using the kiosk's daily signing key.
+6. The signed token is queued in local SQLite.
+7. The transaction is broadcast to all peers in the mesh.
+8. When connectivity returns, the Raft leader uploads the batch to the cloud payment orchestrator.
+9. The orchestrator verifies signatures and settles with the acquirer. Failures are flagged for review.
+
+## Payment token schema
+
+```json
+{
+  "token_id": "uuidv7",
+  "amount": 2499,
+  "currency": "USD",
+  "terminal_id": "verifone-abc123",
+  "kiosk_id": "kiosk-9",
+  "timestamp": "2026-07-05T07:28:59Z",
+  "auth_code": "A1B2C3",
+  "signature": "base64(hmac-sha256(payload, daily_key))"
+}
+```
+
+## Verifone FFI bridge
+
+The `astra-verifone-ffi` Rust crate exposes a safe API over the vendor C SDK:
+
+```rust
+pub fn init_terminal() -> Result<TerminalHandle, VerifoneError>
+pub fn start_transaction(amount: u64, currency: &str) -> Result<Transaction, VerifoneError>
+pub fn wait_for_card() -> Result<CardPresented, VerifoneError>
+pub fn process_payment() -> Result<PaymentToken, VerifoneError>
+pub fn refund(transaction_id: &str) -> Result<RefundReceipt, VerifoneError>
+pub fn close_terminal() -> Result<(), VerifoneError>
+```
+
+Error codes from the C SDK are mapped to a strongly typed `VerifoneError` enum.
+
+## PCI-DSS controls
+
+- Card data (PAN, track data, CVV) never touches kiosk storage or memory.
+- The terminal handles all card data inside its own PCI scope.
+- The kiosk only receives an opaque token, authorization status, last-4 digits, and card brand.
+- Tokens are encrypted at rest (SQLCipher) and in transit (TLS 1.3 / Noise).

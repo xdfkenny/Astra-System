@@ -1,0 +1,24 @@
+go 1.25.1
+
+toolchain go1.25.1
+
+use (
+	../infra/secrets
+	../proto
+	../services/update-server
+	./packages/go-common
+	./services/admin-graphql
+	./services/api-gateway
+	./services/cart-service
+	./services/gateway
+	./services/inventory-service
+	./services/legacy-pos-adapter
+	./services/menu-service
+	./services/order-service
+	./services/payment-orchestrator
+	./services/payment-service
+	./services/sync-service
+	./services/webauthn-service
+)
+
+replace gonum.org/v1/gonum => gonum.org/v1/gonum v0.14.0

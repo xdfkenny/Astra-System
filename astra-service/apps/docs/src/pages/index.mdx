@@ -1,0 +1,27 @@
+# Astra-Service Documentation
+
+Welcome to the technical documentation for **Astra-Service**, a production-grade, offline-first automated self-checkout platform built for 24/7 retail environments.
+
+## What you will find here
+
+- **Architecture** — system topology, service inventory, and design goals.
+- **Kiosk Flow** — end-to-end customer experience on the kiosk shell.
+- **Offline Mode** — how kiosks keep operating without cloud connectivity.
+- **P2P Sync** — mesh networking, Raft consensus, CRDTs, and hybrid logical clocks.
+- **Payment Flow** — online and offline payment orchestration via Verifone terminals.
+- **Security** — zero-trust model, mTLS, secrets management, and PCI-DSS controls.
+- **API Reference** — summary of public and internal API conventions.
+- **Runbooks** — operational playbooks for incident response and recovery.
+
+## Quick facts
+
+| Goal | Target |
+| ---- | ------ |
+| Offline resilience | 48 hours of autonomous operation |
+| Menu load latency | < 200 ms |
+| P2P inventory sync | < 500 ms |
+| Leader failover | < 3 seconds |
+| Cloud tier availability | 99.99% uptime |
+| Security posture | Zero trust, mTLS everywhere |
+
+Use the sidebar to navigate, or start with [Architecture](./architecture).

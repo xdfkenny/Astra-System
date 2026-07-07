@@ -1,0 +1,426 @@
+# Astra-Service — Local Development Stack
+# Brings up every dependency and microservice with hot-reload enabled.
+#
+# Usage:
+#   docker compose -f docker-compose.yml up -d
+#   docker compose -f docker-compose.yml logs -f gateway
+#   docker compose -f docker-compose.yml --profile ml --profile sync up -d
+#
+# Hot reload:
+#   - TypeScript (kiosk): Vite HMR
+#   - Go services: air (file watcher + rebuild)
+#   - Rust syncd: cargo-watch
+
+x-go-dev: &go-dev
+  image: golang:1.25-alpine
+  restart: unless-stopped
+  environment:
+    ASTRA_ENV: development
+    GOPATH: /go
+    PATH: /go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+  volumes:
+    - .:/build:cached
+    - go-tools:/go
+  networks:
+    - astra-net
+  command: >
+    sh -c "
+      export PATH=\$\$GOPATH/bin:\$\$PATH &&
+      which air >/dev/null || go install github.com/cosmtrek/air@latest &&
+      air --build.cmd 'go build -o /tmp/server ./cmd'
+          --build.bin '/tmp/server'
+          --build.delay 1000
+          --build.include_ext 'go'
+          --build.exclude_dir 'node_modules,.git,vendor'
+          --build.stop_on_error false
+    "
+
+services:
+  # ── Data stores / message bus / observability ─────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: astra-postgres
+    restart: unless-stopped
+    user: "70:70"
+    environment:
+      POSTGRES_USER: astra
+      POSTGRES_PASSWORD: astra-local-dev
+      POSTGRES_DB: astra_service
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    security_opt:
+      - seccomp:./infra/docker/seccomp.json
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U astra -d astra_service"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - astra-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: astra-redis
+    restart: unless-stopped
+    user: "999:1000"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    security_opt:
+      - seccomp:./infra/docker/seccomp.json
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - astra-net
+
+  nats:
+    image: nats:2-alpine
+    container_name: astra-nats
+    restart: unless-stopped
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: >
+      --jetstream
+      --store_dir /data/jetstream
+      --max_memory_store 512MB
+      --max_file_store 2GB
+    volumes:
+      - nats_data:/data/jetstream
+    security_opt:
+      - seccomp:./infra/docker/seccomp.json
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - astra-net
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.60
+    container_name: astra-jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    cap_drop:
+      - ALL
+    networks:
+      - astra-net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.111
+    container_name: astra-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol-contrib/otel-collector.yml"]
+    volumes:
+      - ./infra/otel/otel-collector.yml:/etc/otelcol-contrib/otel-collector.yml:ro
+    ports:
+      - "4317"
+      - "4318"
+      - "13133:13133"
+    depends_on:
+      - jaeger
+    cap_drop:
+      - ALL
+    networks:
+      - astra-net
+
+  # ── Go microservices (hot reload via air) ─────────────────────────────────
+  gateway:
+    <<: *go-dev
+    container_name: astra-gateway
+    working_dir: /build/astra-service/services/gateway
+    environment:
+      ASTRA_ENV: development
+      ASTRA_PORT: 8080
+      ASTRA_NATS_URL: nats://nats:4222
+      ASTRA_REDIS_URL: redis://redis:6379/0
+      ASTRA_POSTGRES_URL: postgres://astra:astra-local-dev@postgres:5432/astra_service?sslmode=disable
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+      GOPATH: /go
+      PATH: /go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  menu-service:
+    <<: *go-dev
+    container_name: astra-menu-service
+    working_dir: /build/astra-service/services/menu-service
+    environment:
+      ASTRA_ENV: development
+      ASTRA_PORT: 8085
+      ASTRA_NATS_URL: nats://nats:4222
+      ASTRA_POSTGRES_URL: postgres://astra:astra-local-dev@postgres:5432/astra_service?sslmode=disable
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+      GOPATH: /go
+      PATH: /go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  cart-service:
+    <<: *go-dev
+    container_name: astra-cart-service
+    working_dir: /build/astra-service/services/cart-service
+    environment:
+      ASTRA_ENV: development
+      ASTRA_PORT: 8081
+      ASTRA_NATS_URL: nats://nats:4222
+      ASTRA_POSTGRES_URL: postgres://astra:astra-local-dev@postgres:5432/astra_service?sslmode=disable
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+      GOPATH: /go
+      PATH: /go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  order-service:
+    <<: *go-dev
+    container_name: astra-order-service
+    working_dir: /build/astra-service/services/order-service
+    environment:
+      ASTRA_ENV: development
+      ASTRA_PORT: 8083
+      ASTRA_NATS_URL: nats://nats:4222
+      ASTRA_POSTGRES_URL: postgres://astra:astra-local-dev@postgres:5432/astra_service?sslmode=disable
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+      GOPATH: /go
+      PATH: /go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  inventory-service:
+    <<: *go-dev
+    container_name: astra-inventory-service
+    working_dir: /build/astra-service/services/inventory-service
+    environment:
+      ASTRA_ENV: development
+      ASTRA_PORT: 8082
+      ASTRA_NATS_URL: nats://nats:4222
+      ASTRA_POSTGRES_URL: postgres://astra:astra-local-dev@postgres:5432/astra_service?sslmode=disable
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+      GOPATH: /go
+      PATH: /go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  payment-orchestrator:
+    <<: *go-dev
+    container_name: astra-payment-orchestrator
+    working_dir: /build/astra-service/services/payment-orchestrator
+    environment:
+      ASTRA_ENV: development
+      ASTRA_PORT: 8086
+      ASTRA_NATS_URL: nats://nats:4222
+      ASTRA_POSTGRES_URL: postgres://astra:astra-local-dev@postgres:5432/astra_service?sslmode=disable
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+      GOPATH: /go
+      PATH: /go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  sync-service:
+    <<: *go-dev
+    container_name: astra-sync-service
+    working_dir: /build/astra-service/services/sync-service
+    environment:
+      ASTRA_ENV: development
+      ASTRA_PORT: 8087
+      ASTRA_NATS_URL: nats://nats:4222
+      ASTRA_POSTGRES_URL: postgres://astra:astra-local-dev@postgres:5432/astra_service?sslmode=disable
+      ASTRA_OTEL_ENDPOINT: http://otel-collector:4317
+      GOPATH: /go
+      PATH: /go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+
+  update-server:
+    image: golang:1.25-alpine
+    container_name: astra-update-server
+    restart: unless-stopped
+    working_dir: /build/services/update-server
+    environment:
+      ASTRA_ENV: development
+      ASTRA_PORT: 8090
+      GOPATH: /go
+      PATH: /go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    volumes:
+      - .:/build:cached
+      - go-tools:/go
+    networks:
+      - astra-net
+    command: >
+      sh -c "
+        export PATH=\$\$GOPATH/bin:\$\$PATH &&
+        which air >/dev/null || go install github.com/cosmtrek/air@latest &&
+        air --build.cmd 'go build -o /tmp/server ./cmd'
+            --build.bin '/tmp/server'
+            --build.delay 1000
+            --build.include_ext 'go'
+            --build.exclude_dir 'node_modules,.git,vendor'
+            --build.stop_on_error false
+      "
+    ports:
+      - "8090:8090"
+
+  # ── Python ML service (hot reload via uvicorn --reload) ────────────────────
+  ml-lane-intel:
+    profiles: ["ml"]
+    image: python:3.13-slim
+    container_name: astra-ml-lane-intel
+    restart: unless-stopped
+    working_dir: /build/astra-service/services/ml-lane-intel
+    environment:
+      ASTRA_ENV: development
+      HOST: 0.0.0.0
+      PORT: 8088
+      MODEL_PATH: /build/astra-service/services/ml-lane-intel/models/yolov8n.onnx
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - .:/build:cached
+      - ml-venv:/opt/venv
+    networks:
+      - astra-net
+    command: >
+      sh -c "
+        python -m venv /opt/venv &&
+        . /opt/venv/bin/activate &&
+        pip install -q -e '.[dev]' &&
+        python -m uvicorn main:app --host 0.0.0.0 --port 8088 --reload --reload-dir src
+      "
+    ports:
+      - "8088:8088"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8088/health')\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── TypeScript kiosk (hot reload via Vite) ─────────────────────────────────
+  kiosk:
+    image: node:22-alpine
+    container_name: astra-kiosk
+    restart: unless-stopped
+    working_dir: /build/astra-service
+    environment:
+      ASTRA_ENV: development
+      ASTRA_API_URL: http://gateway:8080
+      VITE_REMOTE_MENU: http://localhost:5171/assets/remoteEntry.js
+      VITE_REMOTE_CART: http://localhost:5172/assets/remoteEntry.js
+      VITE_REMOTE_PAYMENT: http://localhost:5173/assets/remoteEntry.js
+    ports:
+      - "5180:5180"
+    volumes:
+      - .:/build:cached
+      - node_modules:/build/astra-service/node_modules
+      - pnpm-store:/root/.local/share/pnpm/store
+    networks:
+      - astra-net
+    command: >
+      sh -c "
+        corepack enable &&
+        corepack prepare pnpm@9.12.0 --activate &&
+        pnpm install --frozen-lockfile --prefer-offline &&
+        pnpm turbo run dev --filter=@astra/kiosk
+      "
+    depends_on:
+      - gateway
+
+  # ── Rust sync daemon (hot reload via cargo-watch) ──────────────────────────
+  syncd:
+    profiles: ["sync"]
+    image: rust:1.82-bookworm
+    container_name: astra-syncd
+    restart: unless-stopped
+    working_dir: /build/astra-service/sync-daemon
+    environment:
+      ASTRA_ENV: development
+      RUST_LOG: info
+      RUST_BACKTRACE: "1"
+    volumes:
+      - .:/build:cached
+      - cargo-home:/usr/local/cargo
+      - cargo-target:/build/astra-service/sync-daemon/target
+    networks:
+      - astra-net
+    command: >
+      sh -c "
+        cargo install cargo-watch 2>/dev/null || true &&
+        cargo watch -x run
+      "
+    ports:
+      - "4499:4499"
+    depends_on:
+      - nats
+
+volumes:
+  postgres_data:
+  redis_data:
+  nats_data:
+  go-tools:
+  cargo-home:
+  cargo-target:
+  node_modules:
+  pnpm-store:
+  ml-venv:
+
+networks:
+  astra-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

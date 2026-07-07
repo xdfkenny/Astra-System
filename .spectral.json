@@ -1,0 +1,12 @@
+{
+  "extends": ["spectral:oas"],
+  "rules": {
+    "operation-operationId": "error",
+    "operation-description": "warn",
+    "operation-tags": "error",
+    "info-contact": "warn",
+    "info-license": "warn",
+    "oas3-valid-schema-example": "warn",
+    "oas3-schema": "error"
+  }
+}

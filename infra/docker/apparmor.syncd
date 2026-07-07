@@ -1,0 +1,50 @@
+#include <tunables/global>
+
+# AppArmor profile for the Astra Rust sync daemon.
+# Allows P2P QUIC networking, Raft consensus, and local state storage while
+# denying broad filesystem or privilege escalation capabilities.
+
+profile astra-syncd flags=(attach_disconnected, mediate_deleted) {
+  #include <abstractions/base>
+
+  capability net_bind_service,
+  capability setgid,
+  capability setuid,
+  deny capability sys_admin,
+  deny capability sys_ptrace,
+  deny capability sys_module,
+  deny capability dac_read_search,
+  deny capability dac_override,
+  deny capability mknod,
+  deny capability net_admin,
+  deny capability net_raw,
+  deny capability ipc_lock,
+  deny capability sys_chroot,
+
+  network inet stream,
+  network inet6 stream,
+  network inet dgram,
+  network inet6 dgram,
+  network inet raw,
+  deny network packet,
+
+  /usr/local/bin/astra-syncd r,
+  /etc/ssl/certs/** r,
+  /etc/astra/certs/** r,
+  /etc/astra-syncd/config.toml r,
+  /usr/share/zoneinfo/** r,
+  /var/lib/astra-syncd/** rwk,
+  /var/log/astra-syncd/** rw,
+  /tmp/** rw,
+  /var/tmp/** rw,
+  /proc/{self,$$}/** r,
+
+  deny /etc/passwd w,
+  deny /etc/shadow w,
+  deny /etc/group w,
+  deny /proc/sys/** w,
+  deny /sys/** w,
+  deny /dev/** w,
+
+  signal (receive) set=(term, int, hup),
+}

@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astra-ml-lane-intel"
+version = "0.1.0"
+description = "Astra ML Lane Intelligence service: local queue-depth estimation using ONNX Runtime, YOLOv8n, and gRPC."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "UNLICENSED" }
+authors = [
+    { name = "Astra Engineering" }
+]
+keywords = ["computer-vision", "onnx", "yolo", "queue-depth", "fastapi", "grpc"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "fastapi>=0.115.0",
+    "grpcio>=1.67.0",
+    "grpcio-tools>=1.67.0",
+    "onnxruntime>=1.19.0",
+    "numpy>=1.26.0",
+    "Pillow>=10.4.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.9.0",
+    "protobuf>=5.28.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "httpx>=0.27.0",
+    "onnx>=1.17.0",
+]
+
+[tool.setuptools]
+package-dir = { "" = "src", "proto" = "proto" }
+py-modules = ["main", "model", "service", "health"]
+packages = ["proto"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+exclude = ["proto/*_pb2*.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+mypy_path = ["src", "."]
+exclude = ["proto/.*_pb2.*.py"]

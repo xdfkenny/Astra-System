@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.out/
+.next/
+
+# Environment
+.env
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Testing
+coverage/
+.nyc_output/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Turbo / caches
+.turbo/
+.cache/
+
+# Rust
+target/
+Cargo.lock
+!apps/sync-daemon/Cargo.lock
+
+# Go
+bin/
+*.exe
+
+# Local tool caches / downloaded toolchains
+.go/
+go/
+.toolchain/
+
+# Secrets
+secrets/
+*.key
+*.pem
+!infra/certs/.gitkeep

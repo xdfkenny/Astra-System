@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package astra.lane.v1;
+
+import "common.proto";
+
+option go_package = "github.com/astra-systems/astra-service/proto/gen/go/lane;lane";
+
+// Request for current queue depth at a checkout lane.
+message QueueDepthRequest {
+  string lane_id = 1 [json_name = "lane_id"];
+  string store_id = 2 [json_name = "store_id"];
+}
+
+// Queue depth estimate produced by lane intelligence.
+message QueueDepthResponse {
+  string lane_id = 1 [json_name = "lane_id"];
+  string store_id = 2 [json_name = "store_id"];
+  int32 queue_depth = 3 [json_name = "queue_depth"];
+  int32 estimated_wait_seconds = 4 [json_name = "estimated_wait_seconds"];
+  string captured_at = 5 [json_name = "captured_at"];
+}
+
+// LaneIntelService exposes queue intelligence used to switch kiosk UI modes.
+service LaneIntelService {
+  rpc GetQueueDepth(QueueDepthRequest) returns (QueueDepthResponse);
+  rpc StreamQueueDepth(QueueDepthRequest) returns (stream QueueDepthResponse);
+}

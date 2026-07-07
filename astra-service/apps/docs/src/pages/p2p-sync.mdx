@@ -1,0 +1,65 @@
+# P2P Sync
+
+Kiosks form a local mesh to replicate state without relying on the cloud. The mesh uses libp2p with QUIC transport and the Noise protocol.
+
+## libp2p mesh network
+
+| Property | Implementation |
+| -------- | -------------- |
+| Transport | QUIC over UDP |
+| Security | Noise XX handshake |
+| Discovery | mDNS on the local LAN; optional DHT bootstrap nodes |
+| Protocol | Custom `/astra-sync/1.0.0` |
+| Identity | Ed25519 key pair provisioned during manufacturing |
+
+All sync traffic is encrypted with **XChaCha20-Poly1305**. Every message is signed and includes a monotonic nonce for replay protection.
+
+## Raft consensus
+
+When 3+ kiosks are present, a Raft cluster elects a leader responsible for:
+
+1. Uploading transaction batches to the cloud payment orchestrator.
+2. Fetching cloud menu/inventory updates and distributing them to the mesh.
+3. Reporting aggregate store health metrics.
+
+Raft parameters:
+
+- Heartbeat interval: 1 second
+- Election timeout: 2–4 seconds (randomized)
+- Expected leader failover: < 3 seconds
+
+With 1–2 kiosks, no leader election occurs and each kiosk queues independently.
+
+## CRDT strategies
+
+Astra-Service selects the CRDT strategy per data type:
+
+| Data type | CRDT | Notes |
+| --------- | ---- | ----- |
+| Inventory | PN-Counter | `sum(increments) - sum(decrements)` across peers. Soft holds expire as decrements with TTL. |
+| Cart state | LWW-Register | Hybrid Logical Clock timestamp wins; ties broken by kiosk ID. |
+| Transaction log | OR-Set | UUID v7 identifiers; tombstones preserve an immutable audit trail. |
+
+## Hybrid Logical Clocks
+
+```
+HLC = (physical_time_ms, logical_counter)
+```
+
+- Local events increment the counter.
+- Received messages merge the peer HLC and increment the counter.
+- HLC values are monotonic and capture "happens-before" relationships.
+
+This allows consistent event ordering even when kiosks have drifted real-time clocks.
+
+## Sync priorities
+
+| Priority | Data | Latency target | Transport |
+| -------- | ---- | --------------- | --------- |
+| 0 | Inventory changes | < 500 ms | Direct P2P broadcast |
+| 1 | Transaction logs | < 5 s | Batched, zstd compressed |
+| 2 | Analytics events | < 60 s | Bandwidth-aware batch |
+
+## Partition handling
+
+If the mesh splits, each partition keeps operating. When partitions reunite, CRDT merge rules deterministically reconcile state. Conflicts that require human judgment are surfaced in the manager dashboard.

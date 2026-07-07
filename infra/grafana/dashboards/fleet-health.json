@@ -1,0 +1,10 @@
+{
+  "dashboard": {
+    "title": "Astra-Service Fleet Health",
+    "uid": "astra-fleet-001",
+    "panels": [],
+    "tags": ["astra", "kiosk", "fleet"],
+    "timezone": "browser",
+    "schemaVersion": 36
+  }
+}

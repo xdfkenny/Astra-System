@@ -1,0 +1,147 @@
+syntax = "proto3";
+
+package astra.menu.v1;
+
+import "common.proto";
+import "google/api/annotations.proto";
+
+option go_package = "github.com/astra-systems/astra-service/proto/gen/go/menu;menu";
+
+// Tax category applied to an item for the configured jurisdiction.
+enum ItemTaxCategory {
+  ITEM_TAX_CATEGORY_UNSPECIFIED = 0;
+  ITEM_TAX_CATEGORY_STANDARD = 1;
+  ITEM_TAX_CATEGORY_EXEMPT = 2;
+  ITEM_TAX_CATEGORY_REDUCED = 3;
+}
+
+// Unit of measure for weight-based items.
+enum WeightUnit {
+  WEIGHT_UNIT_UNSPECIFIED = 0;
+  WEIGHT_UNIT_GRAM = 1;
+  WEIGHT_UNIT_KILOGRAM = 2;
+  WEIGHT_UNIT_POUND = 3;
+  WEIGHT_UNIT_OUNCE = 4;
+}
+
+// A menu category grouping items within a store.
+message Category {
+  string category_id = 1 [json_name = "category_id"];
+  string store_id = 2 [json_name = "store_id"];
+  string parent_id = 3 [json_name = "parent_id"];
+  string name = 4 [json_name = "name"];
+  string description = 5 [json_name = "description"];
+  int32 display_order = 6 [json_name = "display_order"];
+  string image_url = 7 [json_name = "image_url"];
+  string blurhash = 8 [json_name = "blurhash"];
+  bool is_active = 9 [json_name = "is_active"];
+}
+
+// A selectable option within a modifier group that may adjust the item price.
+message ModifierOption {
+  string modifier_option_id = 1 [json_name = "modifier_option_id"];
+  string modifier_group_id = 2 [json_name = "modifier_group_id"];
+  string name = 3 [json_name = "name"];
+  int64 price_delta_cents = 4 [json_name = "price_delta_cents"];
+  bool is_default = 5 [json_name = "is_default"];
+  int32 display_order = 6 [json_name = "display_order"];
+  bool is_active = 7 [json_name = "is_active"];
+}
+
+// A group of modifier options attached to one or more items.
+message ModifierGroup {
+  string modifier_group_id = 1 [json_name = "modifier_group_id"];
+  string store_id = 2 [json_name = "store_id"];
+  string name = 3 [json_name = "name"];
+  string description = 4 [json_name = "description"];
+  int32 min_select = 5 [json_name = "min_select"];
+  int32 max_select = 6 [json_name = "max_select"];
+  int32 display_order = 7 [json_name = "display_order"];
+  bool is_active = 8 [json_name = "is_active"];
+  repeated ModifierOption options = 9 [json_name = "options"];
+}
+
+// A sellable menu item belonging to a category and optionally to modifier groups.
+message Item {
+  string item_id = 1 [json_name = "item_id"];
+  string store_id = 2 [json_name = "store_id"];
+  string category_id = 3 [json_name = "category_id"];
+  string name = 4 [json_name = "name"];
+  string description = 5 [json_name = "description"];
+  int64 price_cents = 6 [json_name = "price_cents"];
+  int64 cost_cents = 7 [json_name = "cost_cents"];
+  string plu = 8 [json_name = "plu"];
+  string barcode = 9 [json_name = "barcode"];
+  string sku = 10 [json_name = "sku"];
+  string image_url = 11 [json_name = "image_url"];
+  string blurhash = 12 [json_name = "blurhash"];
+  ItemTaxCategory tax_category = 13 [json_name = "tax_category"];
+  bool is_weight_based = 14 [json_name = "is_weight_based"];
+  WeightUnit weight_unit = 15 [json_name = "weight_unit"];
+  bool is_active = 16 [json_name = "is_active"];
+  repeated ModifierGroup modifier_groups = 17 [json_name = "modifier_groups"];
+  map<string, string> metadata = 18 [json_name = "metadata"];
+}
+
+// Request to fetch the complete menu for a store.
+message MenuRequest {
+  string store_id = 1 [json_name = "store_id"];
+  bool include_inactive = 2 [json_name = "include_inactive"];
+}
+
+// Full menu response containing categories and items.
+message MenuResponse {
+  string store_id = 1 [json_name = "store_id"];
+  repeated Category categories = 2 [json_name = "categories"];
+  repeated Item items = 3 [json_name = "items"];
+}
+
+// Response containing only categories for a store.
+message CategoriesResponse {
+  repeated Category categories = 1 [json_name = "categories"];
+}
+
+// Request to fetch a single item by identifier.
+message GetItemRequest {
+  string item_id = 1 [json_name = "item_id"];
+}
+
+// Request to search items within a store.
+message SearchItemsRequest {
+  string store_id = 1 [json_name = "store_id"];
+  string query = 2 [json_name = "query"];
+  string category_id = 3 [json_name = "category_id"];
+  bool include_inactive = 4 [json_name = "include_inactive"];
+}
+
+// Response containing matching items.
+message SearchItemsResponse {
+  repeated Item items = 1 [json_name = "items"];
+}
+
+// MenuService exposes catalog queries used by kiosks and cloud projections.
+service MenuService {
+  rpc GetMenu(MenuRequest) returns (MenuResponse) {
+    option (google.api.http) = {
+      get: "/v1/menu/{store_id}"
+      additional_bindings {
+        get: "/v1/stores/{store_id}/menu"
+      }
+    };
+  }
+  rpc GetCategories(MenuRequest) returns (CategoriesResponse) {
+    option (google.api.http) = {
+      get: "/v1/categories/{store_id}"
+    };
+  }
+  rpc GetItem(GetItemRequest) returns (Item) {
+    option (google.api.http) = {
+      get: "/v1/items/{item_id}"
+    };
+  }
+  rpc SearchItems(SearchItemsRequest) returns (SearchItemsResponse) {
+    option (google.api.http) = {
+      get: "/v1/items/search"
+    };
+  }
+}

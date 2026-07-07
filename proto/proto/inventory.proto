@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package astra.inventory.v1;
+
+import "common.proto";
+
+option go_package = "github.com/astra-systems/astra-service/proto/gen/go/inventory;inventory";
+
+// Type of inventory transaction recorded in the ledger.
+enum InventoryTransactionType {
+  INVENTORY_TRANSACTION_TYPE_UNSPECIFIED = 0;
+  INVENTORY_TRANSACTION_TYPE_SALE = 1;
+  INVENTORY_TRANSACTION_TYPE_RESTOCK = 2;
+  INVENTORY_TRANSACTION_TYPE_ADJUSTMENT = 3;
+  INVENTORY_TRANSACTION_TYPE_RESERVED = 4;
+  INVENTORY_TRANSACTION_TYPE_RELEASED = 5;
+  INVENTORY_TRANSACTION_TYPE_WASTE = 6;
+  INVENTORY_TRANSACTION_TYPE_RETURN = 7;
+}
+
+// Snapshot of stock levels for an item at a store.
+message StockLevel {
+  string inventory_id = 1 [json_name = "inventory_id"];
+  string store_id = 2 [json_name = "store_id"];
+  string item_id = 3 [json_name = "item_id"];
+  int32 quantity_available = 4 [json_name = "quantity_available"];
+  int32 quantity_reserved = 5 [json_name = "quantity_reserved"];
+  int32 quantity_on_order = 6 [json_name = "quantity_on_order"];
+  int32 reorder_point = 7 [json_name = "reorder_point"];
+  int32 reorder_quantity = 8 [json_name = "reorder_quantity"];
+  string location = 9 [json_name = "location"];
+  string last_counted_at = 10 [json_name = "last_counted_at"];
+  string updated_at = 11 [json_name = "updated_at"];
+}
+
+message GetStockRequest {
+  string store_id = 1 [json_name = "store_id"];
+  string item_id = 2 [json_name = "item_id"];
+}
+
+message ReservationRequest {
+  string store_id = 1 [json_name = "store_id"];
+  string kiosk_id = 2 [json_name = "kiosk_id"];
+  string item_id = 3 [json_name = "item_id"];
+  string cart_id = 4 [json_name = "cart_id"];
+  int32 quantity = 5 [json_name = "quantity"];
+  int64 expires_at_ms = 6 [json_name = "expires_at_ms"];
+}
+
+message ReleaseStockRequest {
+  string store_id = 1 [json_name = "store_id"];
+  string item_id = 2 [json_name = "item_id"];
+  string cart_id = 3 [json_name = "cart_id"];
+  int32 quantity = 4 [json_name = "quantity"];
+  string reason = 5 [json_name = "reason"];
+}
+
+message AdjustStockRequest {
+  string store_id = 1 [json_name = "store_id"];
+  string item_id = 2 [json_name = "item_id"];
+  int32 quantity_delta = 3 [json_name = "quantity_delta"];
+  InventoryTransactionType transaction_type = 4 [json_name = "transaction_type"];
+  string reference_id = 5 [json_name = "reference_id"];
+  string reference_type = 6 [json_name = "reference_type"];
+  string notes = 7 [json_name = "notes"];
+}
+
+// Incremental stock update broadcast over P2P mesh or gRPC stream.
+message StockUpdate {
+  string store_id = 1 [json_name = "store_id"];
+  string item_id = 2 [json_name = "item_id"];
+  int32 quantity_available = 3 [json_name = "quantity_available"];
+  int32 quantity_reserved = 4 [json_name = "quantity_reserved"];
+  string updated_at = 5 [json_name = "updated_at"];
+  astra.common.v1.HLC hlc = 6 [json_name = "hlc"];
+}
+
+// InventoryService manages stock levels, reservations, and adjustments.
+service InventoryService {
+  rpc GetStock(GetStockRequest) returns (StockLevel);
+  rpc ReserveStock(ReservationRequest) returns (StockLevel);
+  rpc ReleaseStock(ReleaseStockRequest) returns (StockLevel);
+  rpc AdjustStock(AdjustStockRequest) returns (StockLevel);
+  rpc StreamStockUpdates(GetStockRequest) returns (stream StockUpdate);
+}

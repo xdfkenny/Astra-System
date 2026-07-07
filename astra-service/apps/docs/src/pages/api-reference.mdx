@@ -1,0 +1,90 @@
+# API Reference
+
+This page summarizes the public and internal API surface of Astra-Service. For the authoritative OpenAPI specifications, see the `proto/` and service repositories.
+
+## Versioning
+
+- URL-based versioning: `/v1/`, `/v2/`.
+- Deprecation headers: `Deprecation: true`, `Sunset: <date>`.
+- Minimum 6 months notice before API removal.
+- Clients may send `Accept-Version`; the server responds with the active version.
+
+## Public gateway endpoints
+
+| Method | Path | Purpose |
+| ------ | ---- | ------- |
+| `GET` | `/v1/health` | Service health check |
+| `GET` | `/v1/ready` | Readiness probe |
+| `GET` | `/v1/live` | Liveness probe |
+| `POST` | `/v1/orders` | Create a new order |
+| `GET` | `/v1/orders/{id}` | Retrieve order details |
+| `POST` | `/v1/orders/{id}/payment` | Submit a payment token |
+| `GET` | `/v1/catalog` | Fetch menu catalog |
+| `GET` | `/v1/inventory` | Fetch inventory levels |
+| `POST` | `/v1/carts` | Create or update a cart |
+| `GET` | `/v1/carts/{id}` | Retrieve cart state |
+
+## Internal gRPC services
+
+| Service | Responsibility |
+| ------- | -------------- |
+| `order.OrderService` | Order lifecycle and fulfillment |
+| `payment.PaymentService` | Token settlement and refund orchestration |
+| `inventory.InventoryService` | Stock levels and soft holds |
+| `cart.CartService` | Cart CRDT merge and ghost-cart resolution |
+| `sync.SyncService` | Cloud-side mesh gateway and batch ingestion |
+
+## Event schema
+
+Cloud services publish domain events to NATS JetStream:
+
+```json
+{
+  "event_id": "uuidv7",
+  "event_type": "order.payment_authorized",
+  "aggregate_id": "order-123",
+  "tenant_id": "tenant-456",
+  "lane_id": "lane-7",
+  "kiosk_id": "kiosk-9",
+  "hlc": "(1712345678901,42)",
+  "payload": { },
+  "metadata": { "trace_id": "...", "user_agent": "..." }
+}
+```
+
+## Transactional outbox
+
+The outbox table guarantees exactly-once event publication:
+
+```sql
+CREATE TABLE outbox (
+  id UUID PRIMARY KEY,
+  topic TEXT NOT NULL,
+  payload JSONB NOT NULL,
+  headers JSONB,
+  created_at TIMESTAMPTZ NOT NULL,
+  processed_at TIMESTAMPTZ
+);
+
+CREATE INDEX idx_outbox_created ON outbox(created_at) WHERE processed_at IS NULL;
+```
+
+A background worker polls unprocessed rows, publishes to NATS with the `event_id` as an idempotency key, and deletes the row on acknowledgment.
+
+## Telemetry endpoints
+
+| Signal | Endpoint / Export | Backend |
+| ------ | ----------------- | ------- |
+| Metrics | Prometheus scrape | Prometheus |
+| Traces | OTLP gRPC | Jaeger / Grafana Tempo |
+| Logs | JSON stdout / Loki push | Loki |
+
+## Data retention
+
+| Data class | Retention |
+| ---------- | --------- |
+| Transaction data | 7 years |
+| Cart/session data | 90 days, then cold storage |
+| Analytics events | 30 days; aggregates indefinite |
+| Audit logs | 7 years, immutable |
+| PII | Deleted within 30 days of customer request |

@@ -1,0 +1,44 @@
+# syntax=docker/dockerfile:1.7
+
+# Astra-Service Sync Daemon (Rust)
+# Multi-stage build using a glibc target and distroless/cc runtime.
+
+ARG RUST_VERSION=1.88
+
+# ── Build stage ─────────────────────────────────────────────────────────────
+FROM --platform=$BUILDPLATFORM rust:${RUST_VERSION}-bookworm AS builder
+
+# protoc and openssl are required to compile the gRPC/protobuf definitions.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    protobuf-compiler \
+    libprotobuf-dev \
+    libssl-dev \
+    pkg-config \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+COPY astra-service/sync-daemon/Cargo.toml astra-service/sync-daemon/Cargo.lock* ./
+COPY astra-service/sync-daemon/build.rs ./
+COPY astra-service/sync-daemon/proto ./proto
+COPY astra-service/sync-daemon/src ./src
+
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/build/target \
+    cargo build --release && \
+    cp target/release/astra-syncd /tmp/astra-syncd
+
+# ── Runtime stage ───────────────────────────────────────────────────────────
+FROM gcr.io/distroless/cc-debian12:nonroot
+
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /tmp/astra-syncd /usr/local/bin/astra-syncd
+
+USER nonroot:nonroot
+
+EXPOSE 4499
+STOPSIGNAL SIGTERM
+
+ENTRYPOINT ["/usr/local/bin/astra-syncd"]
+CMD ["--config", "/etc/astra-syncd/config.toml"]

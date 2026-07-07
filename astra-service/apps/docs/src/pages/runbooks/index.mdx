@@ -1,0 +1,32 @@
+# Runbooks
+
+Operational playbooks for running Astra-Service in production. Source Markdown files are kept in the repository under `/docs/runbooks`.
+
+## Available runbooks
+
+### [Incident Response](/runbooks/incident-response.md)
+
+Step-by-step process for production incidents affecting kiosks, cloud services, or the P2P mesh. Covers severity definitions, first-5-minute response, diagnostic checklists, rollback procedures, communication plans, and post-mortem templates.
+
+### [Payment Failure](/runbooks/payment-failure-runbook.md)
+
+Resolve payment failures across Verifone terminals, the offline token queue, and cloud settlement. Includes terminal diagnostics, offline queue inspection, signature verification, refund procedures, and prevention steps.
+
+### [Offline Mode Operations](/runbooks/offline-mode-operations.md)
+
+Operate kiosks during extended cloud connectivity loss. Describes when offline mode activates, expected behavior, monitoring thresholds, draining the queue, manual reconciliation, and returning to online mode.
+
+### [P2P Partition Recovery](/runbooks/p2p-partition-recovery.md)
+
+Restore convergence and consensus when the kiosk mesh splits into partitions or loses Raft leadership. Includes mesh topology checks, Raft state inspection, partition recovery, and verification steps.
+
+## When to use these runbooks
+
+| Situation | Runbook |
+| --------- | ------- |
+| Alert fire, unclear scope | [Incident Response](/runbooks/incident-response.md) |
+| Payment success rate drops | [Payment Failure](/runbooks/payment-failure-runbook.md) |
+| Store loses cloud connectivity | [Offline Mode Operations](/runbooks/offline-mode-operations.md) |
+| Mesh peer count drops or multiple leaders | [P2P Partition Recovery](/runbooks/p2p-partition-recovery.md) |
+
+All runbooks follow the same severity model and escalation path defined in the incident-response runbook.

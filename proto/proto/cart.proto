@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package astra.cart.v1;
+
+import "common.proto";
+
+option go_package = "github.com/astra-systems/astra-service/proto/gen/go/cart;cart";
+
+// Lifecycle status of a shopping cart.
+enum CartStatus {
+  CART_STATUS_UNSPECIFIED = 0;
+  CART_STATUS_ACTIVE = 1;
+  CART_STATUS_FINALIZED = 2;
+  CART_STATUS_ABANDONED = 3;
+  CART_STATUS_EXPIRED = 4;
+}
+
+// A modifier selection recorded on a cart line at the time it was added.
+message CartModifier {
+  string modifier_option_id = 1 [json_name = "modifier_option_id"];
+  string name_snapshot = 2 [json_name = "name_snapshot"];
+  int64 price_delta_cents_snapshot = 3 [json_name = "price_delta_cents_snapshot"];
+  string modifier_group_id = 4 [json_name = "modifier_group_id"];
+}
+
+// A single line in a cart representing a menu item and its modifiers.
+message CartLine {
+  string line_id = 1 [json_name = "line_id"];
+  string menu_item_id = 2 [json_name = "menu_item_id"];
+  string name_snapshot = 3 [json_name = "name_snapshot"];
+  int64 unit_price_cents_snapshot = 4 [json_name = "unit_price_cents_snapshot"];
+  int32 quantity = 5 [json_name = "quantity"];
+  repeated CartModifier modifiers = 6 [json_name = "modifiers"];
+  int64 line_total_cents = 7 [json_name = "line_total_cents"];
+  int64 added_at_ms = 8 [json_name = "added_at_ms"];
+}
+
+// A shopping cart owned by a kiosk session.
+message Cart {
+  string cart_id = 1 [json_name = "cart_id"];
+  string store_id = 2 [json_name = "store_id"];
+  string kiosk_id = 3 [json_name = "kiosk_id"];
+  string session_id = 4 [json_name = "session_id"];
+  string customer_phone = 5 [json_name = "customer_phone"];
+  CartStatus status = 6 [json_name = "status"];
+  bool finalized = 7 [json_name = "finalized"];
+  int32 version = 8 [json_name = "version"];
+  int64 total_cents = 9 [json_name = "total_cents"];
+  int64 tax_cents = 10 [json_name = "tax_cents"];
+  int64 discount_cents = 11 [json_name = "discount_cents"];
+  int64 final_total_cents = 12 [json_name = "final_total_cents"];
+  repeated CartLine lines = 13 [json_name = "lines"];
+  bool reserved_inventory = 14 [json_name = "reserved_inventory"];
+  string expires_at = 15 [json_name = "expires_at"];
+  string created_at = 16 [json_name = "created_at"];
+  string updated_at = 17 [json_name = "updated_at"];
+}
+
+message CreateCartRequest {
+  string store_id = 1 [json_name = "store_id"];
+  string kiosk_id = 2 [json_name = "kiosk_id"];
+  string session_id = 3 [json_name = "session_id"];
+  string customer_phone = 4 [json_name = "customer_phone"];
+}
+
+message GetCartRequest {
+  string cart_id = 1 [json_name = "cart_id"];
+}
+
+message AddItemRequest {
+  string cart_id = 1 [json_name = "cart_id"];
+  string menu_item_id = 2 [json_name = "menu_item_id"];
+  int32 quantity = 3 [json_name = "quantity"];
+  repeated CartModifier modifiers = 4 [json_name = "modifiers"];
+}
+
+message UpdateItemRequest {
+  string cart_id = 1 [json_name = "cart_id"];
+  string line_id = 2 [json_name = "line_id"];
+  int32 quantity = 3 [json_name = "quantity"];
+  repeated CartModifier modifiers = 4 [json_name = "modifiers"];
+}
+
+message RemoveItemRequest {
+  string cart_id = 1 [json_name = "cart_id"];
+  string line_id = 2 [json_name = "line_id"];
+}
+
+message FinalizeCartRequest {
+  string cart_id = 1 [json_name = "cart_id"];
+  string customer_phone = 2 [json_name = "customer_phone"];
+}
+
+message MergeGhostCartRequest {
+  string target_cart_id = 1 [json_name = "target_cart_id"];
+  string ghost_cart_id = 2 [json_name = "ghost_cart_id"];
+  astra.common.v1.HLC source_hlc = 3 [json_name = "source_hlc"];
+}
+
+// CartService manages active carts, line mutations, and ghost-cart merges.
+service CartService {
+  rpc CreateCart(CreateCartRequest) returns (Cart);
+  rpc GetCart(GetCartRequest) returns (Cart);
+  rpc AddItem(AddItemRequest) returns (Cart);
+  rpc UpdateItem(UpdateItemRequest) returns (Cart);
+  rpc RemoveItem(RemoveItemRequest) returns (Cart);
+  rpc FinalizeCart(FinalizeCartRequest) returns (Cart);
+  rpc MergeGhostCart(MergeGhostCartRequest) returns (Cart);
+}

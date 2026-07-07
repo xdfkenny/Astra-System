@@ -1,0 +1,18 @@
+{
+  "name": "@astra/database-schemas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:ts": "vitest run",
+    "test": "go test -race ./..."
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "drizzle-orm": "^0.38.0",
+    "pg": "^8.13.0",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.9"
+  }
+}

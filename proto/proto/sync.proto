@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package astra.sync.v1;
+
+import "common.proto";
+
+option go_package = "github.com/astra-systems/astra-service/proto/gen/go/sync;sync";
+
+// Category of data being replicated through the sync layer.
+enum SyncEventType {
+  SYNC_EVENT_TYPE_UNSPECIFIED = 0;
+  SYNC_EVENT_TYPE_INVENTORY_UPDATE = 1;
+  SYNC_EVENT_TYPE_CART_MERGE = 2;
+  SYNC_EVENT_TYPE_TRANSACTION_BATCH = 3;
+  SYNC_EVENT_TYPE_ANALYTICS_BATCH = 4;
+}
+
+// A single delta entry within a sync batch.
+message SyncDelta {
+  string delta_id = 1 [json_name = "delta_id"];
+  SyncEventType event_type = 2 [json_name = "event_type"];
+  bytes payload = 3 [json_name = "payload"];
+  map<string, int64> vector_clock = 4 [json_name = "vector_clock"];
+  string source_kiosk_id = 5 [json_name = "source_kiosk_id"];
+  string created_at = 6 [json_name = "created_at"];
+}
+
+// A batch of deltas uploaded from a kiosk or downloaded from the cloud gateway.
+message SyncBatch {
+  string batch_id = 1 [json_name = "batch_id"];
+  string store_id = 2 [json_name = "store_id"];
+  string kiosk_id = 3 [json_name = "kiosk_id"];
+  repeated SyncDelta deltas = 4 [json_name = "deltas"];
+  string sent_at = 5 [json_name = "sent_at"];
+}
+
+// Acknowledgement returned after a sync batch is processed.
+message SyncAck {
+  string batch_id = 1 [json_name = "batch_id"];
+  string kiosk_id = 2 [json_name = "kiosk_id"];
+  bool accepted = 3 [json_name = "accepted"];
+  string error_message = 4 [json_name = "error_message"];
+  string processed_at = 5 [json_name = "processed_at"];
+}
+
+message UploadBatchRequest {
+  SyncBatch batch = 1 [json_name = "batch"];
+}
+
+message DownloadBatchRequest {
+  string store_id = 1 [json_name = "store_id"];
+  string kiosk_id = 2 [json_name = "kiosk_id"];
+  string since = 3 [json_name = "since"];
+  int32 max_deltas = 4 [json_name = "max_deltas"];
+}
+
+message HeartbeatRequest {
+  string kiosk_id = 1 [json_name = "kiosk_id"];
+  string store_id = 2 [json_name = "store_id"];
+  string status = 3 [json_name = "status"];
+  map<string, int64> vector_clock = 4 [json_name = "vector_clock"];
+}
+
+message HeartbeatResponse {
+  string kiosk_id = 1 [json_name = "kiosk_id"];
+  string acknowledged_at = 2 [json_name = "acknowledged_at"];
+  bool is_leader = 3 [json_name = "is_leader"];
+}
+
+// SyncService is the cloud-side gateway for kiosk batch uploads, downloads, and
+// health heartbeats.
+service SyncService {
+  rpc UploadBatch(UploadBatchRequest) returns (SyncAck);
+  rpc DownloadBatch(DownloadBatchRequest) returns (SyncBatch);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+}

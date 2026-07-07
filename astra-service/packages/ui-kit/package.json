@@ -1,0 +1,19 @@
+{
+  "name": "@astra/ui-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "dependencies": {
+    "@astra/design-tokens": "workspace:*",
+    "@astra/shared-types": "workspace:*",
+    "framer-motion": "^11.11.9"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.1",
+    "typescript": "^5.7.2"
+  }
+}

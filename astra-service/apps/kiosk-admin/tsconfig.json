@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "outDir": "dist", "rootDir": ".", "types": ["vite/client"] },
+  "include": ["src", "e2e", "*.config.ts"]
+}

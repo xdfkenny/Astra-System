@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package astra.payment.v1;
+
+import "common.proto";
+
+option go_package = "github.com/astra-systems/astra-service/proto/gen/go/payment;payment";
+
+// Payment instrument used to settle an order.
+enum PaymentMethod {
+  PAYMENT_METHOD_UNSPECIFIED = 0;
+  PAYMENT_METHOD_CREDIT_DEBIT = 1;
+  PAYMENT_METHOD_NFC_APPLE_PAY = 2;
+  PAYMENT_METHOD_NFC_GOOGLE_PAY = 3;
+  PAYMENT_METHOD_QR_CODE = 4;
+  PAYMENT_METHOD_CASH_RECYCLER = 5;
+}
+
+// Status of a payment through the orchestrator lifecycle.
+enum PaymentStatus {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_STATUS_PENDING = 1;
+  PAYMENT_STATUS_AUTHORIZED = 2;
+  PAYMENT_STATUS_CAPTURED = 3;
+  PAYMENT_STATUS_DECLINED = 4;
+  PAYMENT_STATUS_VOIDED = 5;
+  PAYMENT_STATUS_REFUNDED = 6;
+}
+
+// Intent sent to the payment orchestrator to start a transaction.
+message PaymentIntent {
+  string payment_id = 1 [json_name = "payment_id"];
+  string order_id = 2 [json_name = "order_id"];
+  string kiosk_id = 3 [json_name = "kiosk_id"];
+  string idempotency_key = 4 [json_name = "idempotency_key"];
+  int64 amount_cents = 5 [json_name = "amount_cents"];
+  string currency = 6 [json_name = "currency"];
+  PaymentMethod method = 7 [json_name = "method"];
+  bool is_offline_token = 8 [json_name = "is_offline_token"];
+}
+
+// Result of a payment authorization, capture, or refund operation.
+message PaymentResult {
+  string payment_id = 1 [json_name = "payment_id"];
+  string order_id = 2 [json_name = "order_id"];
+  PaymentStatus status = 3 [json_name = "status"];
+  string auth_code = 4 [json_name = "auth_code"];
+  string verifone_token = 5 [json_name = "verifone_token"];
+  string card_brand = 6 [json_name = "card_brand"];
+  string card_last_four = 7 [json_name = "card_last_four"];
+  string decline_reason = 8 [json_name = "decline_reason"];
+  string receipt_text = 9 [json_name = "receipt_text"];
+  string processed_at = 10 [json_name = "processed_at"];
+}
+
+// Request to refund all or part of a previously captured payment.
+message RefundRequest {
+  string refund_id = 1 [json_name = "refund_id"];
+  string payment_id = 2 [json_name = "payment_id"];
+  string order_id = 3 [json_name = "order_id"];
+  string kiosk_id = 4 [json_name = "kiosk_id"];
+  int64 amount_cents = 5 [json_name = "amount_cents"];
+  string currency = 6 [json_name = "currency"];
+  string reason = 7 [json_name = "reason"];
+  string processed_by = 8 [json_name = "processed_by"];
+}
+
+// An offline payment token queued for cloud settlement after connectivity returns.
+message OfflineTokenSettlement {
+  string token_id = 1 [json_name = "token_id"];
+  string store_id = 2 [json_name = "store_id"];
+  string kiosk_id = 3 [json_name = "kiosk_id"];
+  string cart_id = 4 [json_name = "cart_id"];
+  int64 amount_cents = 5 [json_name = "amount_cents"];
+  string currency = 6 [json_name = "currency"];
+  string method = 7 [json_name = "method"];
+  string verifone_opaque_token = 8 [json_name = "verifone_opaque_token"];
+  string hmac_signature = 9 [json_name = "hmac_signature"];
+  string expires_at = 10 [json_name = "expires_at"];
+  string settled_at = 11 [json_name = "settled_at"];
+}
+
+message GetPaymentStatusRequest {
+  string payment_id = 1 [json_name = "payment_id"];
+}
+
+// PaymentOrchestrator coordinates authorization, capture, refund, and offline
+// token settlement.
+service PaymentOrchestrator {
+  rpc InitiatePayment(PaymentIntent) returns (PaymentResult);
+  rpc CapturePayment(PaymentResult) returns (PaymentResult);
+  rpc RefundPayment(RefundRequest) returns (PaymentResult);
+  rpc SettleOfflineToken(OfflineTokenSettlement) returns (PaymentResult);
+  rpc GetPaymentStatus(GetPaymentStatusRequest) returns (PaymentResult);
+}

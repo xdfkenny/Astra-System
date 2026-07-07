@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package astra.events.v1;
+
+import "google/protobuf/any.proto";
+import "common.proto";
+
+option go_package = "github.com/astra-systems/astra-service/proto/gen/go/events;events";
+
+// EventEnvelope is the canonical wrapper for every event appended to the cloud
+// event store and transactional outbox. The payload is carried as a typed Any
+// so that consumers can unpack the specific domain event.
+message EventEnvelope {
+  string event_id = 1 [json_name = "event_id"];
+  string aggregate_id = 2 [json_name = "aggregate_id"];
+  string aggregate_type = 3 [json_name = "aggregate_type"];
+  int64 sequence_number = 4 [json_name = "sequence_number"];
+  string timestamp = 5 [json_name = "timestamp"];
+  google.protobuf.Any payload = 6 [json_name = "payload"];
+  map<string, string> metadata = 7 [json_name = "metadata"];
+  astra.common.v1.HLC hlc = 8 [json_name = "hlc"];
+}
+
+// Emitted when a new order is created from a finalized cart.
+message OrderCreated {
+  string order_id = 1 [json_name = "order_id"];
+  string cart_id = 2 [json_name = "cart_id"];
+  string store_id = 3 [json_name = "store_id"];
+  string kiosk_id = 4 [json_name = "kiosk_id"];
+  int64 total_cents = 5 [json_name = "total_cents"];
+  string currency = 6 [json_name = "currency"];
+}
+
+// Emitted when a customer adds an item to an active cart.
+message ItemAddedToCart {
+  string cart_id = 1 [json_name = "cart_id"];
+  string item_id = 2 [json_name = "item_id"];
+  string name_snapshot = 3 [json_name = "name_snapshot"];
+  int32 quantity = 4 [json_name = "quantity"];
+  int64 unit_price_cents_snapshot = 5 [json_name = "unit_price_cents_snapshot"];
+}
+
+// Emitted when a payment intent is submitted to the orchestrator.
+message PaymentInitiated {
+  string payment_id = 1 [json_name = "payment_id"];
+  string order_id = 2 [json_name = "order_id"];
+  string kiosk_id = 3 [json_name = "kiosk_id"];
+  int64 amount_cents = 4 [json_name = "amount_cents"];
+  string currency = 5 [json_name = "currency"];
+  string method = 6 [json_name = "method"];
+}
+
+// Emitted when a payment authorization or capture is confirmed.
+message PaymentConfirmed {
+  string payment_id = 1 [json_name = "payment_id"];
+  string order_id = 2 [json_name = "order_id"];
+  string auth_code = 3 [json_name = "auth_code"];
+  string status = 4 [json_name = "status"];
+}
+
+// Emitted when inventory is soft-reserved against a cart.
+message InventoryReserved {
+  string reservation_id = 1 [json_name = "reservation_id"];
+  string store_id = 2 [json_name = "store_id"];
+  string item_id = 3 [json_name = "item_id"];
+  string cart_id = 4 [json_name = "cart_id"];
+  int32 quantity = 5 [json_name = "quantity"];
+  int64 expires_at_ms = 6 [json_name = "expires_at_ms"];
+}
+
+// Emitted when a previously held inventory reservation is released.
+message InventoryReleased {
+  string reservation_id = 1 [json_name = "reservation_id"];
+  string store_id = 2 [json_name = "store_id"];
+  string item_id = 3 [json_name = "item_id"];
+  string cart_id = 4 [json_name = "cart_id"];
+  int32 quantity = 5 [json_name = "quantity"];
+  string reason = 6 [json_name = "reason"];
+}
+
+// Emitted when a P2P sync delta has been replicated by a peer.
+message SyncReplicated {
+  string sync_event_id = 1 [json_name = "sync_event_id"];
+  string store_id = 2 [json_name = "store_id"];
+  string kiosk_id = 3 [json_name = "kiosk_id"];
+  string event_type = 4 [json_name = "event_type"];
+  bytes payload_hash = 5 [json_name = "payload_hash"];
+  map<string, int64> vector_clock = 6 [json_name = "vector_clock"];
+}
+
+// Emitted when a cart is finalized and converted into an order.
+message CartFinalized {
+  string cart_id = 1 [json_name = "cart_id"];
+  string order_id = 2 [json_name = "order_id"];
+  int64 final_total_cents = 3 [json_name = "final_total_cents"];
+  string currency = 4 [json_name = "currency"];
+}

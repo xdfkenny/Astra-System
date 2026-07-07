@@ -1,0 +1,111 @@
+@import "tailwindcss";
+@import "@astra/design-tokens/css";
+
+/**
+ * Admin dashboard theming. Maps design-token custom properties into Tailwind v4
+ * utility classes. Light is default; dark mode is activated via html.dark or
+ * OS prefers-color-scheme: dark.
+ */
+@theme inline {
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-surface-sunken: var(--color-surface-sunken);
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-pressed: var(--color-primary-pressed);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-error: var(--color-error);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-ink: var(--color-ink);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-overlay: var(--color-overlay);
+
+  --font-sans: var(--font-ui);
+  --font-heading: var(--font-heading);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-pill: var(--radius-pill);
+}
+
+@font-face {
+  font-family: "Inter";
+  src: local("Inter");
+  font-display: swap;
+  font-weight: 400 700;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: local("Space Grotesk");
+  font-display: swap;
+  font-weight: 500 700;
+}
+
+html,
+body {
+  font-family: var(--font-ui);
+  color: var(--color-ink);
+  background: var(--color-background);
+}
+
+.hairline {
+  border: 1px solid var(--color-border);
+}
+
+.hairline-strong {
+  border: 1px solid var(--color-border-strong);
+}
+
+.rounded-pill {
+  border-radius: var(--radius-pill);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus-ring);
+}
+
+.sr-only-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Admin data tables */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-table th {
+  font-weight: 600;
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.025em;
+}
+
+.admin-table tbody tr:hover {
+  background-color: var(--color-surface-sunken);
+}

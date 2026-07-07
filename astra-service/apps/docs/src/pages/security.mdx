@@ -1,0 +1,59 @@
+# Security
+
+Astra-Service follows a zero-trust security model: every internal boundary is authenticated and encrypted. No service trusts another based on network location alone.
+
+## Boundary protections
+
+| Boundary | Mechanism |
+| -------- | --------- |
+| Kiosk → API Gateway | HMAC-SHA256 request signing with per-kiosk key |
+| API Gateway → Microservices | mTLS + service-account JWT |
+| Service → Service | gRPC with mTLS and per-service SPIFFE identity |
+| P2P Kiosk ↔ Kiosk | Noise protocol with Ed25519 identity verification |
+| Kiosk → Verifone Terminal | PCI-PTS encrypted serial/Ethernet channel |
+| Kiosk → Local DB | SQLCipher AES-256 + filesystem encryption (LUKS) |
+
+## mTLS PKI
+
+A private Certificate Authority issues short-lived certificates:
+
+- Service certificates: 24-hour TTL, auto-rotated.
+- Kiosk certificates: 90-day TTL, renewed via the update daemon.
+- Manager client certificates: issued for admin access.
+
+All certificates include SANs for service DNS names and `localhost` for local development.
+
+## Secrets management
+
+| Environment | Store | Rotation |
+| ----------- | ----- | ---------- |
+| Cloud | HashiCorp Vault with per-kiosk AppRole | Daily or on lease expiry |
+| Local dev | SOPS + age encrypted YAML files | Manual |
+| Kiosk OS | OS keychain via 99designs/keyring abstraction | On provisioning |
+| Runtime | In-memory only; never written to unencrypted disk | On process restart |
+
+Offline kiosks carry pre-provisioned 7-day emergency signing keys. Emergency key usage triggers an audit alert on reconnection.
+
+## PCI-DSS compliance path
+
+- Card data never touches kiosk storage or application memory.
+- Payment tokens are encrypted at rest and in transit.
+- Audit logs are append-only with Merkle tree verification.
+- The Verifone terminal remains inside its own PCI scope.
+
+## Web security
+
+- Content Security Policy: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'`
+- No `eval()`; no inline scripts.
+- HSTS with preload (`max-age=63072000`).
+- iframe sandboxing for any third-party content.
+- CORS: strict origin allowlist; `*` is never used.
+
+## Incident response
+
+If a kiosk is compromised, the response is:
+
+1. Revoke the kiosk certificate in Vault.
+2. Block the kiosk at the API gateway by `kiosk_id`.
+3. Coordinate with store staff to physically power off the device.
+4. Preserve logs and forensic images before remediation.

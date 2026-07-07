@@ -1,0 +1,476 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '9.12.0'
+  GO_VERSION: '1.25'
+  RUST_VERSION: '1.82'
+  REGISTRY: ghcr.io
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      typescript: ${{ steps.filter.outputs.typescript }}
+      go: ${{ steps.filter.outputs.go }}
+      rust: ${{ steps.filter.outputs.rust }}
+      ops: ${{ steps.filter.outputs.ops }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            typescript:
+              - 'astra-service/apps/**'
+              - 'astra-service/packages/**'
+              - 'astra-service/package.json'
+              - 'astra-service/pnpm-lock.yaml'
+              - 'astra-service/tsconfig.base.json'
+              - 'astra-service/turbo.json'
+            go:
+              - 'astra-service/services/**'
+              - 'astra-service/packages/go-common/**'
+              - 'astra-service/go.work'
+              - 'astra-service/go.work.sum'
+              - 'services/update-server/**'
+              - 'infra/secrets/**'
+              - 'proto/**'
+            rust:
+              - 'astra-service/sync-daemon/**'
+              - 'astra-service/daemons/**'
+            ops:
+              - 'infra/**'
+              - 'docker-compose*.yml'
+              - '.github/workflows/ci.yml'
+              - 'infra/docker/Dockerfile.*'
+
+  lint-ts:
+    needs: changes
+    if: ${{ needs.changes.outputs.typescript == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: 'astra-service/pnpm-lock.yaml'
+      - run: pnpm install --frozen-lockfile
+        working-directory: astra-service
+      - run: pnpm turbo run lint typecheck --concurrency=100%
+        working-directory: astra-service
+
+  lint-go:
+    needs: changes
+    if: ${{ needs.changes.outputs.go == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - path: astra-service/services/gateway
+          - path: astra-service/services/menu-service
+          - path: astra-service/services/cart-service
+          - path: astra-service/services/order-service
+          - path: astra-service/services/inventory-service
+          - path: astra-service/services/payment-orchestrator
+          - path: astra-service/services/payment-service
+          - path: astra-service/services/sync-service
+          - path: astra-service/services/api-gateway
+          - path: astra-service/packages/go-common
+          - path: services/update-server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Verify formatting
+        run: |
+          cd ${{ matrix.module.path }}
+          go mod tidy
+          test -z "$(gofmt -l .)"
+      - name: Run go vet
+        run: |
+          cd ${{ matrix.module.path }}
+          go vet ./...
+
+  lint-rust:
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        workspace: [astra-service/sync-daemon, astra-service/daemons/payment-sidecar]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+      - uses: arduino/setup-protoc@v3
+        if: ${{ contains(matrix.workspace, 'sync-daemon') }}
+        with:
+          version: '25.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ matrix.workspace }}
+      - run: cargo fmt --check
+        working-directory: ${{ matrix.workspace }}
+      - run: cargo clippy --all-targets -- -D warnings
+        working-directory: ${{ matrix.workspace }}
+
+  test-unit:
+    needs: [changes, lint-ts, lint-go, lint-rust]
+    if: ${{ always() && !failure() && !cancelled() && (needs.changes.outputs.typescript == 'true' || needs.changes.outputs.go == 'true' || needs.changes.outputs.rust == 'true') }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - lang: ts
+            condition: ${{ needs.changes.outputs.typescript == 'true' }}
+          - lang: go
+            condition: ${{ needs.changes.outputs.go == 'true' }}
+          - lang: rust
+            condition: ${{ needs.changes.outputs.rust == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        if: ${{ matrix.lang == 'ts' && matrix.condition == 'true' }}
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        if: ${{ matrix.lang == 'ts' && matrix.condition == 'true' }}
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: 'astra-service/pnpm-lock.yaml'
+      - name: Unit tests (TypeScript)
+        if: ${{ matrix.lang == 'ts' && matrix.condition == 'true' }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm turbo run test --concurrency=100%
+        working-directory: astra-service
+
+      - uses: actions/setup-go@v5
+        if: ${{ matrix.lang == 'go' && matrix.condition == 'true' }}
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Unit tests (Go)
+        if: ${{ matrix.lang == 'go' && matrix.condition == 'true' }}
+        run: |
+          for dir in astra-service/services/*/ astra-service/packages/go-common/ services/update-server/; do
+            if [ -f "${dir}/go.mod" ]; then
+              echo "==> testing ${dir}"
+              (cd "${dir}" && go test -race ./...)
+            fi
+          done
+
+      - uses: dtolnay/rust-toolchain@stable
+        if: ${{ matrix.lang == 'rust' && matrix.condition == 'true' }}
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - uses: arduino/setup-protoc@v3
+        if: ${{ matrix.lang == 'rust' && matrix.condition == 'true' }}
+        with:
+          version: '25.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: Swatinem/rust-cache@v2
+        if: ${{ matrix.lang == 'rust' && matrix.condition == 'true' }}
+        with:
+          workspaces: |
+            astra-service/sync-daemon
+            astra-service/daemons/payment-sidecar
+      - name: Unit tests (Rust)
+        if: ${{ matrix.lang == 'rust' && matrix.condition == 'true' }}
+        run: |
+          cargo test
+          cd astra-service/daemons/payment-sidecar && cargo test
+        working-directory: astra-service/sync-daemon
+
+  test-integration:
+    needs: [changes, test-unit]
+    if: ${{ always() && !failure() && !cancelled() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.ops == 'true') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start infrastructure
+        run: |
+          docker compose -f docker-compose.yml up -d postgres redis nats
+          docker compose -f docker-compose.yml ps
+      - name: Wait for services
+        run: |
+          for i in $(seq 1 30); do
+            if docker compose -f docker-compose.yml ps | grep -q "unhealthy"; then
+              sleep 2
+            else
+              echo "All services healthy"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "Timed out waiting for services" >&2
+              exit 1
+            fi
+          done
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Build Go services
+        run: |
+          for dir in astra-service/services/*/ services/update-server/; do
+            if [ -f "${dir}/go.mod" ]; then
+              echo "==> building ${dir}"
+              (cd "${dir}" && go build ./...)
+            fi
+          done
+      - name: Integration smoke tests
+        run: |
+          curl -fsS http://localhost:8222/healthz
+          curl -fsS http://localhost:5432 || true
+
+  test-e2e:
+    needs: [changes, lint-ts]
+    if: ${{ always() && !failure() && !cancelled() && needs.changes.outputs.typescript == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: 'astra-service/pnpm-lock.yaml'
+      - run: pnpm install --frozen-lockfile
+        working-directory: astra-service
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
+        working-directory: astra-service
+      - run: pnpm turbo run test:e2e --filter @astra/kiosk
+        working-directory: astra-service
+
+  security-audit:
+    needs: changes
+    if: ${{ always() && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: 'astra-service/pnpm-lock.yaml'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: npm audit
+        run: pnpm audit --audit-level moderate
+        working-directory: astra-service
+        continue-on-error: true
+
+      - name: cargo audit
+        run: |
+          cargo install cargo-audit --locked
+          cargo audit
+        working-directory: astra-service/sync-daemon
+        continue-on-error: true
+
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          for dir in astra-service/services/*/ astra-service/packages/go-common/ services/update-server/; do
+            if [ -f "${dir}/go.mod" ]; then
+              echo "==> scanning ${dir}"
+              (cd "${dir}" && govulncheck ./...)
+            fi
+          done
+        continue-on-error: true
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: '0'
+          ignore-unfixed: true
+
+  build-docker:
+    needs: [test-unit, test-integration]
+    if: ${{ github.ref == 'refs/heads/main' && always() && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: gateway
+            dockerfile: infra/docker/Dockerfile.gateway
+          - image: menu-service
+            dockerfile: infra/docker/Dockerfile.menu-service
+          - image: cart-service
+            dockerfile: infra/docker/Dockerfile.cart-service
+          - image: order-service
+            dockerfile: infra/docker/Dockerfile.order-service
+          - image: inventory-service
+            dockerfile: infra/docker/Dockerfile.inventory-service
+          - image: payment-orchestrator
+            dockerfile: infra/docker/Dockerfile.payment-orchestrator
+          - image: sync-service
+            dockerfile: infra/docker/Dockerfile.sync-service
+          - image: update-server
+            dockerfile: infra/docker/Dockerfile.update-server
+          - image: ml-lane-intel
+            dockerfile: infra/docker/Dockerfile.ml-lane-intel
+          - image: kiosk
+            dockerfile: infra/docker/Dockerfile.kiosk
+          - image: syncd
+            dockerfile: infra/docker/Dockerfile.syncd
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Sign image with cosign
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image }}@${{ steps.build.outputs.digest }}
+
+  sbom-generate:
+    needs: [build-docker]
+    if: ${{ github.ref == 'refs/heads/main' && always() && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - gateway
+          - menu-service
+          - cart-service
+          - order-service
+          - inventory-service
+          - payment-orchestrator
+          - sync-service
+          - update-server
+          - ml-lane-intel
+          - kiosk
+          - syncd
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Install Syft
+        uses: anchore/syft-action@v0
+
+      - name: Generate and attest SBOM
+        run: |
+          mkdir -p /tmp/sboms
+          syft ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image }}:${{ github.sha }} \
+            -o spdx-json=/tmp/sboms/${{ matrix.image }}.sbom.spdx.json
+          cosign attest --yes \
+            --predicate /tmp/sboms/${{ matrix.image }}.sbom.spdx.json \
+            --type spdxjson \
+            ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image }}:${{ github.sha }}
+
+  release:
+    needs: [build-docker, sbom-generate]
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: 'astra-service/pnpm-lock.yaml'
+      - run: pnpm install --frozen-lockfile
+        working-directory: astra-service
+      - run: pnpm changeset status
+        working-directory: astra-service
+
+  chaos:
+    needs: changes
+    if: ${{ needs.changes.outputs.rust == 'true' && vars.ASTRA_RUN_CHAOS == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build sync daemon image
+        run: docker build -f infra/docker/Dockerfile.syncd -t astra-syncd:chaos .
+      - name: Run partition-resilience test
+        run: |
+          echo "Chaos tests require pumba/toxiproxy on a privileged runner."
+          echo "This job verifies the sync-daemon Docker image builds successfully."

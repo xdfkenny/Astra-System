@@ -1,0 +1,46 @@
+#include <tunables/global>
+
+# AppArmor profile for the Astra kiosk web container (nginx + static Vite build).
+# Restricts the kiosk to serving static files and binding to a low-numbered port.
+
+profile astra-kiosk flags=(attach_disconnected, mediate_deleted) {
+  #include <abstractions/base>
+
+  capability net_bind_service,
+  capability setgid,
+  capability setuid,
+  deny capability sys_admin,
+  deny capability sys_ptrace,
+  deny capability sys_module,
+  deny capability dac_read_search,
+  deny capability dac_override,
+  deny capability mknod,
+  deny capability net_admin,
+  deny capability net_raw,
+  deny capability ipc_lock,
+  deny capability sys_chroot,
+
+  network inet stream,
+  network inet6 stream,
+  deny network raw,
+  deny network packet,
+
+  /usr/sbin/nginx r,
+  /usr/share/nginx/html/** r,
+  /etc/nginx/** r,
+  /etc/ssl/certs/** r,
+  /var/cache/nginx/** rw,
+  /var/run/nginx.pid rw,
+  /tmp/** rw,
+  /var/tmp/** rw,
+  /proc/{self,$$}/** r,
+
+  deny /etc/passwd w,
+  deny /etc/shadow w,
+  deny /etc/group w,
+  deny /proc/sys/** w,
+  deny /sys/** w,
+  deny /dev/** w,
+
+  signal (receive) set=(term, int, hup),
+}

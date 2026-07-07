@@ -1,0 +1,12 @@
+{
+  "kiosk-shell": {
+    "url": "https://cdn.astra-service.internal/kiosk-shell/v1.2.3/astra-kiosk-shell.tar.gz",
+    "checksum": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "platforms": ["linux/amd64", "linux/arm64"]
+  },
+  "sync-daemon": {
+    "url": "https://cdn.astra-service.internal/sync-daemon/v1.2.3/astra-sync-daemon.tar.gz",
+    "checksum": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "platforms": ["linux/amd64", "linux/arm64"]
+  }
+}

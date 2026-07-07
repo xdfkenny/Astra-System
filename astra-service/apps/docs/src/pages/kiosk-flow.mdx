@@ -1,0 +1,31 @@
+# Kiosk Flow
+
+The kiosk shell is the customer-facing React 19 application that guides shoppers through a fast, resilient checkout experience.
+
+## Session lifecycle
+
+1. **Attract screen** — idle kiosk loops promotional content and silently runs a connection health check.
+2. **Start session** — customer taps the screen. A UUID v7 cart is created locally and broadcast to the mesh.
+3. **Browse menu** — catalog is served from encrypted SQLite; items load in under 200 ms.
+4. **Add items** — modifiers, loyalty discounts, and environmental fees are computed in a Web Worker.
+5. **Ghost Cart handoff** (optional) — a cart started on a phone via WebRTC can be transferred to the kiosk with an NFC bump.
+6. **Review cart** — the "Why this price?" panel shows tax breakdown and discounts for transparency.
+7. **Payment** — Verifone terminal is invoked through the Rust FFI bridge.
+8. **Receipt** — an ESC/POS receipt is printed and the transaction is replicated to peers.
+
+## Intelligence features
+
+| Feature | Description |
+| ------- | ----------- |
+| Produce recognition | Rust + ONNX Runtime identifies produce from the camera and suggests PLU codes. |
+| Lane intelligence | TensorFlow Lite estimates queue length and switches the UI between express and full mode. |
+| Silent assist | After 45 seconds of inactivity, the next action is subtly highlighted, respecting `prefers-reduced-motion`. |
+
+## Responsiveness
+
+The same shell serves:
+
+- Customer-facing kiosks in 9:16 portrait mode.
+- Employee handheld devices in 16:9 landscape mode.
+
+Responsive layouts and role-specific workflows are driven by CSS container queries and feature flags.

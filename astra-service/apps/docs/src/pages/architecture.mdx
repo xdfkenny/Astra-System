@@ -1,0 +1,55 @@
+# Architecture
+
+Astra-Service is an offline-first, automated self-checkout platform that keeps stores running even when cloud connectivity is lost.
+
+## Design goals
+
+| Goal | Target |
+| ---- | ------ |
+| Offline resilience | 48 hours of autonomous operation |
+| Latency | < 200 ms menu load, < 500 ms P2P inventory sync |
+| Availability | 99.99% cloud uptime; 100% uptime in local-only mode |
+| Security | Zero trust, mTLS everywhere, PCI-DSS compliant payment path |
+| Scale | 1–10,000 kiosks per tenant; multi-region cloud deployment |
+
+## High-level topology
+
+```
+┌─────────────────────────────────────────┐
+│              Cloud Tier                 │
+│  API Gateway │ Order │ Payment │ Sync   │
+│  PostgreSQL  │ Redis │ NATS JetStream   │
+└─────────────────────────────────────────┘
+                   │ Internet (TLS 1.3)
+┌─────────────────────────────────────────┐
+│           Store Edge / Kiosks           │
+│  React 19 shell + Rust sync daemon      │
+│  SQLite (offline) + libp2p QUIC mesh    │
+│  Verifone terminal, printer, scanner    │
+└─────────────────────────────────────────┘
+```
+
+## Service inventory
+
+| Service | Language | Responsibility |
+| ------- | -------- | -------------- |
+| `api-gateway` | Go | Edge routing, authN/authZ, rate limiting |
+| `order-svc` | Go | Order lifecycle, cart persistence, fulfillment |
+| `payment-svc` | Go | Payment orchestration, token settlement |
+| `inventory-svc` | Go | Stock levels, soft holds, catalog sync |
+| `cart-svc` | Go | Cart CRDT merge, ghost-cart resolution |
+| `sync-svc` | Go | Cloud-side mesh gateway and batch ingestion |
+| `astra-syncd` | Rust | Kiosk P2P daemon, CRDT sync, Verifone FFI bridge |
+| `kiosk-shell` | TypeScript | React 19 customer UI, peripheral integration |
+| `update-server` | Go | Signed OTA manifest delivery |
+
+## Key techniques
+
+- **Offline-first SQLite** — encrypted local database with full catalog, inventory, and pending transactions.
+- **P2P mesh** — libp2p over QUIC with Noise encryption and mDNS discovery.
+- **Raft consensus** — when 3+ kiosks are present, a leader handles cloud upload.
+- **CRDTs** — PN-Counters for inventory, LWW-Registers for carts, OR-Sets for transaction logs.
+- **Hybrid Logical Clocks** — preserve causality without perfect clock sync.
+- **Event sourcing + transactional outbox** — exactly-once event publication from cloud services.
+
+See the [full architecture source](/ARCHITECTURE.md) for diagrams, deeper rationales, and appendices.

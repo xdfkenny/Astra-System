@@ -1,0 +1,41 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: astra-local
+    replica: '{{.ExternalURL}}'
+
+alerting:
+  alertmanagers: []
+
+rule_files: []
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'astra-api-gateway'
+    static_configs:
+      - targets: ['api-gateway:8080']
+    metrics_path: /metrics
+
+  - job_name: 'astra-cart-service'
+    static_configs:
+      - targets: ['cart-service:8081']
+    metrics_path: /metrics
+
+  - job_name: 'astra-inventory-service'
+    static_configs:
+      - targets: ['inventory-service:8082']
+    metrics_path: /metrics
+
+  - job_name: 'astra-order-service'
+    static_configs:
+      - targets: ['order-service:8083']
+    metrics_path: /metrics
+
+  - job_name: 'astra-payment-service'
+    static_configs:
+      - targets: ['payment-service:8084']
+    metrics_path: /metrics

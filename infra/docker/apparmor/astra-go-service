@@ -1,0 +1,51 @@
+#include <tunables/global>
+
+# AppArmor profile for Astra Go microservices (api-gateway, cart-service,
+# inventory-service, order-service, payment-service, etc.).
+# Designed for use with distroless/static containers running as nonroot.
+
+profile astra-go-service flags=(attach_disconnected, mediate_deleted) {
+  #include <abstractions/base>
+
+  # Deny all capabilities by default; allow only the minimal set.
+  capability net_bind_service,
+  capability setgid,
+  capability setuid,
+  deny capability sys_admin,
+  deny capability sys_ptrace,
+  deny capability sys_module,
+  deny capability dac_read_search,
+  deny capability dac_override,
+  deny capability mknod,
+  deny capability net_admin,
+  deny capability net_raw,
+  deny capability ipc_lock,
+  deny capability sys_chroot,
+
+  network inet stream,
+  network inet6 stream,
+  network inet dgram,
+  network inet6 dgram,
+  deny network raw,
+  deny network packet,
+
+  /usr/local/bin/{api-gateway,cart-service,inventory-service,order-service,payment-service,menu-service,payment-orchestrator,sync-service} r,
+  /etc/ssl/certs/** r,
+  /etc/astra/certs/** r,
+  /etc/astra/config/*.yaml r,
+  /usr/share/zoneinfo/** r,
+  /proc/sys/net/core/somaxconn r,
+  /proc/{self,$$}/** r,
+  /tmp/** rw,
+  /var/tmp/** rw,
+
+  deny /etc/passwd w,
+  deny /etc/shadow w,
+  deny /etc/group w,
+  deny /proc/sys/** w,
+  deny /sys/** w,
+  deny /dev/** w,
+
+  # Allow graceful shutdown on SIGTERM
+  signal (receive) set=(term, int, hup),
+}

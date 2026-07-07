@@ -1,0 +1,146 @@
+syntax = "proto3";
+
+package astra.sync;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/astra-systems/astra-service/sync-daemon/proto";
+
+// Local empty message used for RPCs that take no input. We avoid
+// google.protobuf.Empty because some prost/tonic versions do not expose it
+// in the generated module path used by our service trait.
+message Empty {}
+
+// Service exposed via gRPC for local IPC with other Astra services
+service AstraSync {
+    // Health and status checks
+    rpc HealthCheck(Empty) returns (HealthResponse);
+    
+    // Request immediate sync of a specific data type
+    rpc SyncNow(SyncRequest) returns (SyncResponse);
+    
+    // Get current sync status
+    rpc GetSyncStatus(Empty) returns (SyncStatus);
+    
+    // Submit a local transaction for sync
+    rpc SubmitTransaction(TransactionPayload) returns (TransactionResponse);
+    
+    // Get local peer ID and mesh info
+    rpc GetMeshInfo(Empty) returns (MeshInfo);
+    
+    // Get leader status from Raft consensus
+    rpc GetLeaderStatus(Empty) returns (LeaderStatus);
+    
+    // Get offline payment queue status
+    rpc GetOfflineQueue(Empty) returns (OfflineQueueStatus);
+    
+    // Force a cloud flush (leader only)
+    rpc ForceCloudFlush(Empty) returns (FlushResponse);
+}
+
+message HealthResponse {
+    bool healthy = 1;
+    string version = 2;
+    string peer_id = 3;
+    google.protobuf.Timestamp uptime = 4;
+}
+
+message SyncRequest {
+    DataType data_type = 1;
+    bool force_full_sync = 2;
+}
+
+message SyncResponse {
+    bool success = 1;
+    string message = 2;
+    uint64 synced_records = 3;
+}
+
+message SyncStatus {
+    bool is_online = 1;
+    bool is_leader = 2;
+    uint64 last_sync_timestamp = 3;
+    uint64 pending_local_records = 4;
+    uint64 pending_cloud_records = 5;
+    repeated PeerStatus peers = 6;
+    DataSyncStatus inventory_status = 7;
+    DataSyncStatus cart_status = 8;
+    DataSyncStatus transaction_status = 9;
+    DataSyncStatus analytics_status = 10;
+}
+
+message PeerStatus {
+    string peer_id = 1;
+    string address = 2;
+    ConnectionState state = 3;
+    uint64 last_seen = 4;
+    int32 latency_ms = 5;
+}
+
+enum ConnectionState {
+    CONNECTED = 0;
+    CONNECTING = 1;
+    DISCONNECTED = 2;
+}
+
+enum DataType {
+    INVENTORY = 0;
+    CART = 1;
+    TRANSACTION = 2;
+    ANALYTICS = 3;
+}
+
+message DataSyncStatus {
+    DataType data_type = 1;
+    uint64 last_sync_timestamp = 2;
+    uint64 pending_count = 3;
+    SyncPriority priority = 4;
+}
+
+enum SyncPriority {
+    IMMEDIATE = 0;
+    BATCHED = 1;
+    DELAYED = 2;
+}
+
+message TransactionPayload {
+    string transaction_id = 1;
+    bytes payload = 2;
+    string signature = 3;
+    uint64 timestamp = 4;
+    bool offline = 5;
+}
+
+message TransactionResponse {
+    bool accepted = 1;
+    string transaction_id = 2;
+    string status = 3;
+}
+
+message MeshInfo {
+    string local_peer_id = 1;
+    uint32 connected_peers = 2;
+    uint32 known_peers = 3;
+    string network_name = 4;
+    repeated string protocols = 5;
+}
+
+message LeaderStatus {
+    bool is_leader = 1;
+    string leader_id = 2;
+    uint64 term = 3;
+    uint64 last_heartbeat = 4;
+}
+
+message OfflineQueueStatus {
+    uint32 queued_count = 1;
+    uint64 total_value = 2;
+    uint64 oldest_timestamp = 3;
+    bool has_internet = 4;
+}
+
+message FlushResponse {
+    bool success = 1;
+    uint64 flushed_records = 2;
+    string error = 3;
+}

@@ -1,0 +1,11 @@
+{
+  "extends": "./typescript/base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "tsBuildInfoFile": "./.tsbuildinfo",
+    "allowJs": true
+  },
+  "include": ["./*.ts", "./**/*.ts", "./*.js", "./**/*.js"],
+  "exclude": ["node_modules", "dist", "coverage"]
+}

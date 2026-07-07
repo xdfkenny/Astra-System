@@ -1,0 +1,156 @@
+/**
+ * Astra-Service CSS custom properties.
+ * Kept in lockstep with tokens.ts — see tokens.spec.ts drift guard.
+ * Consumed directly by Tailwind CSS v4 via `@theme inline` in global.css.
+ */
+:root {
+  color-scheme: light;
+
+  /* Color */
+  --color-background: #f8f9fc;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f0f2f7;
+  --color-primary: #4f6d7a;
+  --color-primary-hover: #456170;
+  --color-primary-pressed: #3b5560;
+  --color-secondary: #7b8fa1;
+  --color-accent: #e09f3e;
+  --color-accent-hover: #cb8e36;
+  --color-error: #c1666b;
+  --color-success: #6a9e88;
+  --color-warning: #e0b23e;
+  --color-ink: #1f2933;
+  --color-ink-muted: #5a6472;
+  --color-border: rgba(31, 41, 51, 0.08);
+  --color-border-strong: rgba(31, 41, 51, 0.16);
+  --color-overlay: rgba(15, 20, 25, 0.55);
+
+  /* Spacing (8px grid) */
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 96px;
+  --space-9: 128px;
+
+  /* Touch targets */
+  --touch-minimum: 48px;
+  --touch-comfortable: 64px;
+  --touch-primary-action: 88px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(31, 41, 51, 0.06), 0 1px 1px rgba(31, 41, 51, 0.04);
+  --shadow-md: 0 4px 8px rgba(31, 41, 51, 0.08), 0 2px 4px rgba(31, 41, 51, 0.06);
+  --shadow-lg: 0 12px 24px rgba(31, 41, 51, 0.12), 0 4px 8px rgba(31, 41, 51, 0.08);
+  --shadow-focus-ring: 0 0 0 3px rgba(224, 159, 62, 0.45);
+
+  /* Typography */
+  --font-ui: "Inter", system-ui, -apple-system, sans-serif;
+  --font-heading: "Space Grotesk", "Inter", system-ui, sans-serif;
+
+  /* Motion (seconds) */
+  --duration-instant: 80ms;
+  --duration-fast: 160ms;
+  --duration-base: 240ms;
+  --duration-slow: 400ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
+
+  /* Texture */
+  --grain-opacity: 0.035;
+}
+
+/* Dark mode — toggled via html.dark or OS preference */
+html.dark,
+:root:is([data-theme="dark"]) {
+  color-scheme: dark;
+
+  /* Color */
+  --color-background: #0f1419;
+  --color-surface: #1a2026;
+  --color-surface-sunken: #13181d;
+  --color-primary: #6b8a99;
+  --color-primary-hover: #7a9ba8;
+  --color-primary-pressed: #8aabba;
+  --color-secondary: #5f6f7d;
+  --color-accent: #f0b156;
+  --color-accent-hover: #f5c27a;
+  --color-error: #e07d82;
+  --color-success: #8bc4ad;
+  --color-warning: #ecc55d;
+  --color-ink: #e8ecf1;
+  --color-ink-muted: #9aa3ad;
+  --color-border: rgba(232, 236, 241, 0.10);
+  --color-border-strong: rgba(232, 236, 241, 0.20);
+  --color-overlay: rgba(0, 0, 0, 0.65);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    /* Color */
+    --color-background: #0f1419;
+    --color-surface: #1a2026;
+    --color-surface-sunken: #13181d;
+    --color-primary: #6b8a99;
+    --color-primary-hover: #7a9ba8;
+    --color-primary-pressed: #8aabba;
+    --color-secondary: #5f6f7d;
+    --color-accent: #f0b156;
+    --color-accent-hover: #f5c27a;
+    --color-error: #e07d82;
+    --color-success: #8bc4ad;
+    --color-warning: #ecc55d;
+    --color-ink: #e8ecf1;
+    --color-ink-muted: #9aa3ad;
+    --color-border: rgba(232, 236, 241, 0.10);
+    --color-border-strong: rgba(232, 236, 241, 0.20);
+    --color-overlay: rgba(0, 0, 0, 0.65);
+  }
+}
+
+/* High contrast mode — toggled via [data-contrast="high"] on <html>, respects OS preference too */
+:root[data-contrast="high"],
+:root:is([data-contrast="auto"]) {
+  @media (prefers-contrast: more) {
+    --color-background: #000000;
+    --color-surface: #0b0b0b;
+    --color-primary: #8fd5ea;
+    --color-accent: #ffd166;
+    --color-error: #ff6b6b;
+    --color-success: #8be3b8;
+    --color-ink: #ffffff;
+    --color-border: rgba(255, 255, 255, 0.32);
+  }
+}
+:root[data-contrast="high"] {
+  --color-background: #000000;
+  --color-surface: #0b0b0b;
+  --color-primary: #8fd5ea;
+  --color-accent: #ffd166;
+  --color-error: #ff6b6b;
+  --color-success: #8be3b8;
+  --color-ink: #ffffff;
+  --color-border: rgba(255, 255, 255, 0.32);
+}
+
+/* Reduced motion — Framer Motion reads this via useReducedMotion(), this covers raw CSS transitions */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+  }
+}

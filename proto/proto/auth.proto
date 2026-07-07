@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package astra.auth.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+
+option go_package = "github.com/astra-systems/astra-service/proto/gen/go/auth;auth";
+
+// WebAuthn verification service for employee override assertions.
+service AuthService {
+  // BeginVerification returns a challenge and WebAuthn options for a credential
+  // registered to an employee or user.
+  rpc BeginVerification(BeginVerificationRequest) returns (BeginVerificationResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/webauthn/begin"
+      body: "*"
+    };
+  }
+
+  // VerifyAssertion validates a WebAuthn assertion and returns a short-lived
+  // override token when successful.
+  rpc VerifyAssertion(VerifyAssertionRequest) returns (VerifyAssertionResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/webauthn/verify"
+      body: "*"
+    };
+  }
+
+  // ValidateOverrideToken checks whether an override token is still valid.
+  rpc ValidateOverrideToken(ValidateOverrideTokenRequest) returns (ValidateOverrideTokenResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/override/validate"
+      body: "*"
+    };
+  }
+}
+
+// ActorType distinguishes employees (kiosk-facing) from admin users.
+enum ActorType {
+  ACTOR_TYPE_UNSPECIFIED = 0;
+  ACTOR_TYPE_EMPLOYEE = 1;
+  ACTOR_TYPE_USER = 2;
+}
+
+// PublicKeyCredentialDescriptor mirrors the WebAuthn credential descriptor.
+message PublicKeyCredentialDescriptor {
+  string type = 1;
+  bytes id = 2;
+  repeated string transports = 3;
+}
+
+// BeginVerificationRequest initiates a WebAuthn assertion flow.
+message BeginVerificationRequest {
+  string actor_id = 1;
+  ActorType actor_type = 2;
+  string store_id = 3;
+  string kiosk_id = 4;
+  string tenant_id = 5;
+  string reason = 6;
+}
+
+// BeginVerificationResponse contains the challenge and options required by the
+// client to create an assertion.
+message BeginVerificationResponse {
+  string challenge = 1;
+  string rp_id = 2;
+  repeated PublicKeyCredentialDescriptor allow_credentials = 3;
+  string user_verification = 4;
+  int64 timeout_ms = 5;
+}
+
+// AuthenticatorAssertionResponse carries the raw assertion fields from the
+// browser/authenticator.
+message AuthenticatorAssertionResponse {
+  bytes client_data_json = 1;
+  bytes authenticator_data = 2;
+  bytes signature = 3;
+  bytes user_handle = 4;
+}
+
+// VerifyAssertionRequest submits a signed assertion for verification.
+message VerifyAssertionRequest {
+  string actor_id = 1;
+  ActorType actor_type = 2;
+  string store_id = 3;
+  string kiosk_id = 4;
+  string tenant_id = 5;
+  string credential_id = 6;
+  string challenge = 7;
+  string reason = 8;
+  AuthenticatorAssertionResponse assertion = 9;
+}
+
+// VerifyAssertionResponse returns the override token and metadata on success.
+message VerifyAssertionResponse {
+  bool valid = 1;
+  string override_token = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  string actor_id = 4;
+  ActorType actor_type = 5;
+}
+
+// ValidateOverrideTokenRequest checks a token.
+message ValidateOverrideTokenRequest {
+  string override_token = 1;
+}
+
+// ValidateOverrideTokenResponse reports whether the token is valid and the
+// actor it represents.
+message ValidateOverrideTokenResponse {
+  bool valid = 1;
+  string actor_id = 2;
+  ActorType actor_type = 3;
+  string store_id = 4;
+  string tenant_id = 5;
+  google.protobuf.Timestamp expires_at = 6;
+}

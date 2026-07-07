@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package astra.order.v1;
+
+import "common.proto";
+
+option go_package = "github.com/astra-systems/astra-service/proto/gen/go/order;order";
+
+// Lifecycle status of an order.
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING = 1;
+  ORDER_STATUS_PAID = 2;
+  ORDER_STATUS_FULFILLED = 3;
+  ORDER_STATUS_CANCELLED = 4;
+  ORDER_STATUS_REFUNDED = 5;
+}
+
+// A line item recorded on an order at checkout time.
+message OrderItem {
+  string order_item_id = 1 [json_name = "order_item_id"];
+  string item_id = 2 [json_name = "item_id"];
+  string name_snapshot = 3 [json_name = "name_snapshot"];
+  int64 price_cents_snapshot = 4 [json_name = "price_cents_snapshot"];
+  int32 quantity = 5 [json_name = "quantity"];
+  repeated string modifier_option_ids = 6 [json_name = "modifier_option_ids"];
+  int64 line_total_cents = 7 [json_name = "line_total_cents"];
+}
+
+// A customer order produced from a finalized cart.
+message Order {
+  string order_id = 1 [json_name = "order_id"];
+  string store_id = 2 [json_name = "store_id"];
+  string kiosk_id = 3 [json_name = "kiosk_id"];
+  string cart_id = 4 [json_name = "cart_id"];
+  string order_number = 5 [json_name = "order_number"];
+  OrderStatus status = 6 [json_name = "status"];
+  int64 subtotal_cents = 7 [json_name = "subtotal_cents"];
+  int64 tax_cents = 8 [json_name = "tax_cents"];
+  int64 discount_cents = 9 [json_name = "discount_cents"];
+  int64 total_cents = 10 [json_name = "total_cents"];
+  repeated OrderItem items = 11 [json_name = "items"];
+  map<string, string> tax_breakdown = 12 [json_name = "tax_breakdown"];
+  map<string, string> metadata = 13 [json_name = "metadata"];
+  string paid_at = 14 [json_name = "paid_at"];
+  string fulfilled_at = 15 [json_name = "fulfilled_at"];
+  string cancelled_at = 16 [json_name = "cancelled_at"];
+  string created_at = 17 [json_name = "created_at"];
+}
+
+message CreateOrderRequest {
+  string cart_id = 1 [json_name = "cart_id"];
+  string store_id = 2 [json_name = "store_id"];
+  string kiosk_id = 3 [json_name = "kiosk_id"];
+  string customer_phone = 4 [json_name = "customer_phone"];
+}
+
+message GetOrderRequest {
+  string order_id = 1 [json_name = "order_id"];
+}
+
+message ListOrdersRequest {
+  string store_id = 1 [json_name = "store_id"];
+  string kiosk_id = 2 [json_name = "kiosk_id"];
+  OrderStatus status = 3 [json_name = "status"];
+  astra.common.v1.PaginationRequest pagination = 4 [json_name = "pagination"];
+}
+
+message ListOrdersResponse {
+  repeated Order orders = 1 [json_name = "orders"];
+  astra.common.v1.PaginationResponse pagination = 2 [json_name = "pagination"];
+}
+
+message UpdateOrderStatusRequest {
+  string order_id = 1 [json_name = "order_id"];
+  OrderStatus status = 2 [json_name = "status"];
+  string reason = 3 [json_name = "reason"];
+}
+
+message FulfillOrderRequest {
+  string order_id = 1 [json_name = "order_id"];
+  string fulfilled_by = 2 [json_name = "fulfilled_by"];
+}
+
+// OrderService handles order creation, queries, and fulfillment workflows.
+service OrderService {
+  rpc CreateOrder(CreateOrderRequest) returns (Order);
+  rpc GetOrder(GetOrderRequest) returns (Order);
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+  rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (Order);
+  rpc FulfillOrder(FulfillOrderRequest) returns (Order);
+}
