@@ -1,15 +1,20 @@
 import { motion } from "framer-motion";
 import { PrimaryButton } from "@astra/ui-kit";
 import { motion as motionTokens } from "@astra/design-tokens";
-import { useKioskMachine } from "../machines/KioskMachineProvider";
+
+export interface IdleTimeoutOverlayProps {
+  onContinue: () => void;
+  onReset: () => void;
+}
 
 /**
  * Idle timeout overlay. Arms when the customer walks away; tapping "I'm still
  * here" resumes the session, otherwise the kiosk auto-resets to Attract.
  */
-export function IdleTimeoutOverlay(): React.JSX.Element {
-  const { send } = useKioskMachine();
-
+export function IdleTimeoutOverlay({
+  onContinue,
+  onReset,
+}: IdleTimeoutOverlayProps): React.JSX.Element {
   return (
     <div className="absolute inset-0 z-modal flex items-center justify-center bg-overlay p-6">
       <motion.div
@@ -27,18 +32,14 @@ export function IdleTimeoutOverlay(): React.JSX.Element {
           <PrimaryButton
             variant="primary"
             className="w-full"
-            onClick={() => {
-              send({ type: "CONTINUE_SESSION" });
-            }}
+            onClick={onContinue}
           >
             I&apos;m Still Here
           </PrimaryButton>
           <PrimaryButton
             variant="ghost"
             className="w-full"
-            onClick={() => {
-              send({ type: "RESET_SESSION" });
-            }}
+            onClick={onReset}
           >
             Start Over
           </PrimaryButton>

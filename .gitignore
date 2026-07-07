@@ -43,6 +43,8 @@ Cargo.lock
 bin/
 *.exe
 
+*.tsbuildinfo
+
 # Local tool caches / downloaded toolchains
 .go/
 go/

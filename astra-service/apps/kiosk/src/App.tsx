@@ -46,7 +46,7 @@ function KioskShell(): React.JSX.Element {
   return (
     <>
       <StatusBar />
-      <main className="relative flex flex-1 flex-col overflow-hidden">
+      <main className="relative flex flex-1 flex-col overflow-hidden bg-linen">
         <WorkflowRouter />
       </main>
       <div id="astra-live-region" role="status" aria-live="polite" className="sr-only-live" />

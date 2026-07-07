@@ -1,21 +1,18 @@
 export const duration = {
-  0: "0ms",
-  75: "75ms",
-  100: "100ms",
-  150: "150ms",
-  200: "200ms",
-  300: "300ms",
-  500: "500ms",
-  700: "700ms",
-  1000: "1000ms",
+  instant: "80ms",
+  fast: "150ms",
+  base: "250ms",
+  slow: "350ms",
+  sheet: "300ms",
+  page: "300ms",
 } as const;
 
 export const easing = {
-  linear: "linear",
-  in: "cubic-bezier(0.4, 0, 1, 1)",
-  out: "cubic-bezier(0, 0, 0.2, 1)",
-  "in-out": "cubic-bezier(0.4, 0, 0.2, 1)",
-  bounce: "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+  easeOutExpo: "cubic-bezier(0.16, 1, 0.3, 1)",
+  easeInOutSoft: "cubic-bezier(0.4, 0, 0.2, 1)",
+  easeSpring: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+  easeStandard: "cubic-bezier(0.2, 0, 0, 1)",
+  easeEmphasized: "cubic-bezier(0.05, 0.7, 0.1, 1)",
 } as const;
 
 export const cssVariables: Record<string, string> = {

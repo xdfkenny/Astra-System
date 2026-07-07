@@ -1,73 +1,170 @@
 /**
- * Astra-Service CSS custom properties.
+ * Astra-Service CSS custom properties — "Living Weave" (Retail Kiosk).
  * Kept in lockstep with tokens.ts — see tokens.spec.ts drift guard.
  * Consumed directly by Tailwind CSS v4 via `@theme inline` in global.css.
  */
 :root {
   color-scheme: light;
 
-  /* Color */
-  --color-background: #f8f9fc;
-  --color-surface: #ffffff;
-  --color-surface-sunken: #f0f2f7;
-  --color-primary: #4f6d7a;
-  --color-primary-hover: #456170;
-  --color-primary-pressed: #3b5560;
-  --color-secondary: #7b8fa1;
-  --color-accent: #e09f3e;
-  --color-accent-hover: #cb8e36;
-  --color-error: #c1666b;
-  --color-success: #6a9e88;
-  --color-warning: #e0b23e;
-  --color-ink: #1f2933;
-  --color-ink-muted: #5a6472;
-  --color-border: rgba(31, 41, 51, 0.08);
-  --color-border-strong: rgba(31, 41, 51, 0.16);
-  --color-overlay: rgba(15, 20, 25, 0.55);
+  /* Base / Neutrals */
+  --color-linen: #F5F3EF;
+  --color-warm-cream: #FEF7E0;
+  --color-card-surface: #FFFFFF;
+  --color-card-surface-opacity: 0.88;
+  --color-charcoal: #2D2A26;
+  --color-stone: #6B6862;
+  --color-taupe: #C4B8A8;
+  --color-clay: #B8A99A;
+
+  /* Biophilic Accents */
+  --color-moss: #5A7A5C;
+  --color-moss-hover: #4A6A4C;
+  --color-moss-pressed: #3A5A3C;
+  --color-amber: #B87E6B;
+  --color-amber-hover: #A06E5D;
+  --color-amber-pressed: #885E4D;
+  --color-denim: #4A5D70;
+  --color-denim-hover: #3A4D60;
+  --color-deep-forest: #1A3A2A;
+  --color-pale-mint: #E8F5E9;
+  --color-soft-rose: #C4A4A4;
+  --color-soft-rose-hover: #B08A8A;
+  --color-offline: #D4A843;
+  --color-sync-active: #5A7A5C;
+  --color-printer: #6B6862;
+
+  /* Semantic */
+  --color-background: var(--color-linen);
+  --color-surface: var(--color-card-surface);
+  --color-surface-sunken: var(--color-warm-cream);
+  --color-surface-overlay: rgba(255, 255, 255, 0.88);
+
+  --color-primary: var(--color-moss);
+  --color-primary-hover: var(--color-moss-hover);
+  --color-primary-pressed: var(--color-moss-pressed);
+  --color-cta: var(--color-amber);
+  --color-cta-hover: var(--color-amber-hover);
+  --color-cta-pressed: var(--color-amber-pressed);
+  --color-secondary: var(--color-denim);
+  --color-secondary-hover: var(--color-denim-hover);
+
+  --color-success: var(--color-moss);
+  --color-warning: var(--color-offline);
+  --color-info: var(--color-denim);
+  --color-error: var(--color-soft-rose);
+  --color-error-hover: var(--color-soft-rose-hover);
+
+  --color-ink: var(--color-charcoal);
+  --color-ink-muted: var(--color-stone);
+  --color-ink-inverted: var(--color-linen);
+
+  --color-border: var(--color-taupe);
+  --color-border-strong: var(--color-clay);
+  --color-divider: var(--color-taupe);
+  --color-overlay: rgba(45, 42, 38, 0.2);
+  --color-overlay-strong: rgba(45, 42, 38, 0.55);
 
   /* Spacing (8px grid) */
   --space-0: 0px;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 16px;
-  --space-4: 24px;
-  --space-5: 32px;
+  --space-0-5: 4px;
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
   --space-6: 48px;
-  --space-7: 64px;
-  --space-8: 96px;
-  --space-9: 128px;
+  --space-7: 56px;
+  --space-8: 64px;
+  --space-10: 80px;
+  --space-12: 96px;
+  --space-14: 112px;
+  --space-16: 128px;
 
   /* Touch targets */
-  --touch-minimum: 48px;
+  --touch-minimum: 56px;
   --touch-comfortable: 64px;
-  --touch-primary-action: 88px;
+  --touch-primary-action: 96px;
 
   /* Radius */
-  --radius-sm: 6px;
+  --radius-none: 0px;
+  --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 20px;
-  --radius-pill: 999px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 9999px;
 
   /* Shadow */
-  --shadow-sm: 0 1px 2px rgba(31, 41, 51, 0.06), 0 1px 1px rgba(31, 41, 51, 0.04);
-  --shadow-md: 0 4px 8px rgba(31, 41, 51, 0.08), 0 2px 4px rgba(31, 41, 51, 0.06);
-  --shadow-lg: 0 12px 24px rgba(31, 41, 51, 0.12), 0 4px 8px rgba(31, 41, 51, 0.08);
-  --shadow-focus-ring: 0 0 0 3px rgba(224, 159, 62, 0.45);
+  --shadow-sm: 0 2px 12px rgba(45, 42, 38, 0.06);
+  --shadow-md: 0 4px 24px rgba(45, 42, 38, 0.08);
+  --shadow-lg: 0 8px 32px rgba(45, 42, 38, 0.12);
+  --shadow-xl: 0 12px 48px rgba(45, 42, 38, 0.16);
+  --shadow-focus-ring: 0 0 0 3px rgba(90, 122, 92, 0.35);
+  --shadow-focus-ring-cta: 0 0 0 3px rgba(184, 126, 107, 0.35);
 
   /* Typography */
-  --font-ui: "Inter", system-ui, -apple-system, sans-serif;
-  --font-heading: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-ui: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-heading: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", monospace;
+
+  --text-micro: 14px;
+  --text-micro-line: 20px;
+  --text-caption: 13px;
+  --text-caption-line: 18px;
+  --text-body: 18px;
+  --text-body-line: 28px;
+  --text-body-large: 22px;
+  --text-body-large-line: 30px;
+  --text-title: 28px;
+  --text-title-line: 36px;
+  --text-screen-title: 36px;
+  --text-screen-title-line: 44px;
+  --text-hero: 56px;
+  --text-hero-line: 64px;
+  --text-hero-large: 72px;
+  --text-hero-large-line: 80px;
+
+  --weight-light: 300;
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: -0.01em;
+  --tracking-wide: 0.08em;
 
   /* Motion (seconds) */
   --duration-instant: 80ms;
-  --duration-fast: 160ms;
-  --duration-base: 240ms;
-  --duration-slow: 400ms;
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 350ms;
+  --duration-sheet: 300ms;
+  --duration-page: 300ms;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
 
+  /* Z-index */
+  --z-base: 0;
+  --z-content: 10;
+  --z-sticky-bar: 20;
+  --z-floating-cart: 20;
+  --z-modal: 30;
+  --z-bottom-sheet: 30;
+  --z-toast: 40;
+  --z-offline-banner: 40;
+  --z-attract-loop: 50;
+  --z-system-overlay: 60;
+
   /* Texture */
-  --grain-opacity: 0.035;
+  --grain-opacity: 0.03;
+  --weave-opacity: 0.04;
+  --border-opacity-default: 0.12;
+  --border-opacity-strong: 0.2;
+  --card-opacity: 0.85;
 }
 
 /* Dark mode — toggled via html.dark or OS preference */
@@ -75,48 +172,70 @@ html.dark,
 :root:is([data-theme="dark"]) {
   color-scheme: dark;
 
-  /* Color */
-  --color-background: #0f1419;
-  --color-surface: #1a2026;
-  --color-surface-sunken: #13181d;
-  --color-primary: #6b8a99;
-  --color-primary-hover: #7a9ba8;
-  --color-primary-pressed: #8aabba;
-  --color-secondary: #5f6f7d;
-  --color-accent: #f0b156;
-  --color-accent-hover: #f5c27a;
-  --color-error: #e07d82;
-  --color-success: #8bc4ad;
-  --color-warning: #ecc55d;
-  --color-ink: #e8ecf1;
-  --color-ink-muted: #9aa3ad;
-  --color-border: rgba(232, 236, 241, 0.10);
-  --color-border-strong: rgba(232, 236, 241, 0.20);
-  --color-overlay: rgba(0, 0, 0, 0.65);
+  --color-background: #1C1A17;
+  --color-surface: #2A2824;
+  --color-surface-sunken: #1C1A17;
+  --color-surface-overlay: rgba(42, 40, 36, 0.92);
+
+  --color-primary: #7A9A7C;
+  --color-primary-hover: #8AAB8C;
+  --color-primary-pressed: #9ABC9D;
+  --color-cta: #C49A8A;
+  --color-cta-hover: #D4AA9A;
+  --color-cta-pressed: #E4BAAA;
+  --color-secondary: #6A7D90;
+  --color-secondary-hover: #7A8DA0;
+
+  --color-success: #7A9A7C;
+  --color-warning: #E4C46A;
+  --color-info: #6A7D90;
+  --color-error: #D4A4A4;
+  --color-error-hover: #E4B4B4;
+
+  --color-ink: #F5F3EF;
+  --color-ink-muted: #A8A49D;
+  --color-ink-inverted: #2D2A26;
+
+  --color-border: rgba(168, 164, 157, 0.2);
+  --color-border-strong: rgba(168, 164, 157, 0.32);
+  --color-divider: rgba(168, 164, 157, 0.2);
+  --color-overlay: rgba(0, 0, 0, 0.55);
+  --color-overlay-strong: rgba(0, 0, 0, 0.72);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-    /* Color */
-    --color-background: #0f1419;
-    --color-surface: #1a2026;
-    --color-surface-sunken: #13181d;
-    --color-primary: #6b8a99;
-    --color-primary-hover: #7a9ba8;
-    --color-primary-pressed: #8aabba;
-    --color-secondary: #5f6f7d;
-    --color-accent: #f0b156;
-    --color-accent-hover: #f5c27a;
-    --color-error: #e07d82;
-    --color-success: #8bc4ad;
-    --color-warning: #ecc55d;
-    --color-ink: #e8ecf1;
-    --color-ink-muted: #9aa3ad;
-    --color-border: rgba(232, 236, 241, 0.10);
-    --color-border-strong: rgba(232, 236, 241, 0.20);
-    --color-overlay: rgba(0, 0, 0, 0.65);
+    --color-background: #1C1A17;
+    --color-surface: #2A2824;
+    --color-surface-sunken: #1C1A17;
+    --color-surface-overlay: rgba(42, 40, 36, 0.92);
+
+    --color-primary: #7A9A7C;
+    --color-primary-hover: #8AAB8C;
+    --color-primary-pressed: #9ABC9D;
+    --color-cta: #C49A8A;
+    --color-cta-hover: #D4AA9A;
+    --color-cta-pressed: #E4BAAA;
+    --color-secondary: #6A7D90;
+    --color-secondary-hover: #7A8DA0;
+
+    --color-success: #7A9A7C;
+    --color-warning: #E4C46A;
+    --color-info: #6A7D90;
+    --color-error: #D4A4A4;
+    --color-error-hover: #E4B4B4;
+
+    --color-ink: #F5F3EF;
+    --color-ink-muted: #A8A49D;
+    --color-ink-inverted: #2D2A26;
+
+    --color-border: rgba(168, 164, 157, 0.2);
+    --color-border-strong: rgba(168, 164, 157, 0.32);
+    --color-divider: rgba(168, 164, 157, 0.2);
+    --color-overlay: rgba(0, 0, 0, 0.55);
+    --color-overlay-strong: rgba(0, 0, 0, 0.72);
   }
 }
 
@@ -125,24 +244,62 @@ html.dark,
 :root:is([data-contrast="auto"]) {
   @media (prefers-contrast: more) {
     --color-background: #000000;
-    --color-surface: #0b0b0b;
-    --color-primary: #8fd5ea;
-    --color-accent: #ffd166;
-    --color-error: #ff6b6b;
-    --color-success: #8be3b8;
-    --color-ink: #ffffff;
+    --color-surface: #0B0B0B;
+    --color-surface-sunken: #000000;
+    --color-surface-overlay: rgba(0, 0, 0, 0.96);
+
+    --color-primary: #8FD5EA;
+    --color-primary-hover: #9EE5FA;
+    --color-cta: #FFD166;
+    --color-cta-hover: #FFE18A;
+    --color-secondary: #8FD5EA;
+    --color-secondary-hover: #9EE5FA;
+
+    --color-success: #8BE3B8;
+    --color-warning: #FFD166;
+    --color-info: #8FD5EA;
+    --color-error: #FF6B6B;
+    --color-error-hover: #FF8B8B;
+
+    --color-ink: #FFFFFF;
+    --color-ink-muted: #E0E0E0;
+    --color-ink-inverted: #000000;
+
     --color-border: rgba(255, 255, 255, 0.32);
+    --color-border-strong: rgba(255, 255, 255, 0.48);
+    --color-divider: rgba(255, 255, 255, 0.32);
+    --color-overlay: rgba(0, 0, 0, 0.72);
+    --color-overlay-strong: rgba(0, 0, 0, 0.88);
   }
 }
 :root[data-contrast="high"] {
   --color-background: #000000;
-  --color-surface: #0b0b0b;
-  --color-primary: #8fd5ea;
-  --color-accent: #ffd166;
-  --color-error: #ff6b6b;
-  --color-success: #8be3b8;
-  --color-ink: #ffffff;
+  --color-surface: #0B0B0B;
+  --color-surface-sunken: #000000;
+  --color-surface-overlay: rgba(0, 0, 0, 0.96);
+
+  --color-primary: #8FD5EA;
+  --color-primary-hover: #9EE5FA;
+  --color-cta: #FFD166;
+  --color-cta-hover: #FFE18A;
+  --color-secondary: #8FD5EA;
+  --color-secondary-hover: #9EE5FA;
+
+  --color-success: #8BE3B8;
+  --color-warning: #FFD166;
+  --color-info: #8FD5EA;
+  --color-error: #FF6B6B;
+  --color-error-hover: #FF8B8B;
+
+  --color-ink: #FFFFFF;
+  --color-ink-muted: #E0E0E0;
+  --color-ink-inverted: #000000;
+
   --color-border: rgba(255, 255, 255, 0.32);
+  --color-border-strong: rgba(255, 255, 255, 0.48);
+  --color-divider: rgba(255, 255, 255, 0.32);
+  --color-overlay: rgba(0, 0, 0, 0.72);
+  --color-overlay-strong: rgba(0, 0, 0, 0.88);
 }
 
 /* Reduced motion — Framer Motion reads this via useReducedMotion(), this covers raw CSS transitions */
@@ -152,5 +309,7 @@ html.dark,
     --duration-fast: 0ms;
     --duration-base: 0ms;
     --duration-slow: 0ms;
+    --duration-sheet: 0ms;
+    --duration-page: 0ms;
   }
 }

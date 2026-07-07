@@ -2,32 +2,22 @@ import { assign, createMachine, fromPromise } from "xstate";
 import type { MenuItem, Order, PaymentAuthorizationResult } from "@astra/shared-types";
 import type { LaneMode } from "@astra/kiosk-state";
 
-/**
- * Unified kiosk workflow state machine (XState v5).
- *
- * The kiosk is a physically-embedded, unattended device. This machine is the
- * single source of truth for which high-level stage the customer is in. It
- * prevents illegal jumps (e.g. straight to receipt without payment), enforces
- * the idle-reclaim flow, and centralizes the async payment finalization actor.
- */
-
 export type KioskWorkflowStage =
   | "ATTRACT"
-  | "IDLE_TIMEOUT"
-  | "MENU_BROWSE"
-  | "ITEM_MODAL"
-  | "CART_REVIEW"
-  | "PAYMENT_AUTH"
+  | "MENU"
+  | "ITEM_DETAIL"
+  | "CART"
+  | "PAYMENT"
   | "PROCESSING"
   | "RECEIPT"
-  | "RESET";
+  | "ADMIN";
 
 export interface KioskContext {
   readonly sessionId: string | null;
   readonly laneMode: LaneMode;
   readonly selectedItem: MenuItem | null;
   readonly cartHasItems: boolean;
-  readonly returnTo: "MENU_BROWSE" | "CART_REVIEW" | null;
+  readonly returnTo: "MENU" | "CART" | null;
   readonly paymentResult: PaymentAuthorizationResult | null;
   readonly order: Order | null;
   readonly errorMessage: string | null;
@@ -35,11 +25,8 @@ export interface KioskContext {
 
 export type KioskEvent =
   | { type: "START_SESSION"; sessionId: string; laneMode?: LaneMode }
-  | { type: "IDLE_TIMEOUT" }
-  | { type: "CONTINUE_SESSION" }
-  | { type: "RESET_SESSION" }
   | { type: "SELECT_ITEM"; item: MenuItem }
-  | { type: "CLOSE_ITEM_MODAL" }
+  | { type: "CLOSE_ITEM_DETAIL" }
   | { type: "ADD_TO_CART" }
   | { type: "CART_UPDATED"; cartHasItems: boolean }
   | { type: "GO_TO_CART" }
@@ -51,7 +38,9 @@ export type KioskEvent =
   | { type: "CANCEL_PAYMENT" }
   | { type: "ORDER_FINALIZED"; order: Order }
   | { type: "RECEIPT_ACKNOWLEDGED" }
-  | { type: "RETURN_TO_ATTRACT" };
+  | { type: "RETURN_TO_ATTRACT" }
+  | { type: "OPEN_ADMIN" }
+  | { type: "CLOSE_ADMIN" };
 
 const APPROVED_STATUSES: readonly PaymentAuthorizationResult["status"][] = [
   "authorized",
@@ -67,11 +56,6 @@ function isDeclinedResult(result: PaymentAuthorizationResult): boolean {
   return result.status === "declined";
 }
 
-/**
- * Simulates the backend order finalization that happens after the terminal
- * reports a successful authorization. In production this would POST to the
- * local astra-syncd outbox (or the cloud order-service when online).
- */
 async function finalizeOrder(input: {
   sessionId: string;
   paymentResult: PaymentAuthorizationResult | null;
@@ -125,58 +109,62 @@ export const kioskMachine = createMachine(
       ATTRACT: {
         on: {
           START_SESSION: {
-            target: "MENU_BROWSE",
+            target: "MENU",
             actions: ["assignSession"],
+          },
+          OPEN_ADMIN: {
+            target: "ADMIN",
           },
         },
       },
-      MENU_BROWSE: {
+      MENU: {
         on: {
           SELECT_ITEM: {
-            target: "ITEM_MODAL",
+            target: "ITEM_DETAIL",
             actions: ["assignSelectedItem"],
           },
           GO_TO_CART: {
             guard: "cartHasItems",
-            target: "CART_REVIEW",
+            target: "CART",
           },
           CART_UPDATED: {
             actions: ["assignCartStatus"],
           },
-          IDLE_TIMEOUT: {
-            target: "IDLE_TIMEOUT",
-            actions: ["assignReturnToMenu"],
+          OPEN_ADMIN: {
+            target: "ADMIN",
           },
         },
       },
-      ITEM_MODAL: {
+      ITEM_DETAIL: {
         on: {
-          CLOSE_ITEM_MODAL: {
-            target: "MENU_BROWSE",
+          CLOSE_ITEM_DETAIL: {
+            target: "MENU",
             actions: ["clearSelectedItem"],
           },
           ADD_TO_CART: {
-            target: "MENU_BROWSE",
+            target: "MENU",
             actions: ["clearSelectedItem", "markCartHasItems"],
+          },
+          OPEN_ADMIN: {
+            target: "ADMIN",
           },
         },
       },
-      CART_REVIEW: {
+      CART: {
         on: {
           BACK_TO_MENU: {
-            target: "MENU_BROWSE",
+            target: "MENU",
           },
           PROCEED_TO_PAYMENT: {
             guard: "cartHasItems",
-            target: "PAYMENT_AUTH",
+            target: "PAYMENT",
           },
-          IDLE_TIMEOUT: {
-            target: "IDLE_TIMEOUT",
-            actions: ["assignReturnToCart"],
+          OPEN_ADMIN: {
+            target: "ADMIN",
           },
         },
       },
-      PAYMENT_AUTH: {
+      PAYMENT: {
         entry: ["clearError"],
         on: {
           PAYMENT_AUTHORIZED: {
@@ -186,15 +174,18 @@ export const kioskMachine = createMachine(
           },
           PAYMENT_DECLINED: {
             guard: "paymentDeclined",
-            target: "CART_REVIEW",
+            target: "CART",
             actions: ["setDeclineError"],
           },
           PAYMENT_FAILED: {
-            target: "CART_REVIEW",
+            target: "CART",
             actions: ["setErrorMessage"],
           },
           CANCEL_PAYMENT: {
-            target: "CART_REVIEW",
+            target: "CART",
+          },
+          OPEN_ADMIN: {
+            target: "ADMIN",
           },
         },
       },
@@ -210,7 +201,7 @@ export const kioskMachine = createMachine(
             actions: assign({ order: ({ event }) => event.output as Order }),
           },
           onError: {
-            target: "PAYMENT_AUTH",
+            target: "PAYMENT",
             actions: assign({
               errorMessage: ({ event }) =>
                 event.error instanceof Error ? event.error.message : "Order finalization failed.",
@@ -219,32 +210,22 @@ export const kioskMachine = createMachine(
         },
       },
       RECEIPT: {
-        after: {
-          8000: { target: "RESET" },
-        },
         on: {
-          RECEIPT_ACKNOWLEDGED: { target: "RESET" },
+          RECEIPT_ACKNOWLEDGED: {
+            target: "ATTRACT",
+            actions: ["resetContext"],
+          },
+          OPEN_ADMIN: {
+            target: "ADMIN",
+          },
         },
       },
-      RESET: {
-        entry: ["resetContext"],
-        always: { target: "ATTRACT" },
-      },
-      IDLE_TIMEOUT: {
-        after: {
-          10000: { target: "RESET" },
-        },
+      ADMIN: {
         on: {
-          CONTINUE_SESSION: [
-            {
-              guard: "returnedToCart",
-              target: "CART_REVIEW",
-            },
-            {
-              target: "MENU_BROWSE",
-            },
-          ],
-          RESET_SESSION: { target: "RESET" },
+          CLOSE_ADMIN: {
+            target: "ATTRACT",
+            actions: ["resetContext"],
+          },
         },
       },
     },
@@ -264,8 +245,6 @@ export const kioskMachine = createMachine(
         cartHasItems: event.type === "CART_UPDATED" ? event.cartHasItems : false,
       })),
       markCartHasItems: assign({ cartHasItems: true }),
-      assignReturnToMenu: assign({ returnTo: "MENU_BROWSE" }),
-      assignReturnToCart: assign({ returnTo: "CART_REVIEW" }),
       assignPaymentResult: assign(({ event }) => ({
         paymentResult: event.type === "PAYMENT_AUTHORIZED" ? event.result : null,
       })),
@@ -296,7 +275,6 @@ export const kioskMachine = createMachine(
         event.type === "PAYMENT_AUTHORIZED" && isApprovedResult(event.result),
       paymentDeclined: ({ event }) =>
         event.type === "PAYMENT_DECLINED" && isDeclinedResult(event.result),
-      returnedToCart: ({ context }) => context.returnTo === "CART_REVIEW",
     },
     actors: {
       finalizeOrder: fromPromise<

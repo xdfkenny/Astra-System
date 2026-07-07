@@ -1,139 +1,231 @@
 @layer base {
   :root {
-    /* Colors — neutrals */
-    --astra-color-slate-50: #f8fafc;
-    --astra-color-slate-100: #f1f5f9;
-    --astra-color-slate-200: #e2e8f0;
-    --astra-color-slate-300: #cbd5e1;
-    --astra-color-slate-400: #94a3b8;
-    --astra-color-slate-500: #64748b;
-    --astra-color-slate-600: #475569;
-    --astra-color-slate-700: #334155;
-    --astra-color-slate-800: #1e293b;
-    --astra-color-slate-900: #0f172a;
-    --astra-color-slate-950: #020617;
+    /* Living Weave — Base / Neutrals */
+    --astra-color-linen: #F5F3EF;
+    --astra-color-warm-cream: #FEF7E0;
+    --astra-color-card-surface: #FFFFFF;
+    --astra-color-card-surface-opacity: 0.88;
+    --astra-color-charcoal: #2D2A26;
+    --astra-color-stone: #6B6862;
+    --astra-color-taupe: #C4B8A8;
+    --astra-color-clay: #B8A99A;
 
-    /* Colors — semantic */
-    --astra-color-primary: #0d9488;
-    --astra-color-primary-hover: #0f766e;
-    --astra-color-cta: #f59e0b;
-    --astra-color-cta-hover: #d97706;
-    --astra-color-error: #f43f5e;
-    --astra-color-error-hover: #e11d48;
-    --astra-color-success: #10b981;
-    --astra-color-warning: #f59e0b;
-    --astra-color-info: #0ea5e9;
-    --astra-color-background: #f8fafc;
-    --astra-color-surface: #ffffff;
-    --astra-color-surface-elevated: #ffffff;
-    --astra-color-text-primary: #0f172a;
-    --astra-color-text-secondary: #64748b;
-    --astra-color-text-disabled: #94a3b8;
-    --astra-color-border: #e2e8f0;
+    /* Living Weave — Biophilic Accents */
+    --astra-color-moss: #5A7A5C;
+    --astra-color-moss-hover: #4A6A4C;
+    --astra-color-moss-pressed: #3A5A3C;
+    --astra-color-amber: #B87E6B;
+    --astra-color-amber-hover: #A06E5D;
+    --astra-color-amber-pressed: #885E4D;
+    --astra-color-denim: #4A5D70;
+    --astra-color-denim-hover: #3A4D60;
+    --astra-color-deep-forest: #1A3A2A;
+    --astra-color-pale-mint: #E8F5E9;
+    --astra-color-soft-rose: #C4A4A4;
+    --astra-color-soft-rose-hover: #B08A8A;
+    --astra-color-offline: #D4A843;
+    --astra-color-sync-active: #5A7A5C;
+    --astra-color-printer: #6B6862;
 
-    /* Spacing */
+    /* Living Weave — Semantic */
+    --astra-color-background: var(--astra-color-linen);
+    --astra-color-surface: var(--astra-color-card-surface);
+    --astra-color-surface-sunken: var(--astra-color-warm-cream);
+    --astra-color-surface-overlay: rgba(255, 255, 255, 0.88);
+
+    --astra-color-primary: var(--astra-color-moss);
+    --astra-color-primary-hover: var(--astra-color-moss-hover);
+    --astra-color-primary-pressed: var(--astra-color-moss-pressed);
+    --astra-color-cta: var(--astra-color-amber);
+    --astra-color-cta-hover: var(--astra-color-amber-hover);
+    --astra-color-cta-pressed: var(--astra-color-amber-pressed);
+    --astra-color-secondary: var(--astra-color-denim);
+    --astra-color-secondary-hover: var(--astra-color-denim-hover);
+
+    --astra-color-success: var(--astra-color-moss);
+    --astra-color-warning: var(--astra-color-offline);
+    --astra-color-info: var(--astra-color-denim);
+    --astra-color-error: var(--astra-color-soft-rose);
+    --astra-color-error-hover: var(--astra-color-soft-rose-hover);
+
+    --astra-color-ink: var(--astra-color-charcoal);
+    --astra-color-ink-muted: var(--astra-color-stone);
+    --astra-color-ink-inverted: var(--astra-color-linen);
+
+    --astra-color-border: var(--astra-color-taupe);
+    --astra-color-border-strong: var(--astra-color-clay);
+    --astra-color-divider: var(--astra-color-taupe);
+    --astra-color-overlay: rgba(45, 42, 38, 0.2);
+    --astra-color-overlay-strong: rgba(45, 42, 38, 0.55);
+
+    /* Spacing (8px grid) */
     --astra-space-0: 0px;
-    --astra-space-1: 4px;
-    --astra-space-2: 8px;
-    --astra-space-3: 12px;
-    --astra-space-4: 16px;
-    --astra-space-5: 20px;
-    --astra-space-6: 24px;
-    --astra-space-8: 32px;
-    --astra-space-10: 40px;
-    --astra-space-12: 48px;
-    --astra-space-14: 56px;
-    --astra-space-16: 64px;
-    --astra-space-20: 80px;
-    --astra-space-24: 96px;
-    --astra-space-28: 112px;
-    --astra-space-32: 128px;
-    --astra-space-36: 144px;
-    --astra-space-40: 160px;
-    --astra-space-44: 176px;
-    --astra-space-48: 192px;
-    --astra-space-52: 208px;
-    --astra-space-56: 224px;
-    --astra-space-60: 240px;
-    --astra-space-64: 256px;
-    --astra-space-72: 288px;
-    --astra-space-80: 320px;
-    --astra-space-96: 384px;
+    --astra-space-0-5: 4px;
+    --astra-space-1: 8px;
+    --astra-space-2: 16px;
+    --astra-space-3: 24px;
+    --astra-space-4: 32px;
+    --astra-space-5: 40px;
+    --astra-space-6: 48px;
+    --astra-space-7: 56px;
+    --astra-space-8: 64px;
+    --astra-space-10: 80px;
+    --astra-space-12: 96px;
+    --astra-space-14: 112px;
+    --astra-space-16: 128px;
+
+    /* Touch targets */
+    --astra-touch-minimum: 56px;
+    --astra-touch-comfortable: 64px;
+    --astra-touch-primary-action: 96px;
+
+    /* Radius */
+    --astra-radius-none: 0px;
+    --astra-radius-sm: 8px;
+    --astra-radius-md: 12px;
+    --astra-radius-lg: 16px;
+    --astra-radius-xl: 24px;
+    --astra-radius-pill: 9999px;
+
+    /* Shadow */
+    --astra-shadow-sm: 0 2px 12px rgba(45, 42, 38, 0.06);
+    --astra-shadow-md: 0 4px 24px rgba(45, 42, 38, 0.08);
+    --astra-shadow-lg: 0 8px 32px rgba(45, 42, 38, 0.12);
+    --astra-shadow-xl: 0 12px 48px rgba(45, 42, 38, 0.16);
+    --astra-shadow-focus-ring: 0 0 0 3px rgba(90, 122, 92, 0.35);
+    --astra-shadow-focus-ring-cta: 0 0 0 3px rgba(184, 126, 107, 0.35);
 
     /* Typography */
-    --astra-font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --astra-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", monospace;
-    --astra-text-xs: 12px;
-    --astra-text-sm: 14px;
-    --astra-text-base: 16px;
-    --astra-text-lg: 18px;
-    --astra-text-xl: 20px;
-    --astra-text-2xl: 24px;
-    --astra-text-3xl: 30px;
-    --astra-text-4xl: 36px;
-    --astra-text-5xl: 48px;
-    --astra-text-6xl: 60px;
+    --astra-font-ui: "Inter", system-ui, -apple-system, sans-serif;
+    --astra-font-heading: "Cormorant Garamond", Georgia, serif;
+    --astra-font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+    --astra-text-micro: 14px;
+    --astra-text-caption: 13px;
+    --astra-text-body: 18px;
+    --astra-text-body-large: 22px;
+    --astra-text-title: 28px;
+    --astra-text-screen-title: 36px;
+    --astra-text-hero: 56px;
+    --astra-text-hero-large: 72px;
+
     --astra-weight-light: 300;
     --astra-weight-normal: 400;
     --astra-weight-medium: 500;
     --astra-weight-semibold: 600;
     --astra-weight-bold: 700;
-    --astra-leading-tight: 1.25;
-    --astra-leading-snug: 1.375;
+
+    --astra-leading-tight: 1.1;
+    --astra-leading-snug: 1.25;
     --astra-leading-normal: 1.5;
     --astra-leading-relaxed: 1.625;
-    --astra-tracking-tight: -0.025em;
-    --astra-tracking-normal: 0em;
-    --astra-tracking-wide: 0.025em;
 
-    /* Elevation */
-    --astra-radius: 4px;
-    --astra-radius-sm: 2px;
-    --astra-radius-md: 6px;
-    --astra-radius-lg: 8px;
-    --astra-radius-xl: 12px;
-    --astra-radius-2xl: 16px;
-    --astra-radius-full: 9999px;
-    --astra-shadow: 0 1px 3px 0 rgb(15 23 42 / 0.1), 0 1px 2px -1px rgb(15 23 42 / 0.1);
-    --astra-shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.05);
-    --astra-shadow-md: 0 4px 6px -1px rgb(15 23 42 / 0.1), 0 2px 4px -2px rgb(15 23 42 / 0.1);
-    --astra-shadow-lg: 0 10px 15px -3px rgb(15 23 42 / 0.1), 0 4px 6px -4px rgb(15 23 42 / 0.1);
-    --astra-shadow-xl: 0 20px 25px -5px rgb(15 23 42 / 0.1), 0 8px 10px -6px rgb(15 23 42 / 0.1);
-    --astra-shadow-2xl: 0 25px 50px -12px rgb(15 23 42 / 0.25);
+    --astra-tracking-tight: -0.02em;
+    --astra-tracking-normal: -0.01em;
+    --astra-tracking-wide: 0.08em;
 
     /* Motion */
-    --astra-duration-0: 0ms;
-    --astra-duration-75: 75ms;
-    --astra-duration-100: 100ms;
-    --astra-duration-150: 150ms;
-    --astra-duration-200: 200ms;
-    --astra-duration-300: 300ms;
-    --astra-duration-500: 500ms;
-    --astra-duration-700: 700ms;
-    --astra-duration-1000: 1000ms;
-    --astra-ease-linear: linear;
-    --astra-ease-in: cubic-bezier(0.4, 0, 1, 1);
-    --astra-ease-out: cubic-bezier(0, 0, 0.2, 1);
-    --astra-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-    --astra-ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --astra-duration-instant: 80ms;
+    --astra-duration-fast: 150ms;
+    --astra-duration-base: 250ms;
+    --astra-duration-slow: 350ms;
+    --astra-duration-sheet: 300ms;
+    --astra-duration-page: 300ms;
+
+    --astra-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --astra-ease-in-out-soft: cubic-bezier(0.4, 0, 0.2, 1);
+    --astra-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --astra-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --astra-ease-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
 
     /* Z-index */
-    --astra-z-auto: auto;
-    --astra-z-0: 0;
-    --astra-z-10: 10;
-    --astra-z-20: 20;
-    --astra-z-30: 30;
-    --astra-z-40: 40;
-    --astra-z-50: 50;
-    --astra-z-100: 100;
-    --astra-z-200: 200;
-    --astra-z-300: 300;
-    --astra-z-400: 400;
-    --astra-z-500: 500;
-    --astra-z-top: 9999;
+    --astra-z-base: 0;
+    --astra-z-content: 10;
+    --astra-z-sticky-bar: 20;
+    --astra-z-floating-cart: 20;
+    --astra-z-modal: 30;
+    --astra-z-bottom-sheet: 30;
+    --astra-z-toast: 40;
+    --astra-z-offline-banner: 40;
+    --astra-z-attract-loop: 50;
+    --astra-z-system-overlay: 60;
 
     /* Subtle borders */
-    --astra-border-subtle-color: rgb(15 23 42 / 0.1);
-    --astra-border-subtle: 0.5px solid rgb(15 23 42 / 0.1);
+    --astra-border-subtle-color: rgba(196, 184, 168, 0.12);
+    --astra-border-subtle: 0.5px solid rgba(196, 184, 168, 0.12);
+  }
+}
+
+/* Dark mode — Retail Night / Admin */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --astra-color-background: #1C1A17;
+    --astra-color-surface: #2A2824;
+    --astra-color-surface-sunken: #1C1A17;
+    --astra-color-surface-overlay: rgba(42, 40, 36, 0.92);
+    --astra-color-primary: #7A9A7C;
+    --astra-color-primary-hover: #8AAB8C;
+    --astra-color-primary-pressed: #9ABC9D;
+    --astra-color-cta: #C49A8A;
+    --astra-color-cta-hover: #D4AA9A;
+    --astra-color-cta-pressed: #E4BAAA;
+    --astra-color-secondary: #6A7D90;
+    --astra-color-secondary-hover: #7A8DA0;
+    --astra-color-success: #7A9A7C;
+    --astra-color-warning: #E4C46A;
+    --astra-color-info: #6A7D90;
+    --astra-color-error: #D4A4A4;
+    --astra-color-error-hover: #E4B4B4;
+    --astra-color-ink: #F5F3EF;
+    --astra-color-ink-muted: #A8A49D;
+    --astra-color-ink-inverted: #2D2A26;
+    --astra-color-border: rgba(168, 164, 157, 0.2);
+    --astra-color-border-strong: rgba(168, 164, 157, 0.32);
+    --astra-color-divider: rgba(168, 164, 157, 0.2);
+    --astra-color-overlay: rgba(0, 0, 0, 0.55);
+    --astra-color-overlay-strong: rgba(0, 0, 0, 0.72);
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  :root {
+    --astra-color-background: #000000;
+    --astra-color-surface: #0B0B0B;
+    --astra-color-surface-sunken: #000000;
+    --astra-color-surface-overlay: rgba(0, 0, 0, 0.96);
+    --astra-color-primary: #8FD5EA;
+    --astra-color-primary-hover: #9EE5FA;
+    --astra-color-cta: #FFD166;
+    --astra-color-cta-hover: #FFE18A;
+    --astra-color-secondary: #8FD5EA;
+    --astra-color-secondary-hover: #9EE5FA;
+    --astra-color-success: #8BE3B8;
+    --astra-color-warning: #FFD166;
+    --astra-color-info: #8FD5EA;
+    --astra-color-error: #FF6B6B;
+    --astra-color-error-hover: #FF8B8B;
+    --astra-color-ink: #FFFFFF;
+    --astra-color-ink-muted: #E0E0E0;
+    --astra-color-ink-inverted: #000000;
+    --astra-color-border: rgba(255, 255, 255, 0.32);
+    --astra-color-border-strong: rgba(255, 255, 255, 0.48);
+    --astra-color-divider: rgba(255, 255, 255, 0.32);
+    --astra-color-overlay: rgba(0, 0, 0, 0.72);
+    --astra-color-overlay-strong: rgba(0, 0, 0, 0.88);
+    --astra-border-subtle: 1px solid #FFFFFF;
+    --astra-border-subtle-color: #FFFFFF;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --astra-duration-instant: 0ms;
+    --astra-duration-fast: 50ms;
+    --astra-duration-base: 50ms;
+    --astra-duration-slow: 50ms;
+    --astra-duration-sheet: 50ms;
+    --astra-duration-page: 50ms;
   }
 }

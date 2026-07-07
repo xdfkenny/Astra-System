@@ -1,4 +1,8 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-npm test
+if [ -f "package.json" ]; then
+  npm test
+elif [ -f "astra-service/package.json" ]; then
+  pnpm --dir astra-service turbo run lint test
+fi

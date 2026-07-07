@@ -94,6 +94,6 @@ describe("ItemModal", () => {
     );
 
     fireEvent.click(getByLabelText("Close item details"));
-    expect(getByTestId("stage").textContent).toBe("MENU_BROWSE");
+    expect(getByTestId("stage").textContent).toBe("MENU");
   });
 });

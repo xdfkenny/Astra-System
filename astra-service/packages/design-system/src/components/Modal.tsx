@@ -45,7 +45,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(function Modal(
   return createPortal(
     <div
       ref={ref}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay-strong p-4"
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -60,7 +60,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(function Modal(
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
         className={cn(
-          "w-full max-w-md rounded-lg border-[0.5px] border-slate-900/10 bg-surface p-6 shadow-xl",
+          "w-full max-w-md rounded-lg border-[0.5px] border-slate-900/10 bg-surface-overlay p-6 shadow-xl",
           className,
         )}
       >

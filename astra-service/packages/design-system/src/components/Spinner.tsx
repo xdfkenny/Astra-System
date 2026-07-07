@@ -33,7 +33,7 @@ export function Spinner({ size = "md", className, ...rest }: SpinnerProps) {
         cy="12"
         r="10"
         stroke="currentColor"
-        strokeOpacity={0.25}
+        strokeOpacity={0.12}
         strokeWidth="4"
       />
       <path

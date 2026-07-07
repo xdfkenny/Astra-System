@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { screen, fireEvent } from "@testing-library/react";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithMachine } from "../test-utils/renderWithMachine";
 import { AttractScreen } from "../routes/AttractScreen";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
@@ -10,7 +10,7 @@ function StateReader(): React.JSX.Element {
 }
 
 describe("AttractScreen", () => {
-  it("starts a session when the tap-to-start button is pressed", () => {
+  it("starts a session when the tap-to-start button is pressed", async () => {
     const mockCrypto = {
       randomUUID: () => "uuid-test",
       getRandomValues: (arr: Uint8Array) => arr,
@@ -23,10 +23,15 @@ describe("AttractScreen", () => {
       </>,
     );
 
-    const button = screen.getByLabelText("Tap to start shopping");
+    const button = screen.getByRole("button", { name: "Touch to begin shopping" });
     fireEvent.click(button);
 
-    expect(getByTestId("stage").textContent).toBe("MENU_BROWSE");
+    await waitFor(
+      () => {
+        expect(getByTestId("stage").textContent).toBe("MENU");
+      },
+      { timeout: 2000 },
+    );
     spy.mockRestore();
   });
 });

@@ -4,13 +4,36 @@ import { cn } from "../utils/cn";
 import { haptic } from "../utils/haptics";
 import { Spinner } from "./Spinner";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost";
+export type ButtonVariant = "primary" | "cta" | "secondary" | "ghost";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   loading?: boolean;
   children?: ReactNode;
 }
+
+const variantStyles: Record<ButtonVariant, string> = {
+  cta: [
+    "h-16 w-full max-w-md rounded-full bg-cta text-white shadow-[0_4px_16px_rgba(184,126,107,0.3)]",
+    "hover:brightness-110 hover:scale-[1.01]",
+    "active:scale-[0.98]",
+  ].join(" "),
+  primary: [
+    "h-14 rounded-lg bg-primary text-white",
+    "hover:bg-primary-hover",
+    "active:scale-[0.98]",
+  ].join(" "),
+  secondary: [
+    "h-14 rounded-[16px] border border-taupe bg-white/70 text-ink",
+    "hover:bg-warm-cream/50",
+    "active:scale-[0.98]",
+  ].join(" "),
+  ghost: [
+    "h-14 bg-transparent text-denim",
+    "hover:bg-warm-cream/50",
+    "active:scale-[0.98]",
+  ].join(" "),
+};
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { variant = "primary", loading = false, disabled, children, className, onClick, ...rest },
@@ -34,19 +57,17 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       aria-busy={loading || undefined}
       onClick={handleClick}
       className={cn(
-        "inline-flex min-h-14 min-w-14 items-center justify-center rounded-md px-6 py-3 text-base font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 motion-safe:duration-200 disabled:cursor-not-allowed",
-        variant === "primary" &&
-          "bg-primary text-white hover:bg-primary-hover focus-visible:ring-primary",
-        variant === "secondary" &&
-          "border-[0.5px] border-slate-900/10 bg-slate-100 text-text-primary hover:bg-slate-200 focus-visible:ring-slate-400",
-        variant === "ghost" &&
-          "bg-transparent text-text-secondary hover:bg-slate-100 focus-visible:ring-slate-400",
-        isDisabled && "opacity-50",
+        "inline-flex items-center justify-center font-ui text-base font-medium transition-all duration-150 ease-out-expo px-6",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-moss",
+        "disabled:cursor-not-allowed disabled:opacity-40 disabled:grayscale-[0.5]",
+        variantStyles[variant],
         className,
       )}
       {...rest}
     >
-      {loading ? <Spinner size="sm" className="mr-2" aria-hidden="true" /> : null}
+      {loading ? (
+        <Spinner size="sm" className="mr-2 text-moss" aria-hidden="true" />
+      ) : null}
       {children}
     </button>
   );

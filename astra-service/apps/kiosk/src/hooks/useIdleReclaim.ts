@@ -6,11 +6,9 @@ export const IDLE_TIMEOUT_MS = 90_000;
 
 const IMMUNE_STAGES = new Set<string>([
   "ATTRACT",
-  "IDLE_TIMEOUT",
-  "PAYMENT_AUTH",
+  "PAYMENT",
   "PROCESSING",
   "RECEIPT",
-  "RESET",
 ]);
 
 /**
@@ -34,7 +32,7 @@ export function useIdleReclaim(): void {
       const stage = state.value as string;
       if (IMMUNE_STAGES.has(stage)) return;
       if (Date.now() - lastInteractionAtMs.current > IDLE_TIMEOUT_MS) {
-        send({ type: "IDLE_TIMEOUT" });
+        send({ type: "RETURN_TO_ATTRACT" });
       }
     }, 1000);
 

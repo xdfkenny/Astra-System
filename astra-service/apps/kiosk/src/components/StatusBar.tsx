@@ -1,12 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { motion, useScroll, useSpring } from "framer-motion";
 import { useSessionStore } from "@astra/kiosk-state";
 
-/**
- * Top status bar: network/mesh status and current time.
- *
- * Fixed 64px height keeps the thumb-zone at the bottom for primary CTAs.
- */
-export function StatusBar(): React.JSX.Element {
+export function StatusBar() {
   const network = useSessionStore((s) => s.network);
   const [now, setNow] = useState(() => new Date());
 
@@ -19,38 +15,101 @@ export function StatusBar(): React.JSX.Element {
     };
   }, []);
 
-  const meshHealthy = network.meshPeerCount > 0 || network.online;
-  const statusLabel = network.online
-    ? "Online"
+  const { scrollY } = useScroll();
+  const scrollProgress = useSpring(scrollY, { stiffness: 300, damping: 30 });
+  const [bgVisible, setBgVisible] = useState(false);
+
+  useEffect(() => {
+    const unsub = scrollProgress.on("change", (v) => {
+      setBgVisible(v > 100);
+    });
+    return () => unsub();
+  }, [scrollProgress]);
+
+  const p2pColor: "moss" | "amber" | "stone" = network.online
+    ? "moss"
     : network.meshPeerCount > 0
-      ? `Local mesh (${String(network.meshPeerCount)} lanes)`
-      : "Offline — solo mode";
+      ? "amber"
+      : "stone";
+
+  const p2pLabel =
+    p2pColor === "moss"
+      ? "Synced"
+      : p2pColor === "amber"
+        ? "Syncing"
+        : "Offline";
 
   return (
     <header
-      className="hairline flex h-16 shrink-0 items-center justify-between bg-surface px-4"
-      style={{ borderTop: "none", borderLeft: "none", borderRight: "none" }}
+      className={`sticky top-0 z-20 flex h-12 shrink-0 items-center justify-between px-3 transition-colors duration-300 ${
+        bgVisible
+          ? "bg-linen/80 backdrop-blur-[8px]"
+          : "bg-transparent"
+      }`}
       aria-label="Kiosk status"
     >
-      <div className="flex items-center gap-2">
+      <button
+        type="button"
+        className="flex items-center gap-1.5"
+        aria-label={`P2P sync status: ${p2pLabel}. Tap for mesh details.`}
+        onClick={() => {
+          /* bottom sheet with mesh details — TBD */
+        }}
+      >
         <span
-          className="inline-block h-2.5 w-2.5 rounded-full"
-          style={{ background: meshHealthy ? "var(--color-success)" : "var(--color-error)" }}
+          className="inline-block h-2 w-2 rounded-full"
+          style={{
+            backgroundColor:
+              p2pColor === "moss"
+                ? "var(--color-moss)"
+                : p2pColor === "amber"
+                  ? "var(--color-amber)"
+                  : "var(--color-stone)",
+          }}
           aria-hidden="true"
         />
-        <span className="text-sm font-medium text-ink-muted" aria-live="polite">{statusLabel}</span>
-        {network.isLeader ? (
-          <span className="rounded-pill bg-surface-sunken px-2 py-0.5 text-xs font-semibold text-primary">
-            LEADER
-          </span>
-        ) : null}
-      </div>
+      </button>
+
       <time
-        className="text-sm font-medium tabular-nums text-ink-muted"
+        className="font-ui text-[14px] text-stone tabular-nums"
         dateTime={now.toISOString()}
       >
-        {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        {now.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
       </time>
+
+      <div className="flex items-center gap-2">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={`${network.online ? "text-moss" : "text-stone"}`}
+          aria-label={
+            network.online ? "Connected to network" : "No network connection"
+          }
+          role="img"
+        >
+          {network.online ? (
+            <>
+              <path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0 4 15h9a5 5 0 0 0 1.7-.3" />
+              <line x1="1" y1="1" x2="23" y2="23" />
+            </>
+          ) : (
+            <>
+              <path d="M2 20h20" />
+              <path d="M5 17a9 9 0 0 1 14 0" />
+              <path d="M8 13a5 5 0 0 1 8 0" />
+            </>
+          )}
+        </svg>
+      </div>
     </header>
   );
 }

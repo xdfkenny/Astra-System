@@ -23,7 +23,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       {label ? (
         <label
           htmlFor={inputId}
-          className="text-sm font-medium text-text-secondary"
+          className="text-sm font-medium text-ink-muted"
         >
           {label}
         </label>
@@ -34,7 +34,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className={cn(
-          "min-h-14 w-full rounded-md border-[0.5px] border-slate-900/10 bg-surface px-4 py-3 text-base text-text-primary placeholder:text-text-disabled focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50",
+          "min-h-14 w-full rounded-md border-[0.5px] border-border bg-surface px-4 py-3 text-base text-ink placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50",
           error && "border-error focus-visible:ring-error",
           className,
         )}
@@ -43,7 +43,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       {error ? (
         <span id={errorId} className="text-sm text-error">{error}</span>
       ) : helperText ? (
-        <span id={helperId} className="text-sm text-text-secondary">
+        <span id={helperId} className="text-sm text-ink-muted">
           {helperText}
         </span>
       ) : null}

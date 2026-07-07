@@ -1,64 +1,80 @@
 import { useSnapshot } from "valtio";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { cartProxy } from "@astra/kiosk-state";
-import { PrimaryButton } from "@astra/ui-kit";
-import { motion as motionTokens } from "@astra/design-tokens";
-import { useKioskMachine } from "../machines/KioskMachineProvider";
+import { BottomSheet } from "./BottomSheet";
+import { useState } from "react";
 
-/**
- * Persistent floating cart summary — visible while browsing the menu. Tapping
- * it drives the primary "review cart" transition. Bottom-aligned per the
- * thumb-zone layout spec.
- */
-export function CartSummary(): React.JSX.Element | null {
+export function CartSummary() {
   const cart = useSnapshot(cartProxy);
-  const { state, send } = useKioskMachine();
+  const [expanded, setExpanded] = useState(false);
 
   const itemCount = cart.lines.reduce((sum, line) => sum + line.quantity, 0);
   const totalCents = cart.lines.reduce(
     (sum, line) =>
       sum +
       line.quantity *
-        (line.unitPriceCentsSnapshot + line.modifiers.reduce((m, mod) => m + mod.priceDeltaCents, 0)),
+        (line.unitPriceCentsSnapshot +
+          line.modifiers.reduce((m, mod) => m + mod.priceDeltaCents, 0)),
     0,
   );
 
-  const visible = state.value === "MENU_BROWSE" || state.value === "ITEM_MODAL";
+  if (itemCount === 0) return null;
 
   return (
-    <AnimatePresence>
-      {visible && itemCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 24 }}
-          transition={{
-            duration: motionTokens.durationBase,
-            ease: motionTokens.easeStandard,
-          }}
-          className="absolute bottom-6 left-4 right-4"
-        >
-          <PrimaryButton
-            variant="accent"
-            className="w-full"
-            style={{ minHeight: "72px" }}
-            onClick={() => {
-              send({ type: "GO_TO_CART" });
-            }}
-            aria-label={`Review cart, ${String(itemCount)} items, total $${(totalCents / 100).toFixed(2)}`}
-          >
-            <span className="flex w-full items-center justify-between">
-              <span className="flex items-center gap-3 font-heading text-xl font-semibold">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-base">
-                  {itemCount}
+    <>
+      <motion.button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="sticky bottom-0 z-20 flex w-full items-center justify-between bg-warm-cream/90 px-3 py-2 backdrop-blur-[8px]"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        aria-label={`Cart summary: ${String(itemCount)} items, total $${(totalCents / 100).toFixed(2)}. Tap to expand.`}
+        aria-expanded={expanded}
+      >
+        <span className="font-ui text-caption uppercase tracking-[0.08em] text-stone">
+          {itemCount} {itemCount === 1 ? "item" : "items"}
+        </span>
+        <span className="font-ui text-[28px] font-semibold text-charcoal tabular-nums">
+          ${(totalCents / 100).toFixed(2)}
+        </span>
+      </motion.button>
+
+      <BottomSheet open={expanded} onClose={() => setExpanded(false)}>
+        <h2 className="font-heading text-[32px] font-semibold text-charcoal mb-4">
+          Your cart
+        </h2>
+        <ul className="flex flex-col gap-3" role="list">
+          {cart.lines.map((line) => (
+            <li
+              key={line.lineId}
+              className="flex items-center justify-between border-b border-dashed border-taupe pb-3"
+            >
+              <div className="flex flex-col">
+                <span className="font-ui text-[18px] font-medium text-charcoal truncate max-w-[200px]">
+                  {line.nameSnapshot}
                 </span>
-                View Cart
+                {line.modifiers.length > 0 && (
+                  <span className="font-ui text-[14px] text-stone">
+                    {String(line.modifiers.length)} modifier{line.modifiers.length > 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
+              <span className="font-ui text-[18px] font-semibold text-charcoal tabular-nums">
+                ${((line.unitPriceCentsSnapshot + line.modifiers.reduce((m, mod) => m + mod.priceDeltaCents, 0)) / 100).toFixed(2)}
               </span>
-              <span className="font-heading text-2xl font-bold tabular-nums">${(totalCents / 100).toFixed(2)}</span>
-            </span>
-          </PrimaryButton>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 flex items-center justify-between border-t border-taupe pt-3">
+          <span className="font-ui text-caption uppercase tracking-[0.08em] text-stone">
+            Total
+          </span>
+          <span className="font-ui text-[42px] font-semibold text-amber tabular-nums">
+            ${(totalCents / 100).toFixed(2)}
+          </span>
+        </div>
+      </BottomSheet>
+    </>
   );
 }

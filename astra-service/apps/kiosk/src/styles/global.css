@@ -1,45 +1,157 @@
 @import "tailwindcss";
 @import "@astra/design-system/styles";
 
-/**
- * Tailwind v4 native CSS theming: map design-system token custom properties
- * into Tailwind utility classes so components (including federated remotes)
- * can use `bg-primary`, `text-ink`, `rounded-lg`, etc.
- */
 @theme inline {
-  --color-background: var(--color-background);
-  --color-surface: var(--color-surface);
-  --color-surface-sunken: var(--color-surface-sunken);
-  --color-primary: var(--color-primary);
-  --color-primary-hover: var(--color-primary-hover);
-  --color-primary-pressed: var(--color-primary-pressed);
-  --color-accent: var(--color-cta);
-  --color-accent-hover: var(--color-cta-hover);
-  --color-cta: var(--color-cta);
-  --color-cta-hover: var(--color-cta-hover);
-  --color-error: var(--color-error);
-  --color-error-hover: var(--color-error-hover);
-  --color-success: var(--color-teal-500);
-  --color-warning: var(--color-amber-500);
-  --color-ink: var(--color-ink);
-  --color-ink-muted: var(--color-ink-muted);
-  --color-border: var(--color-border);
-  --color-border-strong: var(--color-border-strong);
+  /* Colors — base neutrals */
+  --color-linen: var(--astra-color-linen);
+  --color-warm-cream: var(--astra-color-warm-cream);
+  --color-card-surface: var(--astra-color-card-surface);
+  --color-charcoal: var(--astra-color-charcoal);
+  --color-stone: var(--astra-color-stone);
+  --color-taupe: var(--astra-color-taupe);
+  --color-clay: var(--astra-color-clay);
 
-  --font-sans: var(--font-sans);
-  --font-heading: var(--font-heading);
+  /* Colors — biophilic accents */
+  --color-moss: var(--astra-color-moss);
+  --color-moss-hover: var(--astra-color-moss-hover);
+  --color-moss-pressed: var(--astra-color-moss-pressed);
+  --color-amber: var(--astra-color-amber);
+  --color-amber-hover: var(--astra-color-amber-hover);
+  --color-amber-pressed: var(--astra-color-amber-pressed);
+  --color-denim: var(--astra-color-denim);
+  --color-denim-hover: var(--astra-color-denim-hover);
+  --color-deep-forest: var(--astra-color-deep-forest);
+  --color-pale-mint: var(--astra-color-pale-mint);
+  --color-soft-rose: var(--astra-color-soft-rose);
+  --color-soft-rose-hover: var(--astra-color-soft-rose-hover);
+  --color-offline: var(--astra-color-offline);
+  --color-sync-active: var(--astra-color-sync-active);
+  --color-printer: var(--astra-color-printer);
 
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
-  --radius-xl: var(--radius-xl);
-  --radius-pill: var(--radius-pill);
+  /* Colors — semantic */
+  --color-background: var(--astra-color-background);
+  --color-surface: var(--astra-color-surface);
+  --color-surface-sunken: var(--astra-color-surface-sunken);
+  --color-surface-overlay: var(--astra-color-surface-overlay);
+  --color-primary: var(--astra-color-primary);
+  --color-primary-hover: var(--astra-color-primary-hover);
+  --color-primary-pressed: var(--astra-color-primary-pressed);
+  --color-cta: var(--astra-color-cta);
+  --color-cta-hover: var(--astra-color-cta-hover);
+  --color-cta-pressed: var(--astra-color-cta-pressed);
+  --color-secondary: var(--astra-color-secondary);
+  --color-secondary-hover: var(--astra-color-secondary-hover);
+  --color-success: var(--astra-color-success);
+  --color-warning: var(--astra-color-warning);
+  --color-info: var(--astra-color-info);
+  --color-error: var(--astra-color-error);
+  --color-error-hover: var(--astra-color-error-hover);
+  --color-ink: var(--astra-color-ink);
+  --color-ink-muted: var(--astra-color-ink-muted);
+  --color-ink-inverted: var(--astra-color-ink-inverted);
+  --color-border: var(--astra-color-border);
+  --color-border-strong: var(--astra-color-border-strong);
+  --color-divider: var(--astra-color-divider);
+  --color-overlay: var(--astra-color-overlay);
+  --color-overlay-strong: var(--astra-color-overlay-strong);
 
-  --spacing-touch-min: var(--touch-min);
-  --spacing-touch-comfortable: var(--touch-comfortable);
-  --spacing-touch-primary: var(--touch-primary-action);
+  /* Typography */
+  --font-ui: var(--astra-font-ui);
+  --font-heading: var(--astra-font-heading);
+  --font-mono: var(--astra-font-mono);
+
+  --text-micro: 14px;
+  --text-micro--line-height: 20px;
+  --text-caption: 13px;
+  --text-caption--line-height: 18px;
+  --text-caption--letter-spacing: 0.08em;
+  --text-caption--text-transform: uppercase;
+  --text-body: 18px;
+  --text-body--line-height: 28px;
+  --text-body-large: 22px;
+  --text-body-large--line-height: 30px;
+  --text-title: 28px;
+  --text-title--line-height: 36px;
+  --text-screen-title: 36px;
+  --text-screen-title--line-height: 44px;
+  --text-hero: 56px;
+  --text-hero--line-height: 64px;
+  --text-hero-large: 72px;
+  --text-hero-large--line-height: 80px;
+
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: -0.01em;
+  --tracking-wide: 0.08em;
+
+  /* Spacing */
+  --spacing-0: 0px;
+  --spacing-0_5: 4px;
+  --spacing-1: 8px;
+  --spacing-2: 16px;
+  --spacing-3: 24px;
+  --spacing-4: 32px;
+  --spacing-5: 40px;
+  --spacing-6: 48px;
+  --spacing-7: 56px;
+  --spacing-8: 64px;
+  --spacing-10: 80px;
+  --spacing-12: 96px;
+  --spacing-14: 112px;
+  --spacing-16: 128px;
+
+  --spacing-touch-minimum: var(--astra-touch-minimum);
+  --spacing-touch-comfortable: var(--astra-touch-comfortable);
+  --spacing-touch-primary-action: var(--astra-touch-primary-action);
+
+  /* Radius */
+  --radius-none: var(--astra-radius-none);
+  --radius-sm: var(--astra-radius-sm);
+  --radius-md: var(--astra-radius-md);
+  --radius-lg: var(--astra-radius-lg);
+  --radius-xl: var(--astra-radius-xl);
+  --radius-pill: var(--astra-radius-pill);
+
+  /* Shadows */
+  --shadow-sm: var(--astra-shadow-sm);
+  --shadow-md: var(--astra-shadow-md);
+  --shadow-lg: var(--astra-shadow-lg);
+  --shadow-xl: var(--astra-shadow-xl);
+  --shadow-focus-ring: var(--astra-shadow-focus-ring);
+  --shadow-focus-ring-cta: var(--astra-shadow-focus-ring-cta);
+
+  /* Z-index */
+  --z-base: 0;
+  --z-content: 10;
+  --z-sticky-bar: 20;
+  --z-floating-cart: 20;
+  --z-modal: 30;
+  --z-bottom-sheet: 30;
+  --z-toast: 40;
+  --z-offline-banner: 40;
+  --z-attract-loop: 50;
+  --z-system-overlay: 60;
+
+  /* Motion */
+  --ease-out-expo: var(--astra-ease-out-expo);
+  --ease-in-out-soft: var(--astra-ease-in-out-soft);
+  --ease-spring: var(--astra-ease-spring);
+  --ease-standard: var(--astra-ease-standard);
+  --ease-emphasized: var(--astra-ease-emphasized);
+  --duration-instant: var(--astra-duration-instant);
+  --duration-fast: var(--astra-duration-fast);
+  --duration-base: var(--astra-duration-base);
+  --duration-slow: var(--astra-duration-slow);
+  --duration-sheet: var(--astra-duration-sheet);
+  --duration-page: var(--astra-duration-page);
 }
 
+/* Font faces — loaded with swap for fast first paint */
 @font-face {
   font-family: "Inter";
   src: local("Inter");
@@ -48,47 +160,112 @@
 }
 
 @font-face {
-  font-family: "Space Grotesk";
-  src: local("Space Grotesk");
+  font-family: "Cormorant Garamond";
+  src: local("Cormorant Garamond");
   font-display: swap;
-  font-weight: 500 700;
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: local("IBM Plex Mono");
+  font-display: swap;
+  font-weight: 400;
 }
 
 html,
 body {
-  font-family: var(--font-sans);
+  font-family: var(--font-ui);
   color: var(--color-ink);
   background: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-wrap: pretty;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
   overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
-/* Subtle grain overlay */
-.grain-overlay {
-  pointer-events: none;
+/* Tabular figures for prices and quantities */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Background weave texture — 2% opacity, 4px intervals, performance-optimized CSS */
+.weave-texture {
   position: fixed;
   inset: 0;
-  z-index: 1;
-  opacity: 0.04;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  z-index: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(45, 42, 38, 0.02) 0px,
+      rgba(45, 42, 38, 0.02) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(45, 42, 38, 0.02) 0px,
+      rgba(45, 42, 38, 0.02) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+}
+
+/* Paper grain SVG overlay — 3% opacity, disable under reduced-data preference */
+.paper-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   mix-blend-mode: multiply;
 }
 
+@media (prefers-reduced-data: reduce) {
+  .paper-grain {
+    display: none;
+  }
+}
+
+/* Card surfaces with stitched border */
+.card-surface {
+  position: relative;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-surface::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px dashed rgba(61, 58, 54, 0.12);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Hairline divider */
 .hairline {
-  border: 1px solid var(--color-border);
+  border: 0.5px solid var(--color-border);
 }
 
 .hairline-strong {
-  border: 1px solid var(--color-border-strong);
+  border: 0.5px solid var(--color-border-strong);
 }
 
+/* Focus ring */
 :focus-visible {
   outline: none;
   box-shadow: var(--shadow-focus-ring);
 }
 
+/* Screen-reader-only live region */
 .sr-only-live {
   position: absolute;
   width: 1px;
@@ -107,6 +284,61 @@ body {
 }
 
 @keyframes assist-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgb(13 148 136 / 0.35); }
-  50% { box-shadow: 0 0 0 8px rgb(13 148 136 / 0); }
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(90, 122, 92, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(90, 122, 92, 0);
+  }
+}
+
+/* Organic blob morph for attract screen */
+.blob-morph {
+  animation: blob-morph 12s ease-in-out infinite;
+  will-change: border-radius, transform;
+}
+
+@keyframes blob-morph {
+  0%, 100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    transform: translate(0, 0);
+  }
+  33% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+    transform: translate(-2%, 2%);
+  }
+  66% {
+    border-radius: 50% 60% 30% 60% / 30% 40% 70% 50%;
+    transform: translate(2%, -2%);
+  }
+}
+
+/* Toast entry animation */
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Toast progress bar */
+@keyframes toast-progress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .blob-morph,
+  .astra-assist-pulse {
+    animation: none;
+  }
 }

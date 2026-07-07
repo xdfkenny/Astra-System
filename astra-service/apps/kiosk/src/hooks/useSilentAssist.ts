@@ -6,8 +6,8 @@ import { useKioskMachine } from "../machines/KioskMachineProvider";
 export const SILENT_ASSIST_STALL_MS = 45_000;
 
 const ELIGIBLE_STAGES = new Set<string>([
-  "MENU_BROWSE",
-  "CART_REVIEW",
+  "MENU",
+  "CART",
 ]);
 
 /**

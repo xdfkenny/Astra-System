@@ -22,8 +22,8 @@ export function PrimaryButton({
   ...rest
 }: PrimaryButtonProps): React.JSX.Element {
   const variantClasses: Record<NonNullable<PrimaryButtonProps["variant"]>, string> = {
-    primary: "bg-primary text-white active:bg-primary-pressed",
-    accent: "bg-accent text-ink active:bg-accent-hover",
+    primary: "bg-primary text-white active:bg-primary-pressed hover:bg-primary-hover",
+    accent: "bg-cta text-ink active:bg-cta-pressed hover:bg-cta-hover",
     danger: "bg-error text-white active:brightness-90",
     ghost: "bg-transparent text-ink border border-border-strong",
   };

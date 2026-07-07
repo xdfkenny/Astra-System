@@ -1,4 +1,4 @@
-import { Children, useEffect } from "react";
+import { Children, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../utils/cn";
@@ -7,10 +7,10 @@ import { announce } from "../utils/a11y";
 export type ToastVariant = "info" | "success" | "warning" | "error";
 
 const VARIANTS: Record<ToastVariant, string> = {
-  info: "bg-slate-800 text-white",
-  success: "bg-emerald-700 text-white",
-  warning: "bg-amber-600 text-white",
-  error: "bg-rose-600 text-white",
+  info: "bg-charcoal text-white",
+  success: "bg-charcoal text-white",
+  warning: "bg-charcoal text-white",
+  error: "bg-charcoal text-white",
 };
 
 export interface ToastProps {
@@ -37,8 +37,10 @@ export function Toast({
   message,
   variant = "info",
   onClose,
-  duration = 5000,
+  duration = 4000,
 }: ToastProps) {
+  const progressRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!open) {
       return;
@@ -61,11 +63,25 @@ export function Toast({
       aria-live="polite"
       aria-atomic="true"
       className={cn(
-        "fixed bottom-4 left-1/2 z-50 min-h-14 -translate-x-1/2 rounded-lg px-6 py-3 shadow-lg transition-opacity motion-safe:duration-300",
+        "fixed left-1/2 top-16 z-40 min-h-14 max-w-[90%] -translate-x-1/2 rounded-[12px] px-6 py-3 shadow-lg transition-all duration-base ease-out-expo",
         VARIANTS[variant],
       )}
+      style={{
+        animation: "toast-enter 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards",
+      }}
     >
-      {message}
+      <div className="flex items-center gap-2">{message}</div>
+      {duration > 0 && (
+        <div className="absolute bottom-0 left-0 h-0.5 w-full overflow-hidden rounded-b-[12px]">
+          <div
+            ref={progressRef}
+            className="h-full bg-amber"
+            style={{
+              animation: `toast-progress ${duration}ms linear forwards`,
+            }}
+          />
+        </div>
+      )}
     </div>,
     document.body,
   );

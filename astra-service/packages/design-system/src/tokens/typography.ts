@@ -1,37 +1,31 @@
 export const fontFamily = {
-  sans: [
+  ui: [
+    "Inter",
     "system-ui",
     "-apple-system",
-    "BlinkMacSystemFont",
-    '"Segoe UI"',
-    "Roboto",
-    '"Helvetica Neue"',
-    "Arial",
     "sans-serif",
   ],
+  heading: [
+    "Cormorant Garamond",
+    "Georgia",
+    "serif",
+  ],
   mono: [
+    "IBM Plex Mono",
     "ui-monospace",
-    "SFMono-Regular",
-    "Menlo",
-    "Monaco",
-    '"Cascadia Mono"',
-    '"Segoe UI Mono"',
-    '"Roboto Mono"',
     "monospace",
   ],
 } as const;
 
 export const fontSize = {
-  xs: ["12px", "16px"],
-  sm: ["14px", "20px"],
-  base: ["16px", "24px"],
-  lg: ["18px", "28px"],
-  xl: ["20px", "28px"],
-  "2xl": ["24px", "32px"],
-  "3xl": ["30px", "36px"],
-  "4xl": ["36px", "40px"],
-  "5xl": ["48px", "48px"],
-  "6xl": ["60px", "60px"],
+  micro: ["14px", "20px"],
+  caption: ["13px", "18px"],
+  body: ["18px", "28px"],
+  bodyLarge: ["22px", "30px"],
+  title: ["28px", "36px"],
+  screenTitle: ["36px", "44px"],
+  hero: ["56px", "64px"],
+  heroLarge: ["72px", "80px"],
 } as const;
 
 export const fontWeight = {
@@ -43,16 +37,16 @@ export const fontWeight = {
 } as const;
 
 export const lineHeight = {
-  tight: 1.25,
-  snug: 1.375,
+  tight: 1.1,
+  snug: 1.25,
   normal: 1.5,
   relaxed: 1.625,
 } as const;
 
 export const letterSpacing = {
-  tight: "-0.025em",
-  normal: "0em",
-  wide: "0.025em",
+  tight: "-0.02em",
+  normal: "-0.01em",
+  wide: "0.08em",
 } as const;
 
 type CssValue = string | number | readonly (string | number)[];
