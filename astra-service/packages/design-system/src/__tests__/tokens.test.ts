@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cssVariables as colorVariables, semantic, slate } from "../tokens/colors";
+import { cssVariables as colorVariables, semantic } from "../tokens/colors";
 import { cssVariables as elevationVariables } from "../tokens/elevation";
 import { cssVariables as motionVariables } from "../tokens/motion";
 import { cssVariables as spacingVariables, spacing } from "../tokens/spacing";
@@ -8,13 +8,9 @@ import { cssVariables as zIndexVariables } from "../tokens/z-index";
 
 describe("tokens", () => {
   it("exposes color tokens as CSS variables", () => {
-    expect(slate[50]).toBe("#f8fafc");
-    expect(slate[950]).toBe("#020617");
-    expect(colorVariables["--astra-color-slate-50"]).toBe("#f8fafc");
-    expect(colorVariables["--astra-color-slate-950"]).toBe("#020617");
-    expect(colorVariables["--astra-color-primary"]).toBe("#0d9488");
-    expect(semantic.cta).toBe("#f59e0b");
-    expect(semantic.error).toBe("#f43f5e");
+    expect(colorVariables["--astra-color-primary"]).toBe("#5A7A5C");
+    expect(semantic.cta).toBe("#B87E6B");
+    expect(semantic.error).toBe("#C4A4A4");
   });
 
   it("exposes spacing tokens including the 56px touch target", () => {

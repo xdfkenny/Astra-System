@@ -4,11 +4,10 @@ import { motion as motionTokens } from "@astra/design-tokens";
 import { useSnapshot } from "valtio";
 import {
   cartProxy,
-  updateLineQuantity,
-  removeLineItem,
 } from "@astra/kiosk-state";
 import type { ReadonlyCartLineItem } from "@astra/shared-types";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
+import { cartService } from "../state/cartService";
 
 const SILENT_ASSIST_DELAY_MS = 40_000;
 
@@ -40,19 +39,27 @@ export function CartReviewScreen(): React.JSX.Element {
   const totalCents = subtotalCents + taxCents;
 
   useEffect(() => {
-    const timer = setTimeout(() => setSilentAssist(true), SILENT_ASSIST_DELAY_MS);
-    return () => clearTimeout(timer);
+    const timer = setTimeout(() => { setSilentAssist(true); }, SILENT_ASSIST_DELAY_MS);
+    return () => { clearTimeout(timer); };
   }, []);
 
   const handleQuantityChange = useCallback(
-    (lineId: string, delta: number) => {
+    async (lineId: string, delta: number) => {
       const line = cart.lines.find((l) => l.lineId === lineId);
       if (!line) return;
       const next = line.quantity + delta;
       if (next <= 0) {
-        removeLineItem(lineId);
+        try {
+          await cartService.removeItem(lineId);
+        } catch (error) {
+          console.error("Failed to remove item from cart:", error);
+        }
       } else {
-        updateLineQuantity(lineId, next);
+        try {
+          await cartService.updateQuantity(lineId, next);
+        } catch (error) {
+          console.error("Failed to update quantity:", error);
+        }
       }
     },
     [cart.lines],

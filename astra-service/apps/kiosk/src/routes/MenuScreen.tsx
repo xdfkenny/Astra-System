@@ -9,6 +9,7 @@ import { useKioskMachine } from "../machines/KioskMachineProvider";
 import { mockMenuResponse } from "./mockMenuData";
 import { CartSummary } from "../components/CartSummary";
 import { BottomSheet } from "../components/BottomSheet";
+import { apiClient } from "../state/apiClient";
 
 interface CategoryGroup {
   readonly categoryId: string;
@@ -19,15 +20,14 @@ interface CategoryGroup {
 function useMenuCatalog() {
   return useQuery<{ readonly items: readonly MenuItem[] }>({
     queryKey: ["menu-catalog"],
-    queryFn: async ({ signal }) => {
-      const apiBase = import.meta.env.VITE_API_GATEWAY_URL ?? "http://localhost:8080";
+      queryFn: async ({ signal: _signal }) => {
       try {
-        const res = await fetch(`${apiBase}/v1/menu`, { signal });
-        if (!res.ok) {
-          throw new Error(`Menu fetch failed: ${String(res.status)}`);
-        }
-        return (await res.json()) as { readonly items: readonly MenuItem[] };
-      } catch {
+        const response = await apiClient.getMenuCatalog();
+        return {
+          items: response.items,
+        };
+      } catch (error) {
+        console.error("Failed to fetch menu catalog:", error);
         return mockMenuResponse;
       }
     },
@@ -208,7 +208,7 @@ export function MenuScreen(): React.JSX.Element {
             <button
               key={cat.categoryId}
               type="button"
-              onClick={() => handleSelectCategory(cat.categoryId)}
+              onClick={() => { handleSelectCategory(cat.categoryId); }}
               className={`snap-start shrink-0 rounded-full px-4 py-2 font-sans text-[13px] font-medium uppercase tracking-[0.08em] transition-colors duration-150 ${
                 activeCategory === cat.categoryId
                   ? "bg-moss text-white border-moss"
@@ -243,7 +243,7 @@ export function MenuScreen(): React.JSX.Element {
                 <button
                   key={item.itemId}
                   type="button"
-                  onClick={() => handleSelectItem(item)}
+                  onClick={() => { handleSelectItem(item); }}
                   className="card-surface mb-2 flex w-full items-start gap-3 p-2 text-left active:bg-warm-cream/50 transition-colors duration-100"
                   aria-label={`${item.name}, $${(item.priceCents / 100).toFixed(2)}`}
                 >
@@ -275,7 +275,7 @@ export function MenuScreen(): React.JSX.Element {
                         {item.description}
                       </p>
                     )}
-                    {item.modifierGroups && item.modifierGroups.length > 0 && (
+                    {item.modifierGroups.length > 0 && (
                       <span className="mt-1 font-sans text-[13px] text-denim">
                         Customize →
                       </span>
@@ -331,7 +331,7 @@ export function MenuScreen(): React.JSX.Element {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: motionTokens.easeSpring }}
-            onClick={() => send({ type: "GO_TO_CART" })}
+            onClick={() => { send({ type: "GO_TO_CART" }); }}
             className="fixed right-3 top-1/2 z-20 flex items-center gap-2 rounded-full bg-moss px-4 py-3 shadow-md"
             aria-label={`Cart: ${String(itemCount)} items, $${(totalCents / 100).toFixed(2)}`}
           >
@@ -355,7 +355,7 @@ export function MenuScreen(): React.JSX.Element {
       </AnimatePresence>
 
       {/* Ghost Cart Transfer bottom sheet */}
-      <BottomSheet open={ghostCartOpen} onClose={() => setGhostCartOpen(false)}>
+      <BottomSheet open={ghostCartOpen} onClose={() => { setGhostCartOpen(false); }}>
         <div className="flex flex-col gap-4">
           <h2 className="font-heading text-[24px] font-semibold text-charcoal">
             Cart found on your phone
@@ -366,14 +366,14 @@ export function MenuScreen(): React.JSX.Element {
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => setGhostCartOpen(false)}
+              onClick={() => { setGhostCartOpen(false); }}
               className="flex-1 h-14 rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal"
             >
               Cancel
             </button>
             <button
               type="button"
-              onClick={() => setGhostCartOpen(false)}
+              onClick={() => { setGhostCartOpen(false); }}
               className="flex-1 h-14 rounded-full bg-amber text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(184,126,107,0.3)]"
             >
               Transfer to kiosk

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 
+
 const AUTO_RETURN_TO_ATTRACT_MS = 10_000;
 const PRIMARY_DELAY_MS = 3_000;
 
@@ -14,7 +15,7 @@ export function ReceiptScreen(): React.JSX.Element {
   const orderNumber = state.context.order?.orderNumber ?? "A-7842";
 
   useEffect(() => {
-    const primaryTimer = setTimeout(() => setShowPrimary(true), PRIMARY_DELAY_MS);
+    const primaryTimer = setTimeout(() => { setShowPrimary(true); }, PRIMARY_DELAY_MS);
     const returnTimer = setTimeout(() => {
       send({ type: "RECEIPT_ACKNOWLEDGED" });
     }, AUTO_RETURN_TO_ATTRACT_MS);
@@ -24,14 +25,28 @@ export function ReceiptScreen(): React.JSX.Element {
     };
   }, [send]);
 
-  const handlePrint = () => {
-    // Simulate printer failure for the toast demo
-    setPrinterFailed(true);
-    setTimeout(() => setPrinterFailed(false), 4000);
+  const handlePrint = async () => {
+    try {
+      // In a real implementation, this would send a print request to the API
+      // For now, we'll simulate the behavior
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Show success
+    } catch (error) {
+      console.error("Print failed:", error);
+      setPrinterFailed(true);
+      setTimeout(() => { setPrinterFailed(false); }, 4000);
+    }
   };
 
-  const handleEmail = () => {
-    // In production, opens email receipt prompt
+  const handleEmail = async () => {
+    try {
+      // In a real implementation, this would send an email request to the API
+      // For now, we'll simulate the behavior
+      await new Promise(resolve => setTimeout(resolve, 500));
+      // Show success notification
+    } catch (error) {
+      console.error("Email failed:", error);
+    }
   };
 
   const handleStartNewOrder = () => {

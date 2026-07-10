@@ -26,7 +26,7 @@ function item(
   catIdx: number,
   hasModifiers = false,
 ): MenuItem {
-  const cat = categories[catIdx]!;
+  const cat = categories[catIdx];
   return {
     itemId: `item-${String(idx).padStart(3, "0")}`,
     storeId,
@@ -39,7 +39,7 @@ function item(
     barcode: null,
     sku: `SKU-${String(idx).padStart(4, "0")}`,
     imageUrl: null,
-    blurhash: blobs[idx % blobs.length]!,
+    blurhash: blobs[idx % blobs.length],
     taxCategory: "standard",
     isWeightBased: false,
     weightUnit: null,

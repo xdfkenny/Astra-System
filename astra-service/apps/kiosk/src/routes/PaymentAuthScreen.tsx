@@ -4,6 +4,7 @@ import { motion as motionTokens } from "@astra/design-tokens";
 import { useSnapshot } from "valtio";
 import { cartProxy } from "@astra/kiosk-state";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
+import { apiClient } from "../state/apiClient";
 
 type PaymentMethod = "card_nfc" | "cash" | "qr_code";
 
@@ -53,17 +54,49 @@ export function PaymentAuthScreen(): React.JSX.Element {
     setShowBiometric(true);
   }, [selectedMethod]);
 
-  const handleBiometricComplete = useCallback(() => {
+  const handleBiometricComplete = useCallback(async () => {
     setShowBiometric(false);
-    send({
-      type: "PAYMENT_AUTHORIZED",
-      result: {
-        authorizationId: crypto.randomUUID(),
-        status: "authorized",
-        method: selectedMethod === "card_nfc" ? "nfc_apple_pay" : selectedMethod === "cash" ? "cash_recycler" : "qr_code",
-        amountCents: totalCents,
-      },
-    });
+    try {
+      // Map the UI payment method to the API payment method
+      const apiMethod = selectedMethod === "card_nfc" ? "nfc_apple_pay" : selectedMethod === "cash" ? "cash_recycler" : "qr_code";
+      
+      // Create a checkout first
+      const checkoutResponse = await apiClient.checkoutCart(
+        cartProxy.cartId,
+        apiMethod,
+      );
+      
+      // Process the payment
+      const paymentResult = await apiClient.processPayment(
+        cartProxy.cartId,
+        checkoutResponse.paymentIntentId,
+        totalCents,
+        "USD",
+        apiMethod,
+      );
+      
+      send({
+        type: "PAYMENT_AUTHORIZED",
+        result: {
+          authorizationId: paymentResult.paymentId,
+          status: paymentResult.status,
+          method: paymentResult.method,
+          amountCents: paymentResult.amountCents,
+             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+             ...(paymentResult.authorization?.approvalCode && { approvalCode: paymentResult.authorization.approvalCode }),
+             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+             ...(paymentResult.authorization?.cardBrand && { cardBrand: paymentResult.authorization.cardBrand }),
+             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+             ...(paymentResult.authorization?.cardLastFour && { cardLastFour: paymentResult.authorization.cardLastFour }),
+        },
+      });
+    } catch (error) {
+      console.error("Payment processing failed:", error);
+      send({
+        type: "PAYMENT_FAILED",
+        message: error instanceof Error ? error.message : "Payment processing failed",
+      });
+    }
   }, [send, selectedMethod, totalCents]);
 
   const handleEmployeeHoldStart = useCallback(() => {
@@ -74,10 +107,19 @@ export function PaymentAuthScreen(): React.JSX.Element {
       setEmployeeHoldProgress(Math.min(progress, 1));
       if (progress >= 1) {
         if (employeeHoldRef.current) clearInterval(employeeHoldRef.current);
-        send({ type: "PAYMENT_AUTHORIZED", result: { authorizationId: crypto.randomUUID(), status: "authorized", method: "nfc_apple_pay", amountCents: 0 } });
+        // Employee override - authorize payment without actual processing
+        send({ 
+          type: "PAYMENT_AUTHORIZED", 
+          result: { 
+            authorizationId: crypto.randomUUID(), 
+            status: "authorized", 
+            method: "nfc_apple_pay", 
+            amountCents: totalCents,
+          } 
+        });
       }
     }, 300);
-  }, [send]);
+  }, [send, totalCents]);
 
   const handleEmployeeHoldEnd = useCallback(() => {
     if (employeeHoldRef.current) {
@@ -100,7 +142,7 @@ export function PaymentAuthScreen(): React.JSX.Element {
       <div className="px-3">
         <button
           type="button"
-          onClick={() => setCartExpanded(!cartExpanded)}
+          onClick={() => { setCartExpanded(!cartExpanded); }}
           className="flex w-full items-center justify-between rounded-[12px] bg-warm-cream/90 px-4 py-3 backdrop-blur-[8px]"
           aria-expanded={cartExpanded}
           aria-label={`Cart summary: ${String(itemCount)} items, total $${formatCents(totalCents)}. Tap to ${cartExpanded ? "collapse" : "expand"}.`}
@@ -166,7 +208,7 @@ export function PaymentAuthScreen(): React.JSX.Element {
               <button
                 key={method.id}
                 type="button"
-                onClick={() => setSelectedMethod(method.id)}
+                onClick={() => { setSelectedMethod(method.id); }}
                 className={`snap-start flex shrink-0 flex-col items-center justify-center gap-2 rounded-[16px] border-2 transition-colors duration-150 ${
                   isSelected
                     ? "border-moss bg-pale-mint/20"
@@ -307,7 +349,7 @@ export function PaymentAuthScreen(): React.JSX.Element {
               <div className="mt-4 flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowBiometric(false)}
+                  onClick={() => { setShowBiometric(false); }}
                   className="h-14 flex-1 rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal"
                 >
                   Cancel

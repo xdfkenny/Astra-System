@@ -18,10 +18,7 @@ const SHEET_TRANSITION_ENTER = {
   ease: [0.16, 1, 0.3, 1],
 };
 
-const SHEET_TRANSITION_EXIT = {
-  duration: 0.2,
-  ease: [0.16, 1, 0.3, 1],
-};
+
 
 const BACKDROP_ENTRY = {
   initial: { opacity: 0 },

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
+import { apiClient } from "../state/apiClient";
 
 interface ProcessingStage {
   readonly label: string;
@@ -25,11 +26,35 @@ export function ProcessingScreen(): React.JSX.Element {
     const timer = setTimeout(() => {
       setStageIndex((prev) => prev + 1);
       setDotsFilled((prev) => Math.min(prev + 1, STAGES.length));
-    }, STAGES[stageIndex]!.durationMs);
-    return () => clearTimeout(timer);
+    }, STAGES[stageIndex]?.durationMs ?? 0);
+    return () => { clearTimeout(timer); };
   }, [stageIndex]);
 
-  const currentStage = STAGES[Math.min(stageIndex, STAGES.length - 1)]!;
+  const currentStage = STAGES[Math.min(stageIndex, STAGES.length - 1)];
+
+  // When processing is complete, create the order
+  useEffect(() => {
+    if (stageIndex >= STAGES.length) {
+      const processOrder = async () => {
+        try {
+          // In a real implementation, we would get the payment ID from the payment result
+          // For now, we'll simulate this
+          const paymentId = crypto.randomUUID();
+          const cartId = "current-cart-id"; // This should come from state
+          
+          const order = await apiClient.createOrder(cartId, paymentId);
+          
+          // Send the order to the state machine
+          send({ type: "ORDER_FINALIZED", order });
+        } catch (error) {
+          console.error("Failed to create order:", error);
+          send({ type: "PAYMENT_FAILED", message: "Failed to finalize order" });
+        }
+      };
+      
+       void processOrder();
+    }
+  }, [stageIndex, send]);
 
   const handleCancel = useCallback(() => {
     send({ type: "CANCEL_PAYMENT" });

@@ -14,3 +14,4 @@
  */
 export * from "./cartProxy";
 export * from "./sessionStore";
+export * from "./apiCart";

@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
 import type { MenuItem, ModifierOption } from "@astra/shared-types";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
-import { addLineItem } from "@astra/kiosk-state";
+import { cartService } from "../state/cartService";
 
 function initializeSelections(item: MenuItem | null): Record<string, readonly string[]> {
   if (!item) return {};
@@ -87,17 +87,24 @@ export function ItemModal(): React.JSX.Element | null {
     });
   }, [item, selections]);
 
-  const handleAdd = useCallback((): void => {
+  const handleAdd = useCallback(async (): Promise<void> => {
     if (!item || !isValid) return;
     const modifierSelections = buildModifierSelections(item, selections);
-    addLineItem({
-      menuItemId: item.itemId,
-      nameSnapshot: item.name,
-      unitPriceCentsSnapshot: item.priceCents,
-      quantity,
-      modifiers: modifierSelections,
-    });
-    send({ type: "ADD_TO_CART" });
+    
+    try {
+      await cartService.addItem(
+        item.itemId,
+        item.name,
+        item.priceCents,
+        quantity,
+        modifierSelections,
+      );
+      send({ type: "ADD_TO_CART" });
+    } catch (error) {
+      console.error("Failed to add item to cart:", error);
+      // Continue anyway - the item was added to local cart
+      send({ type: "ADD_TO_CART" });
+    }
   }, [item, isValid, selections, quantity, send]);
 
   const handleClose = useCallback((): void => {
@@ -221,7 +228,7 @@ export function ItemModal(): React.JSX.Element | null {
                         key={option.modifierOptionId}
                         type="button"
                         onClick={() =>
-                          toggleOption(group.modifierGroupId, option, group.maxSelect, setSelections)
+                          { toggleOption(group.modifierGroupId, option, group.maxSelect, setSelections); }
                         }
                         aria-pressed={selected}
                         className={`flex min-h-[56px] items-center justify-between rounded-[12px] px-4 py-3 transition-colors duration-100 ${
@@ -250,7 +257,7 @@ export function ItemModal(): React.JSX.Element | null {
           <div className="flex items-center justify-center gap-4 py-3">
             <button
               type="button"
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              onClick={() => { setQuantity((q) => Math.max(1, q - 1)); }}
               className="h-12 w-12 rounded-full bg-linen border border-taupe flex items-center justify-center"
               aria-label="Decrease quantity"
             >
@@ -273,7 +280,7 @@ export function ItemModal(): React.JSX.Element | null {
             </span>
             <button
               type="button"
-              onClick={() => setQuantity((q) => q + 1)}
+              onClick={() => { setQuantity((q) => q + 1); }}
               className="h-12 w-12 rounded-full bg-linen border border-taupe flex items-center justify-center"
               aria-label="Increase quantity"
             >

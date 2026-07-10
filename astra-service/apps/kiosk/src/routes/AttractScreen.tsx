@@ -16,7 +16,7 @@ export function AttractScreen(): React.JSX.Element {
   const tapPoint = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    idleRef.current = setTimeout(() => setIdle(true), IDLE_TIMEOUT_MS);
+    idleRef.current = setTimeout(() => { setIdle(true); }, IDLE_TIMEOUT_MS);
     return () => {
       if (idleRef.current) clearTimeout(idleRef.current);
     };

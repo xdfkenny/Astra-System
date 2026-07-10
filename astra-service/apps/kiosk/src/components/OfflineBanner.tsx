@@ -1,85 +1,57 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSessionStore } from "@astra/kiosk-state";
+import { useKioskMachine } from "../machines/KioskMachineProvider";
 
-export interface OfflineBannerProps {
-  /** For testing override — reads from session store by default */
-  onlineOverride?: boolean;
-}
+export function OfflineBanner() {
+  const { state } = useKioskMachine();
+  const [showBanner, setShowBanner] = useState(false);
 
-export function OfflineBanner({ onlineOverride }: OfflineBannerProps) {
-  const online = onlineOverride ?? useSessionStore((s) => s.network.online);
-  const [dismissed, setDismissed] = useState(false);
-  const [canDismiss, setCanDismiss] = useState(false);
+  const isOffline = state.context.isOfflineMode || state.context.apiStatus === "offline";
 
   useEffect(() => {
-    if (!online) {
-      setDismissed(false);
-      setCanDismiss(false);
+    if (isOffline) {
+      setShowBanner(true);
       const timer = setTimeout(() => {
-        setCanDismiss(true);
-      }, 3000);
-      return () => clearTimeout(timer);
+        setShowBanner(false);
+      }, 5000);
+      return () => { clearTimeout(timer); };
+    } else {
+      setShowBanner(false);
+       return () => { /* empty cleanup */ };
     }
-    return undefined;
-  }, [online]);
+  }, [isOffline]);
 
-  const show = !online && !dismissed;
+  if (!showBanner) return null;
 
   return (
     <AnimatePresence>
-      {show && (
+      {isOffline && (
         <motion.div
-          key="offline-banner"
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: canDismiss ? 40 : 40, opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className="relative z-40 flex w-full items-center justify-center gap-2 overflow-hidden bg-pale-mint px-3 border-b border-moss/20"
+          initial={{ y: -60, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: -60, opacity: 0 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="fixed top-0 left-0 right-0 z-40 bg-pale-mint border-b border-moss/20 px-4 py-3"
           role="alert"
           aria-live="assertive"
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="shrink-0 text-moss"
-            aria-hidden="true"
-          >
-            <path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0 4 15h9a5 5 0 0 0 1.7-.3" />
-            <line x1="1" y1="1" x2="23" y2="23" />
-          </svg>
-          <span className="font-ui text-[14px] text-moss">
-            Working offline. Your cart is secure.
-          </span>
-          {canDismiss && (
-            <button
-              type="button"
-              onClick={() => setDismissed(true)}
-              className="ml-2 flex h-6 w-6 items-center justify-center rounded-full text-moss/60 hover:text-moss focus-visible:ring-2 focus-visible:ring-moss focus-visible:ring-offset-2"
-              aria-label="Dismiss offline banner"
+          <div className="flex items-center justify-center gap-2">
+            <svg
+              viewBox="0 0 20 20"
+              className="h-5 w-5 shrink-0 text-moss"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              aria-hidden="true"
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          )}
+              <path d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Z" />
+              <path d="M10 6v4" strokeLinecap="round" />
+              <path d="M10 13v.01" strokeLinecap="round" />
+            </svg>
+            <span className="font-sans text-[14px] font-medium text-moss">
+              Working offline. Your cart is secure.
+            </span>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

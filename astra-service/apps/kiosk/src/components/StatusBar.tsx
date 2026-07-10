@@ -1,10 +1,12 @@
-import { useEffect, useState, useCallback } from "react";
-import { motion, useScroll, useSpring } from "framer-motion";
+import { useEffect, useState } from "react";
+import { useScroll, useSpring } from "framer-motion";
 import { useSessionStore } from "@astra/kiosk-state";
+import { useApiStatus } from "../hooks/useApiStatus";
 
 export function StatusBar() {
   const network = useSessionStore((s) => s.network);
   const [now, setNow] = useState(() => new Date());
+  const apiStatus = useApiStatus();
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -23,7 +25,7 @@ export function StatusBar() {
     const unsub = scrollProgress.on("change", (v) => {
       setBgVisible(v > 100);
     });
-    return () => unsub();
+    return () => { unsub(); };
   }, [scrollProgress]);
 
   const p2pColor: "moss" | "amber" | "stone" = network.online
@@ -80,36 +82,81 @@ export function StatusBar() {
         })}
       </time>
 
-      <div className="flex items-center gap-2">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`${network.online ? "text-moss" : "text-stone"}`}
-          aria-label={
-            network.online ? "Connected to network" : "No network connection"
-          }
-          role="img"
-        >
-          {network.online ? (
-            <>
-              <path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0 4 15h9a5 5 0 0 0 1.7-.3" />
-              <line x1="1" y1="1" x2="23" y2="23" />
-            </>
-          ) : (
-            <>
-              <path d="M2 20h20" />
-              <path d="M5 17a9 9 0 0 1 14 0" />
-              <path d="M8 13a5 5 0 0 1 8 0" />
-            </>
-          )}
-        </svg>
-      </div>
+       <div className="flex items-center gap-2">
+         {/* API Status Icon */}
+         <svg
+           width="16"
+           height="16"
+           viewBox="0 0 24 24"
+           fill="none"
+           stroke="currentColor"
+           strokeWidth="2"
+           strokeLinecap="round"
+           strokeLinejoin="round"
+           className={
+             apiStatus === "online" ? "text-moss" : 
+             apiStatus === "degraded" ? "text-amber" : 
+             "text-stone"
+           }
+           aria-label={
+             apiStatus === "online" ? "API online" : 
+             apiStatus === "degraded" ? "API degraded" : 
+             "API offline"
+           }
+           role="img"
+         >
+           {apiStatus === "online" ? (
+             <>
+               <circle cx="12" cy="12" r="10" />
+               <path d="M12 8v4" strokeLinecap="round" />
+               <path d="M12 16v.01" strokeLinecap="round" />
+             </>
+           ) : apiStatus === "degraded" ? (
+             <>
+               <circle cx="12" cy="12" r="10" />
+               <path d="M12 8v4" strokeLinecap="round" />
+               <path d="M8 12h8" strokeLinecap="round" />
+             </>
+           ) : (
+             <>
+               <circle cx="12" cy="12" r="10" />
+               <path d="M12 8v4" strokeLinecap="round" />
+               <path d="M8 8l8 8" strokeLinecap="round" />
+               <path d="M16 8l-8 8" strokeLinecap="round" />
+             </>
+           )}
+         </svg>
+         
+         {/* Network Icon */}
+         <svg
+           width="16"
+           height="16"
+           viewBox="0 0 24 24"
+           fill="none"
+           stroke="currentColor"
+           strokeWidth="2"
+           strokeLinecap="round"
+           strokeLinejoin="round"
+           className={network.online ? "text-moss" : "text-stone"}
+           aria-label={
+             network.online ? "Connected to network" : "No network connection"
+           }
+           role="img"
+         >
+           {network.online ? (
+             <>
+               <path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0 4 15h9a5 5 0 0 0 1.7-.3" />
+               <line x1="1" y1="1" x2="23" y2="23" />
+             </>
+           ) : (
+             <>
+               <path d="M2 20h20" />
+               <path d="M5 17a9 9 0 0 1 14 0" />
+               <path d="M8 13a5 5 0 0 1 8 0" />
+             </>
+           )}
+         </svg>
+       </div>
     </header>
   );
 }

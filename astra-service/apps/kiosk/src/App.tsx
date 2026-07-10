@@ -3,11 +3,14 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { KioskMachineProvider } from "./machines/KioskMachineProvider";
 import { ViewportLock } from "./components/ViewportLock";
 import { StatusBar } from "./components/StatusBar";
+import { OfflineBanner } from "./components/OfflineBanner";
 import { WorkflowRouter } from "./routes/WorkflowRouter";
 import { useIdleReclaim } from "./hooks/useIdleReclaim";
 import { useSilentAssist } from "./hooks/useSilentAssist";
 import { useNetworkMonitor } from "./hooks/useNetworkMonitor";
+import { useApiNetworkMonitor } from "./hooks/useApiNetworkMonitor";
 import { queryClient } from "./state/queryClient";
+
 import "./styles/global.css";
 
 /**
@@ -31,6 +34,7 @@ function KioskShell(): React.JSX.Element {
   useIdleReclaim();
   useSilentAssist();
   useNetworkMonitor();
+  useApiNetworkMonitor();
 
   useEffect(() => {
     // Kiosk hardware quirk: prevent pinch-zoom / double-tap-zoom gestures.
@@ -45,11 +49,12 @@ function KioskShell(): React.JSX.Element {
 
   return (
     <>
-      <StatusBar />
-      <main className="relative flex flex-1 flex-col overflow-hidden bg-linen">
-        <WorkflowRouter />
-      </main>
-      <div id="astra-live-region" role="status" aria-live="polite" className="sr-only-live" />
+       <StatusBar />
+       <main className="relative flex flex-1 flex-col overflow-hidden bg-linen">
+         <WorkflowRouter />
+       </main>
+       <OfflineBanner />
+       <div id="astra-live-region" role="status" aria-live="polite" className="sr-only-live" />
     </>
   );
 }

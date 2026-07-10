@@ -21,6 +21,8 @@ export interface KioskContext {
   readonly paymentResult: PaymentAuthorizationResult | null;
   readonly order: Order | null;
   readonly errorMessage: string | null;
+  readonly apiStatus: "online" | "offline" | "degraded" | "unknown";
+  readonly isOfflineMode: boolean;
 }
 
 export type KioskEvent =
@@ -40,7 +42,10 @@ export type KioskEvent =
   | { type: "RECEIPT_ACKNOWLEDGED" }
   | { type: "RETURN_TO_ATTRACT" }
   | { type: "OPEN_ADMIN" }
-  | { type: "CLOSE_ADMIN" };
+  | { type: "CLOSE_ADMIN" }
+  | { type: "API_ERROR"; message: string }
+  | { type: "NETWORK_OFFLINE" }
+  | { type: "NETWORK_ONLINE" };
 
 const APPROVED_STATUSES: readonly PaymentAuthorizationResult["status"][] = [
   "authorized",
@@ -95,18 +100,20 @@ export const kioskMachine = createMachine(
       events: {} as KioskEvent,
     },
     initial: "ATTRACT",
-    context: {
-      sessionId: null,
-      laneMode: "full",
-      selectedItem: null,
-      cartHasItems: false,
-      returnTo: null,
-      paymentResult: null,
-      order: null,
-      errorMessage: null,
-    },
+      context: {
+        sessionId: null,
+        laneMode: "full",
+        selectedItem: null,
+        cartHasItems: false,
+        returnTo: null,
+        paymentResult: null,
+        order: null,
+        errorMessage: null,
+        apiStatus: "unknown",
+        isOfflineMode: false,
+      },
     states: {
-      ATTRACT: {
+       ATTRACT: {
         on: {
           START_SESSION: {
             target: "MENU",
@@ -115,9 +122,15 @@ export const kioskMachine = createMachine(
           OPEN_ADMIN: {
             target: "ADMIN",
           },
+          NETWORK_OFFLINE: {
+            actions: ["setOfflineMode"],
+          },
+          NETWORK_ONLINE: {
+            actions: ["setOnlineMode"],
+          },
         },
       },
-      MENU: {
+       MENU: {
         on: {
           SELECT_ITEM: {
             target: "ITEM_DETAIL",
@@ -133,9 +146,15 @@ export const kioskMachine = createMachine(
           OPEN_ADMIN: {
             target: "ADMIN",
           },
+          NETWORK_OFFLINE: {
+            actions: ["setOfflineMode"],
+          },
+          NETWORK_ONLINE: {
+            actions: ["setOnlineMode"],
+          },
         },
       },
-      ITEM_DETAIL: {
+       ITEM_DETAIL: {
         on: {
           CLOSE_ITEM_DETAIL: {
             target: "MENU",
@@ -148,9 +167,15 @@ export const kioskMachine = createMachine(
           OPEN_ADMIN: {
             target: "ADMIN",
           },
+          NETWORK_OFFLINE: {
+            actions: ["setOfflineMode"],
+          },
+          NETWORK_ONLINE: {
+            actions: ["setOnlineMode"],
+          },
         },
       },
-      CART: {
+       CART: {
         on: {
           BACK_TO_MENU: {
             target: "MENU",
@@ -162,9 +187,15 @@ export const kioskMachine = createMachine(
           OPEN_ADMIN: {
             target: "ADMIN",
           },
+          NETWORK_OFFLINE: {
+            actions: ["setOfflineMode"],
+          },
+          NETWORK_ONLINE: {
+            actions: ["setOnlineMode"],
+          },
         },
       },
-      PAYMENT: {
+       PAYMENT: {
         entry: ["clearError"],
         on: {
           PAYMENT_AUTHORIZED: {
@@ -187,9 +218,15 @@ export const kioskMachine = createMachine(
           OPEN_ADMIN: {
             target: "ADMIN",
           },
+          NETWORK_OFFLINE: {
+            actions: ["setOfflineMode"],
+          },
+          NETWORK_ONLINE: {
+            actions: ["setOnlineMode"],
+          },
         },
       },
-      PROCESSING: {
+       PROCESSING: {
         invoke: {
           src: "finalizeOrder",
           input: ({ context }) => ({
@@ -208,8 +245,16 @@ export const kioskMachine = createMachine(
             }),
           },
         },
+        on: {
+          NETWORK_OFFLINE: {
+            actions: ["setOfflineMode"],
+          },
+          NETWORK_ONLINE: {
+            actions: ["setOnlineMode"],
+          },
+        },
       },
-      RECEIPT: {
+       RECEIPT: {
         on: {
           RECEIPT_ACKNOWLEDGED: {
             target: "ATTRACT",
@@ -218,13 +263,25 @@ export const kioskMachine = createMachine(
           OPEN_ADMIN: {
             target: "ADMIN",
           },
+          NETWORK_OFFLINE: {
+            actions: ["setOfflineMode"],
+          },
+          NETWORK_ONLINE: {
+            actions: ["setOnlineMode"],
+          },
         },
       },
-      ADMIN: {
+       ADMIN: {
         on: {
           CLOSE_ADMIN: {
             target: "ATTRACT",
             actions: ["resetContext"],
+          },
+          NETWORK_OFFLINE: {
+            actions: ["setOfflineMode"],
+          },
+          NETWORK_ONLINE: {
+            actions: ["setOnlineMode"],
           },
         },
       },
@@ -257,7 +314,15 @@ export const kioskMachine = createMachine(
       setErrorMessage: assign(({ event }) => ({
         errorMessage: event.type === "PAYMENT_FAILED" ? event.message : "An unexpected error occurred.",
       })),
-      clearError: assign({ errorMessage: null }),
+       clearError: assign({ errorMessage: null }),
+       setOfflineMode: assign({ 
+         apiStatus: "offline", 
+         isOfflineMode: true 
+       }),
+       setOnlineMode: assign({ 
+         apiStatus: "online", 
+         isOfflineMode: false 
+       }),
       resetContext: assign(() => ({
         sessionId: null,
         laneMode: "full",

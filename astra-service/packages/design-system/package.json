@@ -38,7 +38,7 @@
     "**/*.css"
   ],
   "scripts": {
-    "build": "rm -rf dist *.tsbuildinfo && tsc -p tsconfig.build.json && mkdir -p dist/styles && cp src/styles/*.css dist/styles/",
+    "build": "del /q dist\\*.* 2>nul && rd /s /q dist 2>nul && del /q *.tsbuildinfo 2>nul && tsc -p tsconfig.build.json && mkdir dist\\styles 2>nul && copy src\\styles\\*.css dist\\styles\\ 2>nul",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run"
   },

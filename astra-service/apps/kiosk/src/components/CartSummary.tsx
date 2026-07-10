@@ -24,7 +24,7 @@ export function CartSummary() {
     <>
       <motion.button
         type="button"
-        onClick={() => setExpanded(true)}
+        onClick={() => { setExpanded(true); }}
         className="sticky bottom-0 z-20 flex w-full items-center justify-between bg-warm-cream/90 px-3 py-2 backdrop-blur-[8px]"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -40,7 +40,7 @@ export function CartSummary() {
         </span>
       </motion.button>
 
-      <BottomSheet open={expanded} onClose={() => setExpanded(false)}>
+      <BottomSheet open={expanded} onClose={() => { setExpanded(false); }}>
         <h2 className="font-heading text-[32px] font-semibold text-charcoal mb-4">
           Your cart
         </h2>
