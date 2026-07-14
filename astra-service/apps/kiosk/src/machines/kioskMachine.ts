@@ -52,7 +52,8 @@ export type KioskEvent =
   | { type: "CLOSE_ADMIN" }
   | { type: "API_ERROR"; message: string }
   | { type: "NETWORK_OFFLINE" }
-  | { type: "NETWORK_ONLINE" };
+  | { type: "NETWORK_ONLINE" }
+  | { type: "RETRY" };
 
 const APPROVED_STATUSES: readonly PaymentAuthorizationResult["status"][] = [
   "authorized",
@@ -258,21 +259,21 @@ export const kioskMachine = createMachine(
              target: "RECEIPT",
              actions: assign({ order: ({ event }) => event.output as Order }),
            },
-           onError: {
-             target: "PAYMENT",
-             actions: [
-               assign({
-                 errorMessage: ({ event }) =>
-                   event.error instanceof Error ? event.error.message : "Order finalization failed.",
-               }),
-                () => {
-                  log.error("Order finalization failed", undefined, {
-                    sessionId: undefined,
-                  });
-                },
-             ],
-           },
-         },
+            onError: {
+              target: "PROCESSING_ERROR",
+              actions: [
+                assign({
+                  errorMessage: ({ event }) =>
+                    event.error instanceof Error ? event.error.message : "Order finalization failed.",
+                }),
+                 () => {
+                   log.error("Order finalization failed", undefined, {
+                     sessionId: undefined,
+                   });
+                 },
+              ],
+            },
+          },
          on: {
            RETURN_TO_ATTRACT: {
              target: "ATTRACT",
@@ -286,7 +287,30 @@ export const kioskMachine = createMachine(
            },
          },
        },
-       RECEIPT: {
+        PROCESSING_ERROR: {
+          on: {
+            RETRY: {
+              target: "PROCESSING",
+            },
+            CANCEL_PAYMENT: {
+              target: "CART",
+            },
+            RETURN_TO_ATTRACT: {
+              target: "ATTRACT",
+              actions: ["resetContext"],
+            },
+            OPEN_ADMIN: {
+              target: "ADMIN",
+            },
+            NETWORK_OFFLINE: {
+              actions: ["setOfflineMode"],
+            },
+            NETWORK_ONLINE: {
+              actions: ["setOnlineMode"],
+            },
+          },
+        },
+        RECEIPT: {
          on: {
            RECEIPT_ACKNOWLEDGED: {
              target: "ATTRACT",

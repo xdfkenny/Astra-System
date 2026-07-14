@@ -1,5 +1,5 @@
-import { defineConfig } from "vite";
 import { fileURLToPath, URL } from "node:url";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 import federation from "@originjs/vite-plugin-federation";
@@ -15,6 +15,11 @@ import { VitePWA } from "vite-plugin-pwa";
  * so it can be embedded by an outer orchestrator (e.g. a drive-thru preview).
  */
 export default defineConfig(({ mode }) => ({
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -63,11 +68,6 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ],
-  resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-    },
-  },
   server: {
     port: 5180,
     strictPort: true,

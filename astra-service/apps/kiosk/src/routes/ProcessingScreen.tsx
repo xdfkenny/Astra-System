@@ -48,6 +48,55 @@ export function ProcessingScreen(): React.JSX.Element {
 
   const showCancel = state.can({ type: "CANCEL_PAYMENT" });
 
+  const isError = state.matches("PROCESSING_ERROR");
+  const errorMessage =
+    state.context.errorMessage ?? "We couldn't complete your order. Please try again.";
+
+  if (isError) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-linen/90 px-8 text-center backdrop-blur-[4px]"
+        role="alert"
+        aria-live="assertive"
+        aria-label="Order could not be completed"
+      >
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-soft-rose/15">
+          <span className="font-heading text-[40px] font-semibold text-soft-rose" aria-hidden="true">
+            !
+          </span>
+        </div>
+        <h1 className="mt-5 font-heading text-[28px] font-semibold text-charcoal">
+          Something went wrong
+        </h1>
+        <p className="mt-2 max-w-[320px] font-sans text-[16px] text-stone">
+          {errorMessage}
+        </p>
+        <div className="mt-8 flex w-full max-w-[320px] flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              send({ type: "RETRY" });
+            }}
+            className="h-16 w-full rounded-full bg-amber font-sans text-[18px] font-medium text-white shadow-[0_4px_16px_rgba(184,126,107,0.3)] transition-all duration-100 active:scale-[0.98] active:translate-y-[1px]"
+            aria-label="Retry order"
+          >
+            Try again
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              send({ type: "CANCEL_PAYMENT" });
+            }}
+            className="h-14 w-full rounded-[16px] border border-taupe bg-white/70 font-sans text-[16px] font-medium text-charcoal transition-colors duration-100 active:bg-warm-cream/50"
+            aria-label="Cancel and return to cart"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-linen/90 backdrop-blur-[4px]"

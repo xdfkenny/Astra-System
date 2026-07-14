@@ -1,11 +1,109 @@
-"""Living Weave biophilic design system for Astra-Service kiosk UI
+@import "tailwindcss";
+@import "@astra/design-tokens/css";
 
-Performance-first optimized for 1000+ lux retail environments
-Touch-optimized for 9:16 vertical displays
-"""
-import './font-face.css';
-import './textures.css';
+/* Living Weave biophilic design system for Astra-Service kiosk UI
+ *
+ * Tailwind CSS v4 is configured CSS-first: design tokens from
+ * `@astra/design-tokens` are surfaced as utilities via `@theme inline` so that
+ * classes like `bg-linen`, `text-moss` and `font-heading` resolve to the
+ * `--color-*` / `--font-*` custom properties declared in tokens.css (which
+ * also carry the dark / high-contrast / reduced-motion variants).
+ */
 
-export * from '../tokens/colors';
-export * from '../tokens/typography';
-export * from '../tokens/spacing';
+@theme inline {
+  /* Base / neutrals */
+  --color-linen: var(--color-linen);
+  --color-warm-cream: var(--color-warm-cream);
+  --color-card-surface: var(--color-card-surface);
+  --color-charcoal: var(--color-charcoal);
+  --color-stone: var(--color-stone);
+  --color-taupe: var(--color-taupe);
+  --color-clay: var(--color-clay);
+
+  /* Biophilic accents */
+  --color-moss: var(--color-moss);
+  --color-moss-hover: var(--color-moss-hover);
+  --color-moss-pressed: var(--color-moss-pressed);
+  --color-amber: var(--color-amber);
+  --color-amber-hover: var(--color-amber-hover);
+  --color-amber-pressed: var(--color-amber-pressed);
+  --color-denim: var(--color-denim);
+  --color-denim-hover: var(--color-denim-hover);
+  --color-deep-forest: var(--color-deep-forest);
+  --color-pale-mint: var(--color-pale-mint);
+  --color-soft-rose: var(--color-soft-rose);
+  --color-soft-rose-hover: var(--color-soft-rose-hover);
+  --color-offline: var(--color-offline);
+  --color-sync-active: var(--color-sync-active);
+  --color-printer: var(--color-printer);
+
+  /* Semantic */
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-surface-sunken: var(--color-surface-sunken);
+  --color-surface-overlay: var(--color-surface-overlay);
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-pressed: var(--color-primary-pressed);
+  --color-cta: var(--color-cta);
+  --color-cta-hover: var(--color-cta-hover);
+  --color-cta-pressed: var(--color-cta-pressed);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-hover: var(--color-secondary-hover);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-info: var(--color-info);
+  --color-error: var(--color-error);
+  --color-error-hover: var(--color-error-hover);
+  --color-ink: var(--color-ink);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-ink-inverted: var(--color-ink-inverted);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-divider: var(--color-divider);
+  --color-overlay: var(--color-overlay);
+  --color-overlay-strong: var(--color-overlay-strong);
+
+  /* Typography */
+  --font-sans: var(--font-ui);
+  --font-heading: var(--font-heading);
+  --font-mono: var(--font-mono);
+
+  --text-micro: var(--text-micro);
+  --text-caption: var(--text-caption);
+  --text-body: var(--text-body);
+  --text-body-large: var(--text-body-large);
+  --text-title: var(--text-title);
+  --text-screen-title: var(--text-screen-title);
+  --text-hero: var(--text-hero);
+  --text-hero-large: var(--text-hero-large);
+
+  /* Radius */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-pill: var(--radius-pill);
+
+  /* Shadow */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-focus-ring: var(--shadow-focus-ring);
+  --shadow-focus-ring-cta: var(--shadow-focus-ring-cta);
+
+  /* Motion */
+  --duration-instant: var(--duration-instant);
+  --duration-fast: var(--duration-fast);
+  --duration-base: var(--duration-base);
+  --duration-slow: var(--duration-slow);
+  --duration-sheet: var(--duration-sheet);
+  --duration-page: var(--duration-page);
+
+  --ease-out-expo: var(--ease-out-expo);
+  --ease-in-out-soft: var(--ease-in-out-soft);
+  --ease-spring: var(--ease-spring);
+  --ease-standard: var(--ease-standard);
+  --ease-emphasized: var(--ease-emphasized);
+}

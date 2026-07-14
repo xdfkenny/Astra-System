@@ -82,7 +82,9 @@ function createTestActor() {
         finalizeOrder: fromPromise<
           Order,
           { sessionId: string; paymentResult: PaymentAuthorizationResult | null; cartId: string }
-        >(() => Promise.resolve(mockOrder)),
+        >(async () => {
+          return await Promise.resolve(mockOrder);
+        }),
       },
     }),
   );
@@ -143,7 +145,7 @@ describe("kioskMachine", () => {
   });
 
   it("moves through payment authorization to processing and receipt", () => {
-    const actor = createActor(kioskMachine);
+    const actor = createTestActor();
     actor.start();
     actor.send({ type: "START_SESSION", sessionId: "session-1" });
     actor.send({ type: "CART_UPDATED", cartHasItems: true });
@@ -219,6 +221,76 @@ describe("kioskMachine", () => {
 
     actor.send({ type: "CLOSE_ADMIN" });
     expect(actor.getSnapshot().value).toBe("ATTRACT");
+  });
+
+  function createActorWithFinalize(
+    impl: (args: {
+      input: { sessionId: string; paymentResult: PaymentAuthorizationResult | null; cartId: string };
+    }) => Promise<Order>,
+  ) {
+    return createActor(
+      kioskMachine.provide({
+        actors: {
+          finalizeOrder: fromPromise<
+            Order,
+            { sessionId: string; paymentResult: PaymentAuthorizationResult | null; cartId: string }
+          >(impl),
+        },
+      }),
+    );
+  }
+
+  it("moves to PROCESSING_ERROR on finalize failure and retries to RECEIPT", async () => {
+    let attempts = 0;
+    const actor = createActorWithFinalize(() => {
+      attempts += 1;
+      if (attempts === 1) {
+        return Promise.reject(new Error("network down"));
+      }
+      return Promise.resolve(mockOrder);
+    });
+    actor.start();
+    actor.send({ type: "START_SESSION", sessionId: "session-1" });
+    actor.send({ type: "CART_UPDATED", cartHasItems: true });
+    actor.send({ type: "GO_TO_CART" });
+    actor.send({ type: "PROCEED_TO_PAYMENT" });
+    actor.send({
+      type: "PAYMENT_AUTHORIZED",
+      result: { authorizationId: "auth-9", status: "authorized", method: "credit_debit", amountCents: 899 },
+    });
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe("PROCESSING_ERROR");
+    });
+
+    actor.send({ type: "RETRY" });
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe("RECEIPT");
+    });
+    expect(attempts).toBe(2);
+  });
+
+  it("returns to CART from PROCESSING_ERROR on CANCEL_PAYMENT", async () => {
+    const actor = createActorWithFinalize(() => {
+      return Promise.reject(new Error("network down"));
+    });
+    actor.start();
+    actor.send({ type: "START_SESSION", sessionId: "session-1" });
+    actor.send({ type: "CART_UPDATED", cartHasItems: true });
+    actor.send({ type: "GO_TO_CART" });
+    actor.send({ type: "PROCEED_TO_PAYMENT" });
+    actor.send({
+      type: "PAYMENT_AUTHORIZED",
+      result: { authorizationId: "auth-10", status: "authorized", method: "credit_debit", amountCents: 899 },
+    });
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe("PROCESSING_ERROR");
+    });
+
+    actor.send({ type: "CANCEL_PAYMENT" });
+    expect(actor.getSnapshot().value).toBe("CART");
   });
 });
 
