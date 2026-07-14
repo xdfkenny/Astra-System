@@ -1,4 +1,4 @@
-import * as ed from "@noble/ed25519";
+﻿import * as ed from "@noble/ed25519";
 import { sha256 } from "@noble/hashes/sha2.js";
 import type { Artifact, Manifest } from "./types";
 
@@ -156,3 +156,4 @@ function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
 export function bytesToBase64(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes));
 }
+

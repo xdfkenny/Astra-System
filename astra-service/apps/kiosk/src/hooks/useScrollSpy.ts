@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseScrollSpyOptions {
   readonly containerRef: React.RefObject<HTMLElement | null>;
@@ -101,3 +101,4 @@ export function useScrollSpy({
 
   return { activeId, observe, disconnect };
 }
+

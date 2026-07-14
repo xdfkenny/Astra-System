@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import type { MenuItem } from "@astra/shared-types";
 import { createOnnxProduceRecognizer, lookupByPlu, matchToMenuItem } from "@astra/cart-engine";
 import type { ProduceMatch, ProduceRecognizer } from "@astra/cart-engine";
@@ -117,3 +117,4 @@ export function useProduceScanner(): UseProduceScannerResult {
     submitPlu,
   };
 }
+

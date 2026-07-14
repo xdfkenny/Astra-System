@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { screen } from "@testing-library/react";
 import { renderWithMachine } from "../test-utils/renderWithMachine";
 import { CartSummary } from "./CartSummary";
@@ -20,3 +20,4 @@ describe("CartSummary", () => {
     expect(screen.getByText(/\$17\.98/)).toBeDefined();
   });
 });
+

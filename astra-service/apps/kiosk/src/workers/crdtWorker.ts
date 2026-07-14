@@ -1,4 +1,4 @@
-/// <reference lib="webworker" />
+﻿/// <reference lib="webworker" />
 
 /**
  * CRDT merge worker.
@@ -67,3 +67,4 @@ async function handleMessage(msg: CrdtWorkerRequest): Promise<void> {
     postMessage(response);
   }
 }
+

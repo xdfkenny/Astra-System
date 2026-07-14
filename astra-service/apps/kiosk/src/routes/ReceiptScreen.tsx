@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
+import { defaultLogger } from "../utils/logger";
 
+const log = defaultLogger.child("ReceiptScreen");
 
 const AUTO_RETURN_TO_ATTRACT_MS = 10_000;
 const PRIMARY_DELAY_MS = 3_000;
@@ -11,47 +13,68 @@ export function ReceiptScreen(): React.JSX.Element {
   const { send, state } = useKioskMachine();
   const [showPrimary, setShowPrimary] = useState(false);
   const [printerFailed, setPrinterFailed] = useState(false);
+  const [printLoading, setPrintLoading] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const returnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const orderNumber = state.context.order?.orderNumber ?? "A-7842";
+  const orderId = state.context.order?.orderId;
 
   useEffect(() => {
     const primaryTimer = setTimeout(() => { setShowPrimary(true); }, PRIMARY_DELAY_MS);
-    const returnTimer = setTimeout(() => {
+    returnTimerRef.current = setTimeout(() => {
       send({ type: "RECEIPT_ACKNOWLEDGED" });
     }, AUTO_RETURN_TO_ATTRACT_MS);
     return () => {
       clearTimeout(primaryTimer);
-      clearTimeout(returnTimer);
+      if (returnTimerRef.current) clearTimeout(returnTimerRef.current);
     };
   }, [send]);
 
-  const handlePrint = async () => {
+  const handlePrint = useCallback(async () => {
+    if (printLoading) return;
+    setPrintLoading(true);
     try {
-      // In a real implementation, this would send a print request to the API
-      // For now, we'll simulate the behavior
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // Show success
-    } catch (error) {
-      console.error("Print failed:", error);
+      const orderIdToPrint = orderId ?? crypto.randomUUID();
+      await fetch("/api/print/receipt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: orderIdToPrint }),
+      });
+      log.info("Receipt print requested", { orderId: orderIdToPrint });
+    } catch {
       setPrinterFailed(true);
+      log.warn("Printer unavailable");
       setTimeout(() => { setPrinterFailed(false); }, 4000);
+    } finally {
+      setPrintLoading(false);
     }
-  };
+  }, [printLoading, orderId]);
 
-  const handleEmail = async () => {
+  const handleEmail = useCallback(async () => {
+    if (emailLoading) return;
+    setEmailLoading(true);
     try {
-      // In a real implementation, this would send an email request to the API
-      // For now, we'll simulate the behavior
-      await new Promise(resolve => setTimeout(resolve, 500));
-      // Show success notification
+      const orderIdToEmail = orderId ?? crypto.randomUUID();
+      await fetch("/api/email/receipt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: orderIdToEmail }),
+      });
+      setEmailSent(true);
+      log.info("Receipt email requested", { orderId: orderIdToEmail });
+      setTimeout(() => { setEmailSent(false); }, 3000);
     } catch (error) {
-      console.error("Email failed:", error);
+      log.error("Email receipt failed", error);
+    } finally {
+      setEmailLoading(false);
     }
-  };
+  }, [emailLoading, orderId]);
 
-  const handleStartNewOrder = () => {
+  const handleStartNewOrder = useCallback(() => {
     send({ type: "RECEIPT_ACKNOWLEDGED" });
-  };
+  }, [send]);
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center bg-warm-cream px-6 text-center">
@@ -79,12 +102,12 @@ export function ReceiptScreen(): React.JSX.Element {
             d="M5 13l4 4L19 7"
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
+            transition={{ duration: 0.3, delay: 0.1, ease: motionTokens.easeOutExpo }}
           />
         </svg>
       </motion.div>
 
-      {/* Thank you */}
+      {/* Thank you heading */}
       <h1 className="mt-4 font-heading text-[36px] font-semibold text-charcoal">
         Thank you
       </h1>
@@ -99,18 +122,21 @@ export function ReceiptScreen(): React.JSX.Element {
         <button
           type="button"
           onClick={handlePrint}
-          className="h-14 w-full rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal"
-          aria-label="Print receipt"
+          disabled={printLoading}
+          className="h-14 w-full rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal active:bg-warm-cream/50 disabled:opacity-40 transition-colors duration-100"
+          aria-label={printLoading ? "Printing receipt..." : "Print receipt"}
         >
-          Print receipt
+          {printLoading ? "Printing..." : "Print receipt"}
         </button>
+
         <button
           type="button"
           onClick={handleEmail}
-          className="h-14 w-full rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal"
-          aria-label="Email receipt"
+          disabled={emailLoading}
+          className="h-14 w-full rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal active:bg-warm-cream/50 disabled:opacity-40 transition-colors duration-100"
+          aria-label={emailLoading ? "Emailing receipt..." : "Email receipt"}
         >
-          Email receipt
+          {emailLoading ? "Sending..." : emailSent ? "Sent!" : "Email receipt"}
         </button>
 
         <AnimatePresence>
@@ -122,7 +148,7 @@ export function ReceiptScreen(): React.JSX.Element {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.25, ease: motionTokens.easeOutExpo }}
               onClick={handleStartNewOrder}
-              className="mt-2 h-16 w-full rounded-full bg-amber text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(184,126,107,0.3)] active:scale-[0.98] active:translate-y-[1px]"
+              className="mt-2 h-16 w-full rounded-full bg-amber text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(184,126,107,0.3)] active:scale-[0.98] active:translate-y-[1px] transition-all duration-100"
               aria-label="Start new order"
             >
               Start new order
@@ -139,7 +165,7 @@ export function ReceiptScreen(): React.JSX.Element {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -20, opacity: 0 }}
             transition={{ duration: 0.25, ease: motionTokens.easeOutExpo }}
-            className="fixed top-16 left-1/2 -translate-x-1/2 z-40 rounded-[12px] bg-charcoal px-4 py-3 text-white font-sans text-[14px] shadow-md"
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-40 rounded-[12px] bg-charcoal px-4 py-3 text-white font-sans text-[14px] shadow-[0_4px_24px_rgba(45,42,38,0.08)]"
             role="alert"
             aria-live="assertive"
           >
@@ -158,7 +184,7 @@ export function ReceiptScreen(): React.JSX.Element {
               </svg>
               <span>Printer unavailable. Receipt saved.</span>
             </div>
-            {/* Progress bar */}
+            {/* Auto-dismiss progress bar */}
             <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/20">
               <motion.div
                 className="h-full rounded-full bg-amber"
@@ -170,6 +196,14 @@ export function ReceiptScreen(): React.JSX.Element {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Screen-reader live region */}
+      <div className="sr-only" aria-live="polite" role="status">
+        {showPrimary
+          ? "Order complete. Tap start new order to continue."
+          : "Receipt ready."}
+      </div>
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { useEffect } from "react";
 import { renderWithMachine } from "../test-utils/renderWithMachine";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
@@ -36,3 +36,4 @@ describe("useSilentAssist", () => {
     vi.useRealTimers();
   });
 });
+

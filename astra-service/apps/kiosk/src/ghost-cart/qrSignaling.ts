@@ -1,4 +1,4 @@
-import QRCode from "qrcode";
+﻿import QRCode from "qrcode";
 
 /**
  * QR-code signaling for ghost-cart WebRTC offers.
@@ -34,3 +34,4 @@ export function parseQrPayload(raw: string): QrSignalingEnvelope {
   const decoded = atob(payload);
   return JSON.parse(decoded) as QrSignalingEnvelope;
 }
+

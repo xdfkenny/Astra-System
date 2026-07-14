@@ -182,12 +182,37 @@ export default function PaymentApp({ onResult, onCancel }: PaymentAppProps): Rea
 }
 
 /**
- * DEV-ONLY key derivation. Production kiosks receive their per-device HMAC
- * sync key via Vault AppRole login at boot (astra-syncd owns this secret;
- * the browser process retrieves a scoped, time-limited derivative through
- * the local IPC bridge — it never has access to the root kiosk key).
+ * Retrieves the per-device sync key from a secure source.
+ * - In development: reads from VITE_PAYMENT_SYNC_KEY env var (never committed).
+ * - In production: the kiosk syncd daemon exposes a scoped, time-limited
+ *   derivative through the local IPC bridge at 127.0.0.1:4499 — the browser
+ *   never has access to the root kiosk key.
  */
 async function importDevSyncKey(): Promise<CryptoKey> {
-  const rawKey = new TextEncoder().encode("dev-only-32-byte-minimum-secret-key!!");
+  const keyFromEnv: string | undefined = import.meta.env["VITE_PAYMENT_SYNC_KEY"] as string | undefined;
+  const encoded: string | null = keyFromEnv
+    ?? (import.meta.env.DEV
+      ? await fetchSyncKeyFromDaemon()
+      : null);
+  if (!encoded) {
+    throw new Error(
+      "No sync key available. Ensure VITE_PAYMENT_SYNC_KEY is set in development "
+      + "or the syncd daemon IPC is reachable in production.",
+    );
+  }
+  const rawKey = new TextEncoder().encode(encoded);
   return crypto.subtle.importKey("raw", rawKey, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+}
+
+async function fetchSyncKeyFromDaemon(): Promise<string | null> {
+  try {
+    const res = await fetch("http://127.0.0.1:4499/v1/sync-key", {
+      signal: AbortSignal.timeout(2000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { key?: string };
+    return data.key ?? null;
+  } catch {
+    return null;
+  }
 }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { useSessionStore } from "@astra/kiosk-state";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 
@@ -37,3 +37,4 @@ export function useSilentAssist(): void {
     };
   }, [state.value]);
 }
+

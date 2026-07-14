@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { useNetworkMonitor } from "./useNetworkMonitor";
 import { useSessionStore } from "@astra/kiosk-state";
@@ -18,3 +18,4 @@ describe("useNetworkMonitor", () => {
     vi.unstubAllGlobals();
   });
 });
+

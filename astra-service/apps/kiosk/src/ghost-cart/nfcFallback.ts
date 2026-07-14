@@ -1,4 +1,4 @@
-import type { QrSignalingEnvelope } from "./qrSignaling";
+﻿import type { QrSignalingEnvelope } from "./qrSignaling";
 
 /**
  * NFC NDEF fallback for ghost-cart signaling.
@@ -75,3 +75,4 @@ export async function readNdefAnswer(
     });
   });
 }
+

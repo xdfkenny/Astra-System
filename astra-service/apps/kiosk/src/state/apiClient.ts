@@ -1,5 +1,4 @@
-
-import type {
+﻿import type {
   MenuResponse,
   CartResponse,
   PaymentResult,
@@ -7,120 +6,226 @@ import type {
   KioskHeartbeatResponse,
 } from "@astra/shared-types";
 
-/**
- * API client for the Meriandes Self-Service Cafeteria Kiosk system.
- * Handles authentication, API requests, and error handling.
- */
+interface RequestConfig {
+  readonly timeoutMs: number;
+  readonly deduplicate: boolean;
+  readonly cacheTtlMs: number;
+}
+
+const DEFAULT_CONFIG: RequestConfig = {
+  timeoutMs: 10_000,
+  deduplicate: false,
+  cacheTtlMs: 0,
+} as const;
+
+const READ_CONFIG: RequestConfig = {
+  timeoutMs: 15_000,
+  deduplicate: true,
+  cacheTtlMs: 30_000,
+} as const;
+
+const MUTATE_CONFIG: RequestConfig = {
+  timeoutMs: 20_000,
+  deduplicate: false,
+  cacheTtlMs: 0,
+} as const;
+
+const HEALTH_CONFIG: RequestConfig = {
+  timeoutMs: 5_000,
+  deduplicate: false,
+  cacheTtlMs: 0,
+} as const;
+
+const MENU_CONFIG: RequestConfig = {
+  timeoutMs: 20_000,
+  deduplicate: true,
+  cacheTtlMs: 60_000,
+} as const;
+
+interface CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+
+const responseCache = new Map<string, CacheEntry<unknown>>();
+const inflightRequests = new Map<string, Promise<unknown>>();
+
+function cacheKey(method: string, endpoint: string, body?: string): string {
+  return `${method}:${endpoint}${body ? `:${body}` : ""}`;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+function getCached<T>(key: string): T | null {
+  const entry = responseCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    responseCache.delete(key);
+    return null;
+  }
+  return entry.data as T;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+function setCache<T>(key: string, data: T, ttlMs: number): void {
+  if (ttlMs <= 0) return;
+  responseCache.set(key, { data, expiresAt: Date.now() + ttlMs });
+}
+
+export class ApiError extends Error {
+  readonly statusCode: number;
+  readonly code: string;
+  readonly retryAfterMs: number | undefined;
+
+  constructor(
+    message: string,
+    statusCode: number,
+    code: string,
+    retryAfterMs?: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+    this.statusCode = statusCode;
+    this.code = code;
+    this.retryAfterMs = retryAfterMs;
+  }
+}
+
 export class AstraApiClient {
   private baseUrl: string;
   private authToken: string | null;
 
   constructor() {
-    this.baseUrl = import.meta.env.VITE_API_GATEWAY_URL ?? "http://localhost:8080";
+    const env = import.meta.env as Record<string, string | undefined>;
+    this.baseUrl = env["VITE_API_GATEWAY_URL"] ?? "http://localhost:8080";
     this.authToken = null;
   }
 
-  /**
-   * Set the authentication token for subsequent requests.
-   */
   setAuthToken(token: string): void {
     this.authToken = token;
   }
 
-  /**
-   * Clear the authentication token.
-   */
   clearAuthToken(): void {
     this.authToken = null;
   }
 
-  /**
-   * Get the current authentication token.
-   */
   getAuthToken(): string | null {
     return this.authToken;
   }
 
-  /**
-   * Make an authenticated API request.
-   */
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
+    config: RequestConfig = DEFAULT_CONFIG,
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const method = (options.method ?? "GET").toUpperCase();
+    const bodyStr = options.body as string | undefined;
+    const ck = cacheKey(method, endpoint, bodyStr);
+
+    if (method === "GET" && config.cacheTtlMs > 0) {
+      const cached = getCached<T>(ck);
+      if (cached) return cached;
+    }
+
+    if (config.deduplicate) {
+      const inflight = inflightRequests.get(ck);
+      if (inflight) return inflight as Promise<T>;
+    }
+
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      abortController.abort(new DOMException("Request timed out", "TimeoutError"));
+    }, config.timeoutMs);
+
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
+      "Accept-Encoding": "gzip, br",
     };
 
     if (this.authToken) {
       headers["Authorization"] = `Bearer ${this.authToken}`;
     }
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-          headers: {
-            ...headers,
-            // @ts-expect-error - spreading headers is safe
-            // eslint-disable-next-line @typescript-eslint/no-misused-spread
-             ...(options.headers ?? {}),
-          },
-      });
-
-      if (!response.ok) {
-         const errorData = await response.json().catch(() => ({})) as unknown;
-        throw new Error(
-          (errorData as { message?: string }).message ??
-            `API request failed: ${response.status} ${response.statusText}`,
-        );
+    if (options.headers) {
+      const extra = new Headers(options.headers);
+      for (const [k, v] of extra.entries()) {
+        headers[k] = v;
       }
-
-        // @ts-expect-error - returning await is intentional for error handling
-        // eslint-disable-next-line @typescript-eslint/return-await
-        return response.json() as Promise<T>;
-    } catch (error) {
-      console.error(`API request failed for ${endpoint}:`, error);
-      throw error;
     }
+
+    const fetchPromise = (async (): Promise<T> => {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers,
+          signal: abortController.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({})) as Record<string, unknown>;
+          const code = (errorData["code"] as string | undefined) ?? "UNKNOWN_ERROR";
+          const message = (errorData["message"] as string | undefined)
+            ?? `API request failed: ${response.status} ${response.statusText}`;
+          const retryAfterRaw = response.headers.get("Retry-After");
+          const retryAfterMs = retryAfterRaw ? parseInt(retryAfterRaw, 10) * 1000 : (errorData["retryAfterMs"] as number | undefined);
+
+          throw new ApiError(message, response.status, code, retryAfterMs);
+        }
+
+        const data = await (response.json() as Promise<T>);
+
+        if (config.cacheTtlMs > 0) {
+          setCache(ck, data, config.cacheTtlMs);
+        }
+
+        return data;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof ApiError) throw error;
+        if (error instanceof DOMException && error.name === "TimeoutError") {
+          throw new ApiError(
+            `Request timed out after ${config.timeoutMs}ms: ${method} ${endpoint}`,
+            0,
+            "TIMEOUT",
+          );
+        }
+        throw error;
+      } finally {
+        if (config.deduplicate) {
+          inflightRequests.delete(ck);
+        }
+      }
+    })();
+
+    if (config.deduplicate) {
+      inflightRequests.set(ck, fetchPromise);
+    }
+
+    return fetchPromise;
   }
 
-  /**
-   * Health Check - GET /health
-   * Check the health status of the API gateway.
-   */
   async checkHealth(): Promise<{ status: string }> {
-    return this.request<{ status: string }>("/health");
+    return this.request<{ status: string }>("/health", {}, HEALTH_CONFIG);
   }
 
-  /**
-   * Get Menu Catalog - GET /v1/menu
-   * Fetch the complete menu catalog for the kiosk.
-   */
   async getMenuCatalog(): Promise<MenuResponse> {
-    // Force mock data when API is not available for development
+    const isDev = import.meta.env.DEV || import.meta.env["VITE_ASTRA_DEV_MODE"] === "true";
     try {
-      return await this.request<MenuResponse>("/v1/menu");
+      return await this.request<MenuResponse>("/v1/menu", {}, MENU_CONFIG);
     } catch (error) {
-      console.log("API not available, using mock data for development");
-      // Import mock data dynamically to avoid circular dependency
+      if (!isDev) throw error;
+      console.warn("API not available, using mock data for development");
       const { mockMenuResponse } = await import("../routes/mockMenuData");
       return mockMenuResponse;
     }
   }
 
-  /**
-   * Get Cart - GET /v1/carts/{cartId}
-   * Retrieve an existing cart.
-   */
   async getCart(cartId: string): Promise<CartResponse> {
-    return this.request<CartResponse>(`/v1/carts/${cartId}`);
+    return this.request<CartResponse>(`/v1/carts/${cartId}`, {}, READ_CONFIG);
   }
 
-  /**
-   * Create Cart - POST /v1/carts
-   * Create a new cart for the current session.
-   */
   async createCart(
     storeId: string,
     kioskId: string,
@@ -129,19 +234,10 @@ export class AstraApiClient {
   ): Promise<CartResponse> {
     return this.request<CartResponse>("/v1/carts", {
       method: "POST",
-      body: JSON.stringify({
-        storeId,
-        kioskId,
-        sessionId,
-        customerPhone,
-      }),
-    });
+      body: JSON.stringify({ storeId, kioskId, sessionId, customerPhone }),
+    }, MUTATE_CONFIG);
   }
 
-  /**
-   * Add Item to Cart - POST /v1/carts/{cartId}/items
-   * Add an item to the cart with optional modifiers.
-   */
   async addItemToCart(
     cartId: string,
     menuItemId: string,
@@ -167,13 +263,9 @@ export class AstraApiClient {
         notes,
         weightGrams,
       }),
-    });
+    }, MUTATE_CONFIG);
   }
 
-  /**
-   * Update Cart - PUT /v1/carts/{cartId}
-   * Update cart details or line items.
-   */
   async updateCart(
     cartId: string,
     updates: {
@@ -199,13 +291,9 @@ export class AstraApiClient {
     return this.request<CartResponse>(`/v1/carts/${cartId}`, {
       method: "PUT",
       body: JSON.stringify(updates),
-    });
+    }, MUTATE_CONFIG);
   }
 
-  /**
-   * Checkout Cart - POST /v1/carts/{cartId}/checkout
-   * Initiate the checkout process for a cart.
-   */
   async checkoutCart(
     cartId: string,
     method: "credit_debit" | "nfc_apple_pay" | "nfc_google_pay" | "qr_code" | "cash_recycler",
@@ -213,17 +301,11 @@ export class AstraApiClient {
   ): Promise<{ checkoutId: string; paymentIntentId: string }> {
     return this.request<{ checkoutId: string; paymentIntentId: string }>(
       `/v1/carts/${cartId}/checkout`,
-      {
-        method: "POST",
-        body: JSON.stringify({ method, currency }),
-      },
+      { method: "POST", body: JSON.stringify({ method, currency }) },
+      { timeoutMs: 30_000, deduplicate: false, cacheTtlMs: 0 },
     );
   }
 
-  /**
-   * Process Payment - POST /v1/payments
-   * Process a payment for a checkout.
-   */
   async processPayment(
     cartId: string,
     paymentIntentId: string,
@@ -233,28 +315,14 @@ export class AstraApiClient {
   ): Promise<PaymentResult> {
     return this.request<PaymentResult>("/v1/payments", {
       method: "POST",
-      body: JSON.stringify({
-        cartId,
-        paymentIntentId,
-        amountCents,
-        currency,
-        method,
-      }),
-    });
+      body: JSON.stringify({ cartId, paymentIntentId, amountCents, currency, method }),
+    }, { timeoutMs: 30_000, deduplicate: false, cacheTtlMs: 0 });
   }
 
-  /**
-   * Get Order - GET /v1/orders/{orderId}
-   * Retrieve order details.
-   */
   async getOrder(orderId: string): Promise<OrderResponse> {
-    return this.request<OrderResponse>(`/v1/orders/${orderId}`);
+    return this.request<OrderResponse>(`/v1/orders/${orderId}`, {}, READ_CONFIG);
   }
 
-  /**
-   * Create Order - POST /v1/orders
-   * Create an order from a completed payment.
-   */
   async createOrder(
     cartId: string,
     paymentId: string,
@@ -262,13 +330,9 @@ export class AstraApiClient {
     return this.request<OrderResponse>("/v1/orders", {
       method: "POST",
       body: JSON.stringify({ cartId, paymentId }),
-    });
+    }, MUTATE_CONFIG);
   }
 
-  /**
-   * Send Kiosk Heartbeat - POST /v1/kiosks/{kioskId}/heartbeat
-   * Send a heartbeat to indicate kiosk is active.
-   */
   async sendKioskHeartbeat(
     kioskId: string,
     storeId: string,
@@ -278,20 +342,10 @@ export class AstraApiClient {
   ): Promise<KioskHeartbeatResponse> {
     return this.request<KioskHeartbeatResponse>(`/v1/kiosks/${kioskId}/heartbeat`, {
       method: "POST",
-      body: JSON.stringify({
-        kioskId,
-        storeId,
-        syncStatus,
-        peerCount,
-        queueDepth,
-      }),
-    });
+      body: JSON.stringify({ kioskId, storeId, syncStatus, peerCount, queueDepth }),
+    }, { timeoutMs: 5_000, deduplicate: true, cacheTtlMs: 0 });
   }
 
-  /**
-   * Get Announcements - GET /v1/announcements
-   * Retrieve system announcements.
-   */
   async getAnnouncements(): Promise<{ announcements: {
     id: string;
     title: string;
@@ -305,13 +359,9 @@ export class AstraApiClient {
       message: string;
       severity: "info" | "warning" | "critical";
       expiresAt: string;
-    }[] }>("/v1/announcements");
+    }[] }>("/v1/announcements", {}, READ_CONFIG);
   }
 
-  /**
-   * Admin Login - POST /v1/admin/auth/login
-   * Authenticate as an admin user.
-   */
   async adminLogin(
     username: string,
     password: string,
@@ -319,13 +369,9 @@ export class AstraApiClient {
     return this.request<{ token: string; expiresAt: string }>("/v1/admin/auth/login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
-    });
+    }, MUTATE_CONFIG);
   }
 
-  /**
-   * Admin Dashboard - GET /v1/admin/dashboard
-   * Get admin dashboard data.
-   */
   async getAdminDashboard(): Promise<{
     kioskCount: number;
     activeOrders: number;
@@ -337,13 +383,9 @@ export class AstraApiClient {
       activeOrders: number;
       revenueToday: number;
       syncStatus: Record<string, "online" | "offline" | "degraded">;
-    }>("/v1/admin/dashboard");
+    }>("/v1/admin/dashboard", {}, READ_CONFIG);
   }
 
-  /**
-   * P2P Sync - POST /v1/p2p/sync
-   * Sync data with peer kiosks.
-   */
   async p2pSync(
     kioskId: string,
     storeId: string,
@@ -357,13 +399,9 @@ export class AstraApiClient {
     }>("/v1/p2p/sync", {
       method: "POST",
       body: JSON.stringify({ kioskId, storeId, events, vectorClock }),
-    });
+    }, MUTATE_CONFIG);
   }
 
-  /**
-   * Debug Info - GET /v1/debug/info
-   * Get debug information about the system.
-   */
   async getDebugInfo(): Promise<{
     version: string;
     uptime: number;
@@ -377,11 +415,9 @@ export class AstraApiClient {
       memoryUsage: number;
       activeConnections: number;
       databaseStatus: "healthy" | "degraded" | "unhealthy";
-    }>("/v1/debug/info");
+    }>("/v1/debug/info", {}, READ_CONFIG);
   }
 }
 
-/**
- * Singleton instance of the API client.
- */
 export const apiClient = new AstraApiClient();
+

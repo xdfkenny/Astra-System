@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { StatusBar } from "./StatusBar";
 import { useSessionStore } from "@astra/kiosk-state";
@@ -35,3 +35,4 @@ describe("StatusBar", () => {
     expect(btn.getAttribute("aria-label")).toContain("Offline");
   });
 });
+

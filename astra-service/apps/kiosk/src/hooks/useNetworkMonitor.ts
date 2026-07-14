@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { useSessionStore } from "@astra/kiosk-state";
 
 const HEALTH_POLL_INTERVAL_MS = 5000;
@@ -49,3 +49,4 @@ export function useNetworkMonitor(): void {
     };
   }, []);
 }
+

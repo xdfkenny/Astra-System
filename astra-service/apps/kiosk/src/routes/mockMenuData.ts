@@ -1,4 +1,4 @@
-import type { MenuItem } from "@astra/shared-types";
+﻿import type { MenuItem } from "@astra/shared-types";
 
 const storeId = "store-astra-001";
 const now = new Date("2026-07-07T00:00:00Z").toISOString();
@@ -27,6 +27,7 @@ function item(
   hasModifiers = false,
 ): MenuItem {
   const cat = categories[catIdx];
+  if (!cat) throw new Error(`Category index ${catIdx} out of bounds`);
   return {
     itemId: `item-${String(idx).padStart(3, "0")}`,
     storeId,
@@ -39,7 +40,7 @@ function item(
     barcode: null,
     sku: `SKU-${String(idx).padStart(4, "0")}`,
     imageUrl: null,
-    blurhash: blobs[idx % blobs.length],
+    blurhash: blobs[idx % blobs.length] ?? null,
     taxCategory: "standard",
     isWeightBased: false,
     weightUnit: null,
@@ -120,7 +121,17 @@ function item(
   };
 }
 
-export const mockMenuResponse: { readonly items: readonly MenuItem[] } = {
+export const mockMenuResponse = {
+  storeId,
+  currency: "USD",
+  taxRate: 0.08,
+  categories: [
+    { categoryId: "cat-coffee", name: "Coffee", displayOrder: 1, storeId, parentId: null, description: null, imageUrl: null, blurhash: null, isActive: true, createdAt: now, updatedAt: now, deletedAt: null },
+    { categoryId: "cat-pastry", name: "Pastry", displayOrder: 2, storeId, parentId: null, description: null, imageUrl: null, blurhash: null, isActive: true, createdAt: now, updatedAt: now, deletedAt: null },
+    { categoryId: "cat-sandwich", name: "Sandwiches", displayOrder: 3, storeId, parentId: null, description: null, imageUrl: null, blurhash: null, isActive: true, createdAt: now, updatedAt: now, deletedAt: null },
+    { categoryId: "cat-salad", name: "Salads & Bowls", displayOrder: 4, storeId, parentId: null, description: null, imageUrl: null, blurhash: null, isActive: true, createdAt: now, updatedAt: now, deletedAt: null },
+    { categoryId: "cat-beverage", name: "Beverages", displayOrder: 5, storeId, parentId: null, description: null, imageUrl: null, blurhash: null, isActive: true, createdAt: now, updatedAt: now, deletedAt: null },
+  ],
   items: [
     item(1, "Flat White", "Double ristretto with steamed oat milk", 550, 0, true),
     item(2, "Cold Brew", "24-hour steeped, served over ice", 480, 0, true),
@@ -148,3 +159,4 @@ export const mockMenuResponse: { readonly items: readonly MenuItem[] } = {
     item(24, "Chai Latte", "House spiced chai concentrate, steamed milk", 540, 0, true),
   ],
 };
+

@@ -14,8 +14,8 @@ describe("tokens", () => {
   });
 
   it("exposes spacing tokens including the 56px touch target", () => {
-    expect(spacing[14]).toBe("56px");
-    expect(spacingVariables["--astra-space-14"]).toBe("56px");
+    expect(spacing[7]).toBe("56px");
+    expect(spacingVariables["--astra-space-7"]).toBe("56px");
   });
 
   it("aggregates token variables across all token categories", () => {

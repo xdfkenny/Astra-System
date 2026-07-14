@@ -1,4 +1,4 @@
-import {
+﻿import {
   downloadAndVerifyArtifact,
   verifyBlobChecksum,
   verifyManifestSignature,
@@ -235,3 +235,4 @@ export class Updater {
     };
   }
 }
+

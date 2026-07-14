@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { useEffect } from "react";
 import { screen, fireEvent } from "@testing-library/react";
 import { renderWithMachine } from "../test-utils/renderWithMachine";
@@ -97,3 +97,4 @@ describe("ItemModal", () => {
     expect(getByTestId("stage").textContent).toBe("MENU");
   });
 });
+

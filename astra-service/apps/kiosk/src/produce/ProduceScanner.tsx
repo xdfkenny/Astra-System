@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import type { MenuItem } from "@astra/shared-types";
 import { useProduceScanner } from "./useProduceScanner";
 
@@ -109,3 +109,4 @@ export function ProduceScanner({ onLookupPlu, onSelectItem, onClose }: ProduceSc
     </div>
   );
 }
+

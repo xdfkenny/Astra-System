@@ -34,33 +34,33 @@
   --color-printer: #6B6862;
 
   /* Semantic */
-  --color-background: var(--color-linen);
-  --color-surface: var(--color-card-surface);
-  --color-surface-sunken: var(--color-warm-cream);
+  --color-background: #F5F3EF;
+  --color-surface: #FFFFFF;
+  --color-surface-sunken: #FEF7E0;
   --color-surface-overlay: rgba(255, 255, 255, 0.88);
 
-  --color-primary: var(--color-moss);
-  --color-primary-hover: var(--color-moss-hover);
-  --color-primary-pressed: var(--color-moss-pressed);
-  --color-cta: var(--color-amber);
-  --color-cta-hover: var(--color-amber-hover);
-  --color-cta-pressed: var(--color-amber-pressed);
-  --color-secondary: var(--color-denim);
-  --color-secondary-hover: var(--color-denim-hover);
+  --color-primary: #5A7A5C;
+  --color-primary-hover: #4A6A4C;
+  --color-primary-pressed: #3A5A3C;
+  --color-cta: #B87E6B;
+  --color-cta-hover: #A06E5D;
+  --color-cta-pressed: #885E4D;
+  --color-secondary: #4A5D70;
+  --color-secondary-hover: #3A4D60;
 
-  --color-success: var(--color-moss);
-  --color-warning: var(--color-offline);
-  --color-info: var(--color-denim);
-  --color-error: var(--color-soft-rose);
-  --color-error-hover: var(--color-soft-rose-hover);
+  --color-success: #5A7A5C;
+  --color-warning: #D4A843;
+  --color-info: #4A5D70;
+  --color-error: #C4A4A4;
+  --color-error-hover: #B08A8A;
 
-  --color-ink: var(--color-charcoal);
-  --color-ink-muted: var(--color-stone);
-  --color-ink-inverted: var(--color-linen);
+  --color-ink: #2D2A26;
+  --color-ink-muted: #6B6862;
+  --color-ink-inverted: #F5F3EF;
 
-  --color-border: var(--color-taupe);
-  --color-border-strong: var(--color-clay);
-  --color-divider: var(--color-taupe);
+  --color-border: #C4B8A8;
+  --color-border-strong: #B8A99A;
+  --color-divider: #C4B8A8;
   --color-overlay: rgba(45, 42, 38, 0.2);
   --color-overlay-strong: rgba(45, 42, 38, 0.55);
 
@@ -191,6 +191,8 @@ html.dark,
   --color-info: #6A7D90;
   --color-error: #D4A4A4;
   --color-error-hover: #E4B4B4;
+  --color-offline: #E4C46A;
+  --color-sync-active: #7A9A7C;
 
   --color-ink: #F5F3EF;
   --color-ink-muted: #A8A49D;
@@ -226,6 +228,7 @@ html.dark,
     --color-info: #6A7D90;
     --color-error: #D4A4A4;
     --color-error-hover: #E4B4B4;
+    --color-sync-active: #7A9A7C;
 
     --color-ink: #F5F3EF;
     --color-ink-muted: #A8A49D;

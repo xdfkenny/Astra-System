@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Types for the Astra kiosk over-the-air (OTA) update system.
  */
 
@@ -71,3 +71,4 @@ export interface UpdateResult {
   pendingVersion: string | undefined;
   error: Error | undefined;
 }
+

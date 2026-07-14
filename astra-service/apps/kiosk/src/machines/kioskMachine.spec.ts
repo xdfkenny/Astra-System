@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import { createActor } from "xstate";
+﻿import { describe, expect, it, vi } from "vitest";
+import { createActor, fromPromise } from "xstate";
 import { kioskMachine } from "./kioskMachine";
-import type { MenuItem, PaymentAuthorizationResult } from "@astra/shared-types";
+import type { MenuItem, Order, PaymentAuthorizationResult } from "@astra/shared-types";
 
 const mockItem: MenuItem = {
   itemId: "item-1",
@@ -54,6 +54,39 @@ const mockItem: MenuItem = {
   updatedAt: new Date().toISOString(),
   deletedAt: null,
 };
+
+const mockOrder = {
+  orderId: "order-1",
+  storeId: "store-1",
+  kioskId: "kiosk-1",
+  cartId: "cart-1",
+  orderNumber: "A-7842",
+  status: "paid",
+  subtotalCents: 899,
+  taxCents: 0,
+  discountCents: 0,
+  totalCents: 899,
+  itemsJson: [],
+  taxBreakdownJson: null,
+  metadata: null,
+  paidAt: null,
+  fulfilledAt: null,
+  cancelledAt: null,
+  createdAt: new Date().toISOString(),
+} as Order;
+
+function createTestActor() {
+  return createActor(
+    kioskMachine.provide({
+      actors: {
+        finalizeOrder: fromPromise<
+          Order,
+          { sessionId: string; paymentResult: PaymentAuthorizationResult | null; cartId: string }
+        >(() => Promise.resolve(mockOrder)),
+      },
+    }),
+  );
+}
 
 describe("kioskMachine", () => {
   it("starts in ATTRACT and transitions to MENU on START_SESSION", () => {
@@ -153,7 +186,7 @@ describe("kioskMachine", () => {
   });
 
   it("transitions from RECEIPT to ATTRACT on RECEIPT_ACKNOWLEDGED", async () => {
-    const actor = createActor(kioskMachine);
+    const actor = createTestActor();
     actor.start();
     actor.send({ type: "START_SESSION", sessionId: "session-1" });
     actor.send({ type: "CART_UPDATED", cartHasItems: true });
@@ -188,3 +221,4 @@ describe("kioskMachine", () => {
     expect(actor.getSnapshot().value).toBe("ATTRACT");
   });
 });
+

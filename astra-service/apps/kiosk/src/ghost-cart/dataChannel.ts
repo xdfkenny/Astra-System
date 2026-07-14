@@ -1,4 +1,4 @@
-/**
+﻿/**
  * WebRTC data-channel transport for the "ghost cart" feature: a customer can
  * transfer an in-progress cart from their phone to the kiosk (or between
  * kiosks) without touching the public internet.
@@ -114,3 +114,4 @@ function waitForIceGathering(pc: RTCPeerConnection): Promise<void> {
     pc.addEventListener("icegatheringstatechange", check);
   });
 }
+

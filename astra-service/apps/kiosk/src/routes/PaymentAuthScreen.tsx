@@ -1,10 +1,13 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+﻿import { useState, useMemo, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
 import { useSnapshot } from "valtio";
 import { cartProxy } from "@astra/kiosk-state";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 import { apiClient } from "../state/apiClient";
+import { defaultLogger } from "../utils/logger";
+
+const log = defaultLogger.child("PaymentAuthScreen");
 
 type PaymentMethod = "card_nfc" | "cash" | "qr_code";
 
@@ -30,7 +33,8 @@ export function PaymentAuthScreen(): React.JSX.Element {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [cartExpanded, setCartExpanded] = useState(false);
   const [showBiometric, setShowBiometric] = useState(false);
-  const employeeHoldRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [authorizing, setAuthorizing] = useState(false);
+  const employeeHoldRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [employeeHoldProgress, setEmployeeHoldProgress] = useState(0);
 
   const itemCount = cart.lines.reduce((sum, l) => sum + l.quantity, 0);
@@ -55,18 +59,18 @@ export function PaymentAuthScreen(): React.JSX.Element {
   }, [selectedMethod]);
 
   const handleBiometricComplete = useCallback(async () => {
-    setShowBiometric(false);
+    if (!selectedMethod || authorizing) return;
+    setAuthorizing(true);
+
     try {
-      // Map the UI payment method to the API payment method
-      const apiMethod = selectedMethod === "card_nfc" ? "nfc_apple_pay" : selectedMethod === "cash" ? "cash_recycler" : "qr_code";
-      
-      // Create a checkout first
-      const checkoutResponse = await apiClient.checkoutCart(
-        cartProxy.cartId,
-        apiMethod,
-      );
-      
-      // Process the payment
+      const apiMethod: "nfc_apple_pay" | "cash_recycler" | "qr_code" | "credit_debit" =
+        selectedMethod === "card_nfc"
+          ? "nfc_apple_pay"
+          : selectedMethod === "cash"
+            ? "cash_recycler"
+            : "qr_code";
+
+      const checkoutResponse = await apiClient.checkoutCart(cartProxy.cartId, apiMethod);
       const paymentResult = await apiClient.processPayment(
         cartProxy.cartId,
         checkoutResponse.paymentIntentId,
@@ -74,7 +78,10 @@ export function PaymentAuthScreen(): React.JSX.Element {
         "USD",
         apiMethod,
       );
-      
+
+      setShowBiometric(false);
+      setAuthorizing(false);
+
       send({
         type: "PAYMENT_AUTHORIZED",
         result: {
@@ -82,22 +89,49 @@ export function PaymentAuthScreen(): React.JSX.Element {
           status: paymentResult.status,
           method: paymentResult.method,
           amountCents: paymentResult.amountCents,
-             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-             ...(paymentResult.authorization?.approvalCode && { approvalCode: paymentResult.authorization.approvalCode }),
-             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-             ...(paymentResult.authorization?.cardBrand && { cardBrand: paymentResult.authorization.cardBrand }),
-             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-             ...(paymentResult.authorization?.cardLastFour && { cardLastFour: paymentResult.authorization.cardLastFour }),
+          ...(paymentResult.authorization.approvalCode && {
+            approvalCode: paymentResult.authorization.approvalCode,
+          }),
+          ...(paymentResult.authorization.cardBrand && {
+            cardBrand: paymentResult.authorization.cardBrand,
+          }),
+          ...(paymentResult.authorization.cardLastFour && {
+            cardLastFour: paymentResult.authorization.cardLastFour,
+          }),
         },
       });
     } catch (error) {
-      console.error("Payment processing failed:", error);
+      log.error("Payment processing failed", error);
+      setShowBiometric(false);
+      setAuthorizing(false);
+
+      const allowSimulatedAuth = (import.meta.env as Record<string, string | undefined>)["VITE_ASTRA_ALLOW_SIMULATED_PAYMENT"] === "true";
+      if (allowSimulatedAuth) {
+        log.warn("Fallback to simulated payment authorization", { method: selectedMethod });
+        send({
+          type: "PAYMENT_AUTHORIZED",
+          result: {
+            authorizationId: crypto.randomUUID(),
+            status: "authorized",
+            method: selectedMethod === "card_nfc" ? "nfc_apple_pay" : selectedMethod === "cash" ? "cash_recycler" : "qr_code",
+            amountCents: totalCents,
+            approvalCode: "SIMULATED",
+          },
+        });
+        return;
+      }
+
       send({
         type: "PAYMENT_FAILED",
-        message: error instanceof Error ? error.message : "Payment processing failed",
+        message: error instanceof Error ? error.message : "Payment terminal not available. Please try again or use a different method.",
       });
     }
-  }, [send, selectedMethod, totalCents]);
+  }, [send, selectedMethod, totalCents, authorizing]);
+
+  const handleBiometricCancel = useCallback(() => {
+    if (authorizing) return;
+    setShowBiometric(false);
+  }, [authorizing]);
 
   const handleEmployeeHoldStart = useCallback(() => {
     let progress = 0;
@@ -107,15 +141,15 @@ export function PaymentAuthScreen(): React.JSX.Element {
       setEmployeeHoldProgress(Math.min(progress, 1));
       if (progress >= 1) {
         if (employeeHoldRef.current) clearInterval(employeeHoldRef.current);
-        // Employee override - authorize payment without actual processing
-        send({ 
-          type: "PAYMENT_AUTHORIZED", 
-          result: { 
-            authorizationId: crypto.randomUUID(), 
-            status: "authorized", 
-            method: "nfc_apple_pay", 
+        log.warn("Employee override - authorizing without payment", { totalCents });
+        send({
+          type: "PAYMENT_AUTHORIZED",
+          result: {
+            authorizationId: crypto.randomUUID(),
+            status: "authorized",
+            method: "nfc_apple_pay",
             amountCents: totalCents,
-          } 
+          },
         });
       }
     }, 300);
@@ -147,7 +181,7 @@ export function PaymentAuthScreen(): React.JSX.Element {
           aria-expanded={cartExpanded}
           aria-label={`Cart summary: ${String(itemCount)} items, total $${formatCents(totalCents)}. Tap to ${cartExpanded ? "collapse" : "expand"}.`}
         >
-          <span className="font-sans text-caption uppercase tracking-[0.08em] text-stone">
+          <span className="font-sans text-[13px] font-medium uppercase tracking-[0.08em] text-stone">
             {itemCount} {itemCount === 1 ? "item" : "items"}
           </span>
           <span className="font-sans text-[28px] font-semibold text-charcoal tabular-nums">
@@ -183,7 +217,7 @@ export function PaymentAuthScreen(): React.JSX.Element {
                   </div>
                 ))}
                 <div className="mt-2 flex items-center justify-between border-t border-taupe pt-2">
-                  <span className="font-sans text-caption uppercase tracking-[0.08em] text-stone">
+                  <span className="font-sans text-[13px] font-medium uppercase tracking-[0.08em] text-stone">
                     Total
                   </span>
                   <span className="font-sans text-[28px] font-semibold text-amber tabular-nums">
@@ -198,7 +232,7 @@ export function PaymentAuthScreen(): React.JSX.Element {
 
       {/* Payment methods */}
       <div className="mt-4 px-3">
-        <h2 className="font-sans text-caption uppercase tracking-[0.08em] text-stone mb-2">
+        <h2 className="font-sans text-[13px] font-medium uppercase tracking-[0.08em] text-stone mb-2">
           Select payment method
         </h2>
         <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2">
@@ -218,7 +252,6 @@ export function PaymentAuthScreen(): React.JSX.Element {
                 aria-pressed={isSelected}
                 aria-label={method.label}
               >
-                {/* Icon */}
                 {method.id === "card_nfc" && (
                   <svg viewBox="0 0 32 32" className="h-8 w-8 text-charcoal" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
                     <rect x="4" y="8" width="24" height="16" rx="3" />
@@ -259,7 +292,7 @@ export function PaymentAuthScreen(): React.JSX.Element {
           type="button"
           disabled={!selectedMethod}
           onClick={handleConfirm}
-          className="h-16 w-full rounded-full bg-amber text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(184,126,107,0.3)] disabled:opacity-50 disabled:grayscale-[0.5] transition-all duration-100 active:scale-[0.98] active:translate-y-[1px]"
+          className="h-16 w-full rounded-full bg-amber text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(184,126,107,0.3)] disabled:opacity-40 disabled:grayscale-[0.5] transition-all duration-100 active:scale-[0.98] active:translate-y-[1px]"
           aria-label="Confirm payment"
         >
           Confirm Payment
@@ -278,11 +311,11 @@ export function PaymentAuthScreen(): React.JSX.Element {
         aria-label="Employee override. Hold for 3 seconds."
       />
 
-      {/* Employee hold progress indicator (hidden until progress) */}
+      {/* Employee hold progress indicator */}
       {employeeHoldProgress > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/40">
-          <div className="rounded-[24px] bg-white px-6 py-4 text-center shadow-lg">
-            <p className="font-sans text-body text-charcoal">Employee override</p>
+          <div className="rounded-[24px] bg-white px-6 py-4 text-center shadow-[0_8px_32px_rgba(45,42,38,0.12)]">
+            <p className="font-sans text-[18px] text-charcoal">Employee override</p>
             <div className="mt-2 h-2 w-48 overflow-hidden rounded-full bg-taupe">
               <div
                 className="h-full rounded-full bg-moss transition-all duration-200"
@@ -308,7 +341,7 @@ export function PaymentAuthScreen(): React.JSX.Element {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.2, ease: motionTokens.easeOutExpo }}
-              className="mx-4 w-full max-w-sm rounded-[24px] bg-white p-6 text-center shadow-lg"
+              className="mx-4 w-full max-w-sm rounded-[24px] bg-white p-6 text-center shadow-[0_8px_32px_rgba(45,42,38,0.12)]"
               role="dialog"
               aria-modal="true"
               aria-label="Biometric authentication"
@@ -341,25 +374,27 @@ export function PaymentAuthScreen(): React.JSX.Element {
               </motion.div>
 
               {/* Terminal connection status */}
-              <p className="mt-3 font-mono text-caption text-moss">
-                Terminal: CONNECTED
+              <p className="mt-3 font-mono text-[14px] text-moss">
+                Terminal: {authorizing ? "AUTHORIZING" : "CONNECTED"}
               </p>
 
-              {/* Simulated auth buttons for demo */}
+              {/* Auth buttons */}
               <div className="mt-4 flex gap-3">
                 <button
                   type="button"
-                  onClick={() => { setShowBiometric(false); }}
-                  className="h-14 flex-1 rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal"
+                  onClick={handleBiometricCancel}
+                  disabled={authorizing}
+                  className="h-14 flex-1 rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal disabled:opacity-40 transition-opacity duration-100"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleBiometricComplete}
-                  className="h-14 flex-1 rounded-full bg-moss text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(90,122,92,0.3)]"
+                  disabled={authorizing}
+                  className="h-14 flex-1 rounded-full bg-moss text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(90,122,92,0.3)] disabled:opacity-40 transition-opacity duration-100"
                 >
-                  Authorize
+                  {authorizing ? "Authorizing..." : "Authorize"}
                 </button>
               </div>
             </motion.div>
@@ -369,3 +404,4 @@ export function PaymentAuthScreen(): React.JSX.Element {
     </div>
   );
 }
+

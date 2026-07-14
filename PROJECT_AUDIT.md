@@ -39,6 +39,64 @@
 
 ### Ready for Production? **NO** — This is a well-structured prototype with impressive architectural ambition but major functional gaps.
 
+## Audit Update — 2026-07-14
+
+This addendum preserves the prior 2026-07-09 assessment while capturing the current repository state. The latest review found a critical compile blocker, browser-side secret exposure, and prototype-quality workflow gaps that must be addressed before the project can be considered production-ready.
+
+### Updated Executive Summary
+
+- The codebase remains architecturally ambitious, with a broad polyglot monorepo and clear separation between UI, service, and sync layers.
+- There is a critical TypeScript build failure in the kiosk frontend, which prevents reliable developer workflows and continuous integration from succeeding.
+- Security posture is weakened by tracked environment templates (`.env`), browser-exposed dev secrets in the payment UI, and multiple areas where runtime type safety is suppressed.
+- The current design still carries prototype debt: duplicate unified vs. federated kiosk implementations, mixed state management patterns, and stubbed approval/checkout flows.
+
+### Critical Findings (Priority High)
+
+1. **Compile blocker in kiosk API client** — `astra-service/apps/kiosk/src/state/apiClient.ts:57`
+   - Problem: invalid Authorization header assignment in `AstraApiClient.request()` causes a TypeScript syntax error.
+   - Impact: the kiosk app cannot compile, blocking builds and automated type checks.
+   - Recommendation: restore the intended header assignment and add a type-safe header merge implementation.
+
+2. **Hardcoded browser-side secret** — `astra-service/apps/kiosk-payment/src/PaymentApp.tsx:191`
+   - Problem: `dev-only-32-byte-minimum-secret-key!!` is hardcoded in frontend code and imported into a browser process.
+   - Impact: if this value is reused in staging or production builds, it exposes kiosk authentication material and undermines the zero-trust design.
+   - Recommendation: remove the hardcoded key, provision per-device secrets via Vault/keyring, and expose only scoped ephemeral tokens to the browser.
+
+3. **Unhandled idle reclaim event** — `astra-service/apps/kiosk/src/machines/kioskMachine.ts:44` and `astra-service/apps/kiosk/src/hooks/useIdleReclaim.ts:35`
+   - Problem: `RETURN_TO_ATTRACT` is dispatched after idle timeout but not handled by the state machine.
+   - Impact: this can cause runtime errors or silent failure of the idle reclaim workflow.
+   - Recommendation: implement a transition from active states to `ATTRACT` or add a guarded noop handler where appropriate.
+
+4. **Tracked `.env` with dev secrets** — `astra-service/.env:50-100`
+   - Problem: the repository contains a tracked `.env` file with values such as `VAULT_TOKEN=dev-only-root-token` and `GATEWAY_HMAC_SIGNING_KEY=dev-only-32-byte-minimum-secret-key!!`.
+   - Impact: even dev-only templates in source control create accidental secret exposure and make it easier to ship unsafe defaults.
+   - Recommendation: remove `.env` from version control, preserve only `.env.example`, and use environment-specific secret provisioning in CI and local development.
+
+5. **Build caching coupled to `.env`** — `astra-service/turbo.json:4`
+   - Problem: Turbo globalDependencies includes `.env`, meaning environment file changes affect caching and may leak environment state into task scheduling.
+   - Impact: this is an anti-pattern for secure and reproducible monorepo builds.
+   - Recommendation: remove `.env` from `globalDependencies` and rely on explicit, secure config inputs instead.
+
+### Debt and Refactor (Priority Medium)
+
+- **Brittle type safety in cart service** — `astra-service/apps/kiosk/src/state/cartService.ts:55-76`
+  - The file suppresses multiple type errors and uses unsafe member access throughout the cart sync path. Refactor this module to preserve strong typing and avoid hidden runtime assumptions.
+- **Duplicate kiosk implementations** — `astra-service/apps/kiosk/` vs `astra-service/apps/kiosk-shell/`
+  - Two kiosk codebases exist in parallel, increasing maintenance cost and risk of divergence. Consolidate to a single implementation or clearly separate the federated shell from the unified app.
+- **Payment flow remains prototype-level** — `astra-service/apps/kiosk-payment/src/PaymentApp.tsx`
+  - The payment UI still relies on local offline token queueing and lacks a production-ready key distribution model. Add validation and secure secret management before promoting to staging.
+- **Mock fallback hides API failures** — `astra-service/apps/kiosk/src/state/apiClient.ts:101-109`
+  - The menu client silently falls back to mock data if the API is unavailable. This is useful for development but should be gated behind an explicit dev mode to avoid masking backend problems.
+
+### Optimization and Performance (Priority Low)
+
+- **`useIdleReclaim` polling overhead** — `astra-service/apps/kiosk/src/hooks/useIdleReclaim.ts:31-37`
+  - It uses a one-second interval and re-registers on every state value change. This is acceptable for kiosks, but a more event-driven approach would improve correctness and simplify lifecycle management.
+- **`docker-compose.yml` exposes many dev ports** — `docker-compose.yml:1-260`
+  - Local dev environment publishes ports for Postgres, Redis, NATS, and application services. Confirm these bindings are disabled in shared or production-like environments.
+- **Dev-only secrets in compose** — `docker-compose.yml:45-54`
+  - The local stack uses plaintext passwords for easy setup. Keep this strictly in local-only compose files and never reuse in CI or production.
+
 ---
 
 ## 1. Project Structure

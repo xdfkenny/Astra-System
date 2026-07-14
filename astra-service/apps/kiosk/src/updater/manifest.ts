@@ -1,4 +1,4 @@
-import type { Manifest } from "./types";
+﻿import type { Manifest } from "./types";
 
 /**
  * Fetch and parse a signed update manifest.
@@ -42,3 +42,4 @@ function validateManifestShape(data: unknown): asserts data is Manifest {
     throw new Error("manifest.artifacts is required");
   }
 }
+

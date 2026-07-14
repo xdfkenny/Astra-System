@@ -1,16 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 import { uuidV7 } from "@astra/shared-types";
 import { resetCart } from "@astra/kiosk-state";
+import { useViewport } from "../components/ViewportLock";
+import { queryClient } from "../state/queryClient";
 
-const KIOSK_ID = import.meta.env.VITE_KIOSK_ID ?? "kiosk-local";
+const ENV: Record<string, string | undefined> = import.meta.env;
+const KIOSK_ID = ENV["VITE_KIOSK_ID"] ?? "kiosk-local";
+const KIOSK_LANE = ENV["VITE_KIOSK_LANE"] ?? "3";
 const IDLE_TIMEOUT_MS = 120_000;
 const REVEAL_DURATION_MS = 500;
 
 export function AttractScreen(): React.JSX.Element {
   const { send } = useKioskMachine();
+  const { logicalPoint } = useViewport();
   const [idle, setIdle] = useState(false);
   const [reveal, setReveal] = useState(false);
   const [clientReady, setClientReady] = useState(false);
@@ -21,6 +26,10 @@ export function AttractScreen(): React.JSX.Element {
 
   useEffect(() => {
     setClientReady(true);
+    void queryClient.prefetchQuery({
+      queryKey: ["menu-catalog"],
+      staleTime: 300_000,
+    });
   }, []);
 
   useEffect(() => {
@@ -43,14 +52,15 @@ export function AttractScreen(): React.JSX.Element {
   const startReveal = useCallback(
     (clientX: number, clientY: number): void => {
       if (tapHandledRef.current) return;
-      tapPoint.current = { x: clientX, y: clientY };
+      const logical = logicalPoint(clientX, clientY);
+      tapPoint.current = { x: logical.x, y: logical.y };
       setReveal(true);
       if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
       revealTimerRef.current = setTimeout(() => {
         beginSession();
       }, REVEAL_DURATION_MS);
     },
-    [beginSession],
+    [beginSession, logicalPoint],
   );
 
   const handlePointerDown = useCallback(
@@ -162,18 +172,17 @@ export function AttractScreen(): React.JSX.Element {
             duration: idle ? 20 : 12,
             repeat: Infinity,
             ease: "easeInOut",
-            delay: idle ? 0 : -4,
           }}
         />
       </div>
 
       {/* Center content */}
       <div className="relative z-10 text-center">
-        <h1 className="font-heading text-hero font-semibold tracking-tight text-charcoal">
+        <h1 className="font-heading text-[56px] font-semibold tracking-tight text-charcoal">
           Astra
         </h1>
         <motion.p
-          className="mt-3 font-sans text-body text-stone"
+          className="mt-3 font-sans text-[18px] text-stone"
           animate={{ opacity: [1, 0.3, 1] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           role="status"
@@ -183,7 +192,7 @@ export function AttractScreen(): React.JSX.Element {
         </motion.p>
       </div>
 
-      {/* Bottom scrolling text */}
+      {/* Bottom scrolling lane info */}
       <div className="absolute bottom-10 left-0 right-0 overflow-hidden pointer-events-none">
         <motion.p
           className="font-mono text-[12px] text-stone whitespace-nowrap"
@@ -191,11 +200,11 @@ export function AttractScreen(): React.JSX.Element {
           transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
           aria-hidden="true"
         >
-          Self-checkout • Lane 3
+          {`Self-checkout • Lane ${KIOSK_LANE}`}
         </motion.p>
       </div>
 
-      {/* Idle dim overlay — must not intercept touches */}
+      {/* Idle dim overlay */}
       {idle && (
         <div className="absolute inset-0 bg-black/30 z-20 pointer-events-none idle-dim-overlay" />
       )}
@@ -215,9 +224,10 @@ export function AttractScreen(): React.JSX.Element {
       )}
 
       {/* Screen-reader live region */}
-      <div className="sr-only-live" aria-live="assertive" role="status">
+      <div className="sr-only" aria-live="assertive" role="status">
         Attract screen. Touch to begin shopping.
       </div>
     </div>
   );
 }
+

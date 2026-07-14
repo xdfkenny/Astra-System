@@ -3,7 +3,6 @@ go 1.25.1
 toolchain go1.25.1
 
 use (
-	../infra/secrets
 	../proto
 	../services/update-server
 	./packages/go-common
