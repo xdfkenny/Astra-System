@@ -1,4 +1,7 @@
-﻿import type { QrSignalingEnvelope } from "./qrSignaling";
+﻿import {
+  validateQrSignalingEnvelope,
+  type QrSignalingEnvelope,
+} from "./qrSignaling";
 
 /**
  * NFC NDEF fallback for ghost-cart signaling.
@@ -38,6 +41,8 @@ export async function readNdefAnswer(
   }
   const ndef = new NDEFReader();
   return new Promise((resolve, reject) => {
+    let settled = false;
+
     const onReading = (event: NDEFReadingEvent): void => {
       const record = event.message.records.find(
         (r) => r.mediaType === "application/vnd.astra.ghost-cart+json",
@@ -48,28 +53,46 @@ export async function readNdefAnswer(
           ? new Uint8Array(record.data.buffer, record.data.byteOffset, record.data.byteLength)
           : new Uint8Array(record.data);
       const json = new TextDecoder().decode(bytes);
-      cleanup();
-      const envelope = JSON.parse(json) as QrSignalingEnvelope;
-      resolve(envelope);
+      try {
+        const envelope = validateQrSignalingEnvelope(JSON.parse(json));
+        settled = true;
+        cleanup();
+        resolve(envelope);
+      } catch (error) {
+        settled = true;
+        cleanup();
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
     };
 
     const onError = (event: Event): void => {
+      if (settled) return;
+      settled = true;
       cleanup();
       const message = event instanceof ErrorEvent ? event.message : "NFC read error";
       reject(new Error(message));
     };
 
+    const onAbort = (): void => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new DOMException("NFC read aborted", "AbortError"));
+    };
+
     const cleanup = (): void => {
       ndef.removeEventListener("reading", onReading as EventListener);
       ndef.removeEventListener("error", onError);
-      signal?.removeEventListener("abort", cleanup);
+      signal?.removeEventListener("abort", onAbort);
     };
 
     ndef.addEventListener("reading", onReading as EventListener);
     ndef.addEventListener("error", onError);
-    signal?.addEventListener("abort", cleanup);
+    signal?.addEventListener("abort", onAbort);
 
     ndef.scan().catch((err: unknown) => {
+      if (settled) return;
+      settled = true;
       cleanup();
       reject(err instanceof Error ? err : new Error(String(err)));
     });

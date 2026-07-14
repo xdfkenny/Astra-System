@@ -2,6 +2,25 @@
 
 const ENV = import.meta.env as Record<string, string | undefined>;
 const ASTRA_NAMESPACE = "astra-kiosk-p2p";
+const SIGNALING_CONNECT_TIMEOUT_MS = 10_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`WebRTCBridge: ${label} timed out after ${ms}ms`));
+    }, ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      },
+    );
+  });
+}
 
 export interface GhostCartPayload {
   readonly storeId: string;
@@ -81,14 +100,18 @@ export class WebRTCBridge {
     if (!this.peerConnection || !this.signalingUrl) return;
 
     const ws = new WebSocket(`${this.signalingUrl}?kioskId=${this.kioskId}`);
-    await new Promise<void>((resolve, reject) => {
-      ws.onopen = () => {
-        resolve();
-      };
-      ws.onerror = () => {
-        reject(new Error("Failed to connect to signaling server"));
-      };
-    });
+    await withTimeout(
+      new Promise<void>((resolve, reject) => {
+        ws.onopen = () => {
+          resolve();
+        };
+        ws.onerror = () => {
+          reject(new Error("Failed to connect to signaling server"));
+        };
+      }),
+      SIGNALING_CONNECT_TIMEOUT_MS,
+      "signaling connect",
+    );
 
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate && ws.readyState === WebSocket.OPEN) {
