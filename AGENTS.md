@@ -1,64 +1,79 @@
-# Astra-Service
+# Astra-System
 
-## Development Environment
+Compact instruction file for OpenCode agents.
 
-### Prerequisites
+## Design reference
 
-- **Nix (recommended):** `nix develop` provides Node 22, Go 1.22, Rust 1.79, PostgreSQL 16, Redis 7, NATS, and Docker.
-- **Manual:** Node 22+, pnpm 9+, Go 1.22+, Rust 1.79+, Docker, PostgreSQL 16, Redis 7, NATS.
+The full design spec ("Living Weave" biophilic kiosk UI) lives in **`promt.md`** — always read it before touching kiosk UI code. It specifies pixel-level colors, typography, spacing, animation curves, and component specs.
 
-### Setup
+## Repository architecture
 
-1. Enter the Development Shell:
+Multi-language monorepo rooted at `astra-service/`:
+
+- **TypeScript**: pnpm workspaces + Turborepo. Apps in `apps/*`, shared packages in `packages/*`.
+- **Go**: `go.work` workspace at `astra-service/go.work`. All service modules in `astra-service/services/*` + root `services/update-server` + `infra/secrets`.
+- **Rust**: `sync-daemon` at `astra-service/sync-daemon` + `payment-sidecar` at `astra-service/daemons/payment-sidecar`.
+- **Python ML**: `ml-lane-intel` at `astra-service/services/ml-lane-intel` (profiled behind `--profile ml` in Docker Compose).
+- **Protobufs**: Root `proto/` directory, with generated Go/TS code.
+- **Database**: `database/migrations/` for schema migrations.
+
+## Kiosk micro-frontend architecture
+
+The kiosk uses **Module Federation** (`@originjs/vite-plugin-federation`). The host shell consumes independently-deployable remotes:
+
+| App | Package | Port | Purpose |
+|-----|---------|------|---------|
+| `kiosk-shell` | `@astra/kiosk-shell` | 5170 | Host shell, PWA, SW |
+| `kiosk-menu` | `@astra/kiosk-menu` | 5171 | Menu browse + item detail |
+| `kiosk-cart` | `@astra/kiosk-cart` | 5172 | Cart review |
+| `kiosk-payment` | `@astra/kiosk-payment` | 5173 | Payment methods + auth |
+| `kiosk-admin` | `@astra/kiosk-admin` | 5174 | Employee admin panel |
+| `kiosk` | `@astra/kiosk` | 5180 | Unified (all-in-one) build |
+
+**Important**: The unified `@astra/kiosk` app and the federated `@astra/kiosk-shell` app coexist. The unified build is a standalone deploy; the shell+remotes is for independent hotfix delivery.
+
+Shared federation deps: `react`, `react-dom`, `zustand`, `@tanstack/react-query` (shell) — plus `valtio` (unified).
+
+## Tailwind CSS version split
+
+- **All apps** (`apps/*`) use **Tailwind CSS 4** with `@tailwindcss/vite` plugin.
+- **`@astra/design-system`** package uses **Tailwind CSS 3** via PostCSS config (`postcss.config.js`, `tailwind.config.ts`).
+- **`@astra/design-tokens`** package is pure TS + CSS variables — no Tailwind dependency.
+
+Do NOT assume Tailwind 4 features work in the design-system package.
+
+## State management
+
+- **XState v5** for the kiosk workflow machine (`kioskMachine.ts`). Uses `fromPromise` actors for async operations. States: ATTRACT, MENU, ITEM_DETAIL, CART, PAYMENT, PROCESSING, RECEIPT, ADMIN.
+- **Zustand** for ephemeral UI state (bottom sheet open, scroll position, search query).
+- **TanStack Query** for server state (menu API, inventory) with stale-while-revalidate + optimistic updates.
+- **Valtio** available as extra option (used by `@astra/kiosk-state`).
+
+## Key commands
+
+All commands run from `astra-service/` unless noted.
 
 ```bash
-nix develop
+pnpm dev                          # Run all apps in parallel (turbo)
+pnpm typecheck                    # tsc -b --noEmit per package
+pnpm lint                         # turbo run lint (ESLint per package)
+pnpm test                         # turbo run test (Vitest + happy-dom)
+pnpm test:e2e                     # Playwright E2E tests
+pnpm format && pnpm format:check  # Prettier across all TS/TSX/MD/JSON/YAML
+pnpm build                        # turbo run build
+pnpm clean                        # Remove all dist/ + node_modules
+pnpm prepare                      # Install lefthook hooks
 ```
 
-2. Start the Local Infrastructure:
+**Important**: `lint` → `typecheck` → `test` order matters. Typecheck and test both depend on `^build` (upstream dependencies build first).
+
+### Run single package
 
 ```bash
-docker compose up -d
-```
-
-3. Install Node Dependencies:
-
-```bash
-cd astra-service
-pnpm install
-```
-
-4. Run the Kiosk Shell:
-
-```bash
-pnpm dev
-```
-
-5. Run the Rust Sync Daemon:
-
-```bash
-cd astra-service/sync-daemon
-cargo run
-```
-
-## Validation Commands
-
-### Nix
-
-```bash
-nix flake check
-nix develop --command go version
-nix develop --command rustc --version
-```
-
-### TypeScript
-
-```bash
-cd astra-service
-pnpm typecheck
-pnpm test
-pnpm lint
-pnpm format:check
+pnpm turbo run dev --filter=@astra/kiosk
+pnpm turbo run typecheck --filter=@astra/kiosk
+pnpm turbo run test --filter=@astra/kiosk
+pnpm turbo run test:e2e --filter=@astra/kiosk
 ```
 
 ### Go
@@ -68,87 +83,75 @@ cd astra-service/services
 go test -race ./...
 ```
 
+Or for a specific service:
+```bash
+cd astra-service/services/gateway
+go test -race ./...
+go vet ./...
+```
+
 ### Rust
 
 ```bash
 cd astra-service/sync-daemon
 cargo test
 cargo clippy -- -D warnings
+cargo fmt --check
+
+cd astra-service/daemons/payment-sidecar
+cargo test
 ```
 
-### Docker Compose
+### Nix
 
 ```bash
-docker compose config
-docker compose up -d
-docker compose ps
+nix flake check                  # Verify toolchain versions
+nix develop                      # Enter dev shell (Node 22, Go 1.22, Rust 1.79)
 ```
 
-## Key Features
+## CI pipeline
 
-- **Offline-first:** 48 hours of autonomous kiosk operation.
-- **P2P mesh:** libp2p + QUIC + Noise for secure in-store sync.
-- **CRDT consensus:** PN-Counters, LWW-Registers, and OR-Sets with Hybrid Logical Clocks.
-- **Zero-trust security:** mTLS, HMAC request signing, HashiCorp Vault, and OS keychain integration.
-- **Payment bridge:** Safe Rust FFI bindings for Verifone payment terminals.
-- **Observability:** OpenTelemetry, Prometheus, Grafana, Loki, and Jaeger across all languages.
-- **Auto-updates:** Signed OTA manifests and rollback-on-failure kiosk updater.
+Path-filtered: only relevant language toolchains run based on changed paths (see `.github/workflows/ci.yml` `dorny/paths-filter`). Order: lint → test-unit → test-integration → build-docker → sbom → release.
 
-## Repository Layout
+- `pnpm turbo run lint typecheck --concurrency=100%` runs lint + typecheck simultaneously
+- Integration tests spin up `postgres`, `redis`, `nats` via Docker Compose
+- E2E tests install Playwright browsers and run `test:e2e` on filtered packages
+- Security audit (npm audit, cargo audit, govulncheck, Trivy) is non-blocking
+- Docker images are built for linux/amd64+arm64, pushed to GHCR, signed with cosign, SBOM attested
+- Chaos tests (`vars.ASTRA_RUN_CHAOS == 'true'`) are optional
 
-```text
-Astra-System/
-├── astra-service/          # TypeScript / React / Go / Rust monorepo
-│   ├── apps/               # Kiosk shell, admin dashboard
-│   ├── packages/           # Shared libraries (go-common, shared-types, ...)
-│   ├── services/           # Go microservices
-│   └── sync-daemon/        # Rust P2P sync daemon
-├── database/               # Migrations and schemas
-├── go/                     # Additional Go modules
-├── infra/                  # TLS, secrets, Docker security profiles
-├── proto/                  # Protocol Buffers and generated code
-├── docs/                   # Architecture and operational runbooks
-├── docker-compose.yml      # Local development stack
-├── flake.nix               # Reproducible Nix development shell
-└── ARCHITECTURE.md         # Comprehensive system design
-```
+## Testing quirks
 
-## Architecture
+- **Vitest** with `happy-dom` (not jsdom) — no full browser API. E2E uses Playwright.
+- **Setup file**: `apps/*/src/test-utils/setup.ts` each app.
+- **Go tests**: Use `-race` flag. No infrastructure required for unit tests.
+- **Rust tests**: `sync-daemon` needs `protoc` for build (prost). CI uses `arduino/setup-protoc@v3`.
+- **Integration tests**: Require Docker running with `postgres`, `redis`, `nats` containers.
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full design covering:
+## Service worker
 
-- System overview
-- Offline-first strategy
-- P2P mesh and Raft consensus
-- CRDTs and Hybrid Logical Clocks
-- Event sourcing and transactional outbox
-- Security model (zero trust, mTLS, secrets)
-- Payment flow (Verifone, offline tokens)
-- Deployment and CI/CD
-- Observability
-- Deep improvements summary
+Injected via `vite-plugin-pwa` with `injectManifest` strategy. Source in each app's `src/workers/service-worker.ts`. Uses Workbox Background Sync for offline queue resilience. Registered on `load` event after first paint.
 
-## Operational Runbooks
+## Lint / format tooling
 
-- [Incident Response](./docs/runbooks/incident-response.md)
-- [Payment Failure](./docs/runbooks/payment-failure-runbook.md)
-- [P2P Partition Recovery](./docs/runbooks/p2p-partition-recovery.md)
-- [Offline Mode Operations](./docs/runbooks/offline-mode-operations.md)
+- **ESLint** (flat config, `eslint.config.js`) for TS/TSX
+- **Biome** (`biome.json`) for additional formatting (VCS-enabled, respects `.gitignore`)
+- **Prettier** (root `.prettierrc` + `astra-service/.prettierrc.json`) for final formatting pass
+- **gofmt** for Go (CI checks `test -z "$(gofmt -l .)"`)
+- **cargo fmt** + **clippy** for Rust
 
-## Security
+## Lefthook (pre-commit)
 
-Astra-Service follows a zero-trust security model. See the [Security Model](./ARCHITECTURE.md#security-model) section of ARCHITECTURE.md for details on mTLS, secrets management, and PCI-DSS compliance.
+Run `pnpm prepare` to install hooks. The current `lefthook.yml` is a commented-out template — hooks are not yet active. If you add hooks, uncomment the template entries.
 
-## Contributing
+## Important gotchas
 
-1. Create a feature branch from `main`.
-2. Install hooks: `pnpm prepare` (Lefthook).
-3. Make your changes and add tests.
-4. Run the validation commands above.
-5. Open a pull request.
-
-All commits must follow [Conventional Commits](https://www.conventionalcommits.org/) and pass CI.
-
-## License
-
-Proprietary — Astra-Service Engineering Team.
+- `@astra/design-system` has a `build` script that uses `del` + `rd` + `copy` (Windows commands in the package.json). This will NOT work on macOS/Linux — the package likely relies on its `dist/` being prebuilt or built via CI. If you need to build it locally, fix the script.
+- `verbatimModuleSyntax: true` in tsconfig — use `import type` for type-only imports.
+- `exactOptionalPropertyTypes: true` — be careful with optional fields.
+- Module Federation remotes run on separate ports. All 4 remotes + shell must be running for the federated setup to work.
+- `apps/kiosk` (unified) does NOT use federation — it's a standalone bundle.
+- The `docker-compose.yml` uses `golang:1.25-alpine` but the flake specifies Go 1.22. CI uses Go 1.25. The Rust CI version (1.82) also differs from flake (1.79). When in doubt, match CI versions.
+- ML service (`ml-lane-intel`) requires `--profile ml` flag on `docker compose`.
+- Rust sync daemon requires `--profile sync` flag on `docker compose` and `protoc` for local builds.
+- Commit messages must follow [Conventional Commits](https://www.conventionalcommits.org/).
