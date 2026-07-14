@@ -12,6 +12,8 @@ import { useApiNetworkMonitor } from "./hooks/useApiNetworkMonitor";
 import { queryClient } from "./state/queryClient";
 
 import "./styles/global.css";
+import "./styles/touchFixes.css";
+import { KioskErrorBoundary } from "./components/KioskErrorBoundary";
 
 /**
  * App root. The workflow is driven by the XState kiosk machine, which is the
@@ -51,7 +53,9 @@ function KioskShell(): React.JSX.Element {
     <>
        <StatusBar />
        <main className="relative flex flex-1 flex-col overflow-hidden bg-linen">
-         <WorkflowRouter />
+         <KioskErrorBoundary>
+           <WorkflowRouter />
+         </KioskErrorBoundary>
        </main>
        <OfflineBanner />
        <div id="astra-live-region" role="status" aria-live="polite" className="sr-only-live" />

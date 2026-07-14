@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
@@ -7,51 +7,119 @@ import { resetCart } from "@astra/kiosk-state";
 
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID ?? "kiosk-local";
 const IDLE_TIMEOUT_MS = 120_000;
+const REVEAL_DURATION_MS = 500;
 
 export function AttractScreen(): React.JSX.Element {
   const { send } = useKioskMachine();
   const [idle, setIdle] = useState(false);
   const [reveal, setReveal] = useState(false);
+  const [clientReady, setClientReady] = useState(false);
   const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapPoint = useRef({ x: 0, y: 0 });
+  const tapHandledRef = useRef(false);
 
   useEffect(() => {
-    idleRef.current = setTimeout(() => { setIdle(true); }, IDLE_TIMEOUT_MS);
+    setClientReady(true);
+  }, []);
+
+  useEffect(() => {
+    idleRef.current = setTimeout(() => {
+      setIdle(true);
+    }, IDLE_TIMEOUT_MS);
     return () => {
       if (idleRef.current) clearTimeout(idleRef.current);
+      if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
     };
   }, []);
 
-  const handleTap = (e: React.MouseEvent<HTMLDivElement>) => {
-    tapPoint.current = { x: e.clientX, y: e.clientY };
-    setReveal(true);
-    setTimeout(() => {
-      resetCart(KIOSK_ID);
-      send({ type: "START_SESSION", sessionId: uuidV7() });
-    }, 500);
-  };
+  const beginSession = useCallback((): void => {
+    if (tapHandledRef.current) return;
+    tapHandledRef.current = true;
+    resetCart(KIOSK_ID);
+    send({ type: "START_SESSION", sessionId: uuidV7() });
+  }, [send]);
+
+  const startReveal = useCallback(
+    (clientX: number, clientY: number): void => {
+      if (tapHandledRef.current) return;
+      tapPoint.current = { x: clientX, y: clientY };
+      setReveal(true);
+      if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = setTimeout(() => {
+        beginSession();
+      }, REVEAL_DURATION_MS);
+    },
+    [beginSession],
+  );
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>): void => {
+      if (e.button !== 0 && e.button !== -1) return;
+      e.preventDefault();
+      startReveal(e.clientX, e.clientY);
+    },
+    [startReveal],
+  );
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>): void => {
+      if (tapHandledRef.current) return;
+      startReveal(e.clientX, e.clientY);
+    },
+    [startReveal],
+  );
+
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>): void => {
+      if (tapHandledRef.current) return;
+      const touch = e.touches[0];
+      if (touch) {
+        startReveal(touch.clientX, touch.clientY);
+      }
+    },
+    [startReveal],
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>): void => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        tapPoint.current = {
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+        };
+        setReveal(true);
+        beginSession();
+      }
+    },
+    [beginSession],
+  );
+
+  if (!clientReady) {
+    return (
+      <div
+        className="attract-screen relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-linen"
+        aria-hidden="true"
+      />
+    );
+  }
 
   return (
     <div
-      className="relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-linen"
+      className="attract-screen relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-linen"
       style={{ filter: idle ? "brightness(0.3)" : undefined }}
-      onClick={handleTap}
+      onPointerDown={handlePointerDown}
+      onClick={handleClick}
+      onTouchStart={handleTouchStart}
       role="button"
       tabIndex={0}
       aria-label="Touch to begin shopping"
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          tapPoint.current = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-          setReveal(true);
-          setTimeout(() => {
-            resetCart(KIOSK_ID);
-            send({ type: "START_SESSION", sessionId: uuidV7() });
-          }, 500);
-        }
-      }}
+      onKeyDown={handleKeyDown}
+      suppressHydrationWarning
     >
       {/* Animated organic blobs */}
-      <div className="absolute inset-0" aria-hidden="true">
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <motion.div
           className="absolute left-1/4 top-1/4 h-[40vh] w-[40vh] rounded-full bg-moss opacity-[0.04]"
           animate={{
@@ -116,7 +184,7 @@ export function AttractScreen(): React.JSX.Element {
       </div>
 
       {/* Bottom scrolling text */}
-      <div className="absolute bottom-10 left-0 right-0 overflow-hidden">
+      <div className="absolute bottom-10 left-0 right-0 overflow-hidden pointer-events-none">
         <motion.p
           className="font-mono text-[12px] text-stone whitespace-nowrap"
           animate={{ x: ["100%", "-100%"] }}
@@ -127,9 +195,9 @@ export function AttractScreen(): React.JSX.Element {
         </motion.p>
       </div>
 
-      {/* Idle dim overlay */}
+      {/* Idle dim overlay — must not intercept touches */}
       {idle && (
-        <div className="absolute inset-0 bg-black/30 z-20" />
+        <div className="absolute inset-0 bg-black/30 z-20 pointer-events-none idle-dim-overlay" />
       )}
 
       {/* Clip-path circle reveal on tap */}

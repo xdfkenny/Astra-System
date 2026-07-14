@@ -27,6 +27,7 @@ export interface KioskContext {
 
 export type KioskEvent =
   | { type: "START_SESSION"; sessionId: string; laneMode?: LaneMode }
+  | { type: "TAP_START"; sessionId: string; laneMode?: LaneMode }
   | { type: "SELECT_ITEM"; item: MenuItem }
   | { type: "CLOSE_ITEM_DETAIL" }
   | { type: "ADD_TO_CART" }
@@ -116,6 +117,10 @@ export const kioskMachine = createMachine(
        ATTRACT: {
         on: {
           START_SESSION: {
+            target: "MENU",
+            actions: ["assignSession"],
+          },
+          TAP_START: {
             target: "MENU",
             actions: ["assignSession"],
           },
@@ -289,11 +294,16 @@ export const kioskMachine = createMachine(
   },
   {
     actions: {
-      assignSession: assign(({ event }) => ({
-        sessionId: event.type === "START_SESSION" ? event.sessionId : null,
-        laneMode: event.type === "START_SESSION" ? (event.laneMode ?? "full") : "full",
-        errorMessage: null,
-      })),
+      assignSession: assign(({ event }) => {
+        if (event.type === "START_SESSION" || event.type === "TAP_START") {
+          return {
+            sessionId: event.sessionId,
+            laneMode: event.laneMode ?? "full",
+            errorMessage: null,
+          };
+        }
+        return {};
+      }),
       assignSelectedItem: assign(({ event }) => ({
         selectedItem: event.type === "SELECT_ITEM" ? event.item : null,
       })),

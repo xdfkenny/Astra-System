@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
@@ -8,7 +8,9 @@ import type { MenuItem } from "@astra/shared-types";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 import { mockMenuResponse } from "./mockMenuData";
 import { CartSummary } from "../components/CartSummary";
+import { CategoryTabs } from "../components/CategoryTabs";
 import { BottomSheet } from "../components/BottomSheet";
+import { useScrollSpy } from "../hooks/useScrollSpy";
 import { apiClient } from "../state/apiClient";
 
 interface CategoryGroup {
@@ -17,10 +19,12 @@ interface CategoryGroup {
   readonly items: readonly MenuItem[];
 }
 
+const SAFE_AREA_TOP = 8;
+
 function useMenuCatalog() {
   return useQuery<{ readonly items: readonly MenuItem[] }>({
     queryKey: ["menu-catalog"],
-      queryFn: async ({ signal: _signal }) => {
+    queryFn: async () => {
       try {
         const response = await apiClient.getMenuCatalog();
         return {
@@ -37,7 +41,11 @@ function useMenuCatalog() {
 }
 
 function buildCategoryGroups(items: readonly MenuItem[]): readonly CategoryGroup[] {
-  const map = new Map<string, { categoryId: string; name: string; items: MenuItem[] }>();
+  const map = new Map<
+    string,
+    { categoryId: string; name: string; items: MenuItem[] }
+  >();
+
   for (const item of items) {
     const cat = item.category;
     if (!cat) continue;
@@ -52,8 +60,11 @@ function buildCategoryGroups(items: readonly MenuItem[]): readonly CategoryGroup
       });
     }
   }
+
   return Array.from(map.values()).sort(
-    (a, b) => (a.items[0]?.category?.displayOrder ?? 0) - (b.items[0]?.category?.displayOrder ?? 0),
+    (a, b) =>
+      (a.items[0]?.category?.displayOrder ?? 0) -
+      (b.items[0]?.category?.displayOrder ?? 0),
   );
 }
 
@@ -66,15 +77,15 @@ export function MenuScreen(): React.JSX.Element {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [ghostCartOpen, setGhostCartOpen] = useState(false);
+  const [tabsHeight, setTabsHeight] = useState(0);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLElement>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const headerObserverRef = useRef<IntersectionObserver | null>(null);
+  const isScrollingFromTabRef = useRef(false);
+  const itemTapGuardRef = useRef<Set<string>>(new Set());
 
-  const categories = useMemo(
-    () => buildCategoryGroups(data?.items ?? []),
-    [data],
-  );
+  const categories = useMemo(() => buildCategoryGroups(data?.items ?? []), [data]);
 
   const filteredCategories = useMemo(() => {
     if (!searchQuery) return categories;
@@ -102,6 +113,26 @@ export function MenuScreen(): React.JSX.Element {
     0,
   );
 
+  const headerOffset = tabsHeight + SAFE_AREA_TOP;
+
+  // Measure the sticky tab bar height so we can subtract it from scroll targets.
+  useEffect(() => {
+    const tabs = tabsRef.current;
+    if (!tabs) return;
+
+    const updateHeight = (): void => {
+      setTabsHeight(tabs.offsetHeight);
+    };
+
+    updateHeight();
+    const resizeObserver = new ResizeObserver(updateHeight);
+    resizeObserver.observe(tabs);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   const handleSearchInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
@@ -113,128 +144,161 @@ export function MenuScreen(): React.JSX.Element {
     [],
   );
 
-  const handleSelectCategory = useCallback((categoryId: string) => {
-    setActiveCategory(categoryId);
-    const el = document.getElementById(`category-${categoryId}`);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
+  const handleScrollToCategory = useCallback(
+    (categoryId: string): void => {
+      const header = document.getElementById(`category-${categoryId}`);
+      const container = scrollRef.current;
+      if (!header || !container) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const headerRect = header.getBoundingClientRect();
+      const headerTop = headerRect.top - containerRect.top + container.scrollTop;
+
+      isScrollingFromTabRef.current = true;
+      container.scrollTo({
+        top: Math.max(0, headerTop - headerOffset),
+        behavior: "smooth",
+      });
+
+      // Clear the programmatic-scroll flag after the animation completes.
+      window.setTimeout(() => {
+        isScrollingFromTabRef.current = false;
+      }, 400);
+    },
+    [headerOffset],
+  );
+
+  const handleSelectCategory = useCallback(
+    (categoryId: string): void => {
+      setActiveCategory(categoryId);
+      handleScrollToCategory(categoryId);
+    },
+    [handleScrollToCategory],
+  );
 
   const handleSelectItem = useCallback(
-    (item: MenuItem) => {
+    (item: MenuItem): void => {
+      if (itemTapGuardRef.current.has(item.itemId)) return;
+      itemTapGuardRef.current.add(item.itemId);
+      window.setTimeout(() => {
+        itemTapGuardRef.current.delete(item.itemId);
+      }, 400);
       send({ type: "SELECT_ITEM", item });
     },
     [send],
   );
 
+  const handleScrollSpyChange = useCallback(
+    (categoryId: string | null): void => {
+      if (isScrollingFromTabRef.current || categoryId === null) return;
+      setActiveCategory(categoryId);
+    },
+    [],
+  );
+
+  const { observe: observeScrollSpy } = useScrollSpy({
+    containerRef: scrollRef,
+    sectionSelector: "[data-category-section]",
+    threshold: 0.5,
+    rootMargin: `-${headerOffset}px 0px 0px 0px`,
+    onActiveChange: handleScrollSpyChange,
+  });
+
   useEffect(() => {
     return () => {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-      if (headerObserverRef.current) headerObserverRef.current.disconnect();
     };
   }, []);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      headerObserverRef.current?.disconnect();
-      headerObserverRef.current = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (entry.isIntersecting) {
-              setActiveCategory(entry.target.getAttribute("data-category-id"));
-            }
-          }
-        },
-        { root: scrollRef.current, rootMargin: "-1px 0px -80% 0px" },
-      );
-
-      const headers = scrollRef.current.querySelectorAll("[data-category-id]");
-      for (const h of headers) {
-        headerObserverRef.current.observe(h);
-      }
-    }
-  }, [filteredCategories]);
+    observeScrollSpy();
+  }, [observeScrollSpy, filteredCategories]);
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-linen">
-      {/* Pull-down to reveal search */}
-      <div className="relative z-20">
-        <AnimatePresence>
-          {searchOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 56, opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25, ease: motionTokens.easeInOutSoft }}
-              className="overflow-hidden"
-            >
-              <div className="mx-3 mb-2">
-                <input
-                  type="search"
-                  placeholder="Search menu..."
-                  onChange={handleSearchInput}
-                  className="w-full h-12 rounded-[12px] bg-white/60 border border-taupe px-4 font-sans text-body text-charcoal placeholder:text-stone focus:outline-none focus:ring-2 focus:ring-moss focus:ring-offset-2"
-                  aria-label="Search menu items"
-                  autoFocus
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <motion.div
-          drag="y"
-          dragConstraints={{ top: 0, bottom: 60 }}
-          dragElastic={0.2}
-          onDragEnd={(_e, info) => {
-            if (info.offset.y > 40) {
-              setSearchOpen(true);
-            } else if (info.offset.y < -20 && searchOpen) {
-              setSearchOpen(false);
-            }
-          }}
-          className="flex justify-center py-1 cursor-grab active:cursor-grabbing"
-          aria-label="Pull down to search"
-        >
-          <div className="h-1 w-10 rounded bg-taupe/40" />
-        </motion.div>
-      </div>
-
-      {/* Sticky category chips */}
-      <nav
-        className="sticky top-0 z-20 bg-linen"
-        aria-label="Menu categories"
-      >
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-2 px-3 py-2 scrollbar-thin">
-          {categories.map((cat) => (
-            <button
-              key={cat.categoryId}
-              type="button"
-              onClick={() => { handleSelectCategory(cat.categoryId); }}
-              className={`snap-start shrink-0 rounded-full px-4 py-2 font-sans text-[13px] font-medium uppercase tracking-[0.08em] transition-colors duration-150 ${
-                activeCategory === cat.categoryId
-                  ? "bg-moss text-white border-moss"
-                  : "bg-white/60 border border-taupe text-stone"
-              }`}
-              aria-pressed={activeCategory === cat.categoryId}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
-      </nav>
-
-      {/* Menu items scroll area */}
+      {/* Menu items scroll area — the tab bar is sticky inside this container */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto overscroll-contain"
+        className="flex-1 overflow-y-auto overscroll-none kiosk-scroll-container"
         role="list"
         aria-label="Menu items"
       >
+        {/* Pull-down to reveal search */}
+        <div className="relative z-sticky-bar">
+          <AnimatePresence>
+            {searchOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 56, opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25, ease: motionTokens.easeInOutSoft }}
+                className="overflow-hidden"
+              >
+                <div className="mx-3 mb-2">
+                  <input
+                    type="search"
+                    placeholder="Search menu..."
+                    onChange={handleSearchInput}
+                    className="w-full h-12 rounded-[12px] bg-white/60 border border-taupe px-4 font-sans text-body text-charcoal placeholder:text-stone focus:outline-none focus-visible:ring-2 focus-visible:ring-moss focus-visible:ring-offset-2"
+                    aria-label="Search menu items"
+                    autoFocus
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <motion.div
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 60 }}
+            dragElastic={0.2}
+            onDragEnd={(_e, info) => {
+              if (info.offset.y > 40) {
+                setSearchOpen(true);
+              } else if (info.offset.y < -20 && searchOpen) {
+                setSearchOpen(false);
+              }
+            }}
+            className="flex justify-center py-1 cursor-grab active:cursor-grabbing touch-target"
+            aria-label="Pull down to search"
+            role="button"
+            tabIndex={0}
+          >
+            <div className="h-1 w-10 rounded bg-taupe/40" />
+          </motion.div>
+        </div>
+
+        {/* Sticky category tabs — measured for scroll offset */}
+        <nav
+          ref={tabsRef}
+          className="sticky top-0 z-sticky-bar bg-linen border-b border-taupe/30"
+          aria-label="Menu categories"
+        >
+          <CategoryTabs
+            categories={categories.map((cat) => ({
+              id: cat.categoryId,
+              label: cat.name,
+            }))}
+            activeCategory={activeCategory}
+            onSelectCategory={handleSelectCategory}
+          />
+        </nav>
+
+        {/* Content */}
         {filteredCategories.map((cat) => (
-          <div key={cat.categoryId} role="listitem">
+          <section
+            key={cat.categoryId}
+            id={`category-section-${cat.categoryId}`}
+            data-category-section
+            data-category-id={cat.categoryId}
+            role="listitem"
+          >
             <h3
               id={`category-${cat.categoryId}`}
-              data-category-id={cat.categoryId}
-              className="sticky top-0 z-10 bg-linen/95 backdrop-blur-[4px] px-3 py-2 font-sans text-caption uppercase tracking-[0.08em] text-stone"
+              className="sticky z-content bg-linen/95 backdrop-blur-[4px] px-3 py-2 font-sans text-caption uppercase tracking-[0.08em] text-stone"
+              style={{
+                top: headerOffset,
+                scrollMarginTop: headerOffset,
+              }}
             >
               {cat.name}
             </h3>
@@ -243,8 +307,13 @@ export function MenuScreen(): React.JSX.Element {
                 <button
                   key={item.itemId}
                   type="button"
-                  onClick={() => { handleSelectItem(item); }}
-                  className="card-surface mb-2 flex w-full items-start gap-3 p-2 text-left active:bg-warm-cream/50 transition-colors duration-100"
+                  onClick={() => {
+                    handleSelectItem(item);
+                  }}
+                  onPointerDown={() => {
+                    handleSelectItem(item);
+                  }}
+                  className="card-surface menu-item-card tap-feedback mb-2 flex w-full items-start gap-3 p-2 text-left active:bg-warm-cream/50"
                   aria-label={`${item.name}, $${(item.priceCents / 100).toFixed(2)}`}
                 >
                   {/* Thumbnail */}
@@ -284,7 +353,7 @@ export function MenuScreen(): React.JSX.Element {
                 </button>
               ))}
             </div>
-          </div>
+          </section>
         ))}
 
         {/* Empty state */}
@@ -331,8 +400,13 @@ export function MenuScreen(): React.JSX.Element {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: motionTokens.easeSpring }}
-            onClick={() => { send({ type: "GO_TO_CART" }); }}
-            className="fixed right-3 top-1/2 z-20 flex items-center gap-2 rounded-full bg-moss px-4 py-3 shadow-md"
+            onClick={() => {
+              send({ type: "GO_TO_CART" });
+            }}
+            onPointerDown={() => {
+              send({ type: "GO_TO_CART" });
+            }}
+            className="fixed right-3 top-1/2 z-floating-cart flex items-center gap-2 rounded-full bg-moss px-4 py-3 shadow-md tap-feedback"
             aria-label={`Cart: ${String(itemCount)} items, $${(totalCents / 100).toFixed(2)}`}
           >
             <svg
@@ -367,14 +441,16 @@ export function MenuScreen(): React.JSX.Element {
             <button
               type="button"
               onClick={() => { setGhostCartOpen(false); }}
-              className="flex-1 h-14 rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal"
+              onPointerDown={() => { setGhostCartOpen(false); }}
+              className="flex-1 h-14 rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal tap-feedback"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={() => { setGhostCartOpen(false); }}
-              className="flex-1 h-14 rounded-full bg-amber text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(184,126,107,0.3)]"
+              onPointerDown={() => { setGhostCartOpen(false); }}
+              className="flex-1 h-14 rounded-full bg-amber text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(184,126,107,0.3)] tap-feedback"
             >
               Transfer to kiosk
             </button>

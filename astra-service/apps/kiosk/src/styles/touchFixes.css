@@ -1,0 +1,163 @@
+/**
+ * Astra-Service Kiosk — Touch interaction fixes
+ *
+ * Z-index architecture, touch targets, overscroll behavior, and
+ * gesture prevention for 9:16 vertical kiosk terminals.
+ */
+
+/* === Z-Index Architecture ===
+ * Keep decorative overlays from intercepting pointer events. The layers are:
+ *   z-base (0)        - weave texture, paper grain
+ *   z-content (10)    - scrollable lists, category headers
+ *   z-sticky-bar (20) - status bar, category tabs, cart summary
+ *   z-floating-cart (20) - floating cart pill
+ *   z-modal (30)      - centered dialogs
+ *   z-bottom-sheet (30) - bottom sheets
+ *   z-toast (40)      - toasts and notifications
+ *   z-offline-banner (40) - offline banner
+ *   z-attract-loop (50) - attract screen / screensaver
+ *   z-system-overlay (60) - emergency overlays
+ */
+
+/* Ensure pointer events pass through decorative overlays */
+.decoration-overlay,
+.idle-dim-overlay,
+.grain-overlay,
+.weave-texture,
+.paper-grain {
+  pointer-events: none;
+}
+
+/* === Touch Targets === */
+.touch-target {
+  min-width: 56px;
+  min-height: 56px;
+}
+
+.touch-target-comfortable {
+  min-width: 64px;
+  min-height: 64px;
+}
+
+.touch-target-primary {
+  min-width: 96px;
+  min-height: 96px;
+}
+
+/* Ensure inline elements with click handlers have proper hit areas */
+button,
+[role="button"],
+a,
+[role="link"],
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* === Scroll Behavior === */
+html {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+/* Kiosk scrollable containers */
+.kiosk-scroll-container {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Horizontal category tabs */
+.category-tabs {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.category-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.category-tab {
+  scroll-snap-align: start;
+  touch-action: manipulation;
+}
+
+/* === Tap Feedback === */
+.tap-feedback {
+  transition:
+    transform 50ms ease-out,
+    opacity 50ms ease-out,
+    color 50ms ease-out,
+    background-color 50ms ease-out,
+    border-color 50ms ease-out;
+  transform: scale(1);
+}
+
+.tap-feedback:active,
+.tap-feedback[data-active="true"] {
+  transform: scale(0.97);
+  opacity: 0.92;
+}
+
+/* === Prevent double-tap zoom, long-press menus, and text selection === */
+.attract-screen,
+[role="button"],
+button,
+.category-tab,
+.menu-item-card {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* === Scroll snap for horizontal category list === */
+.scroll-snap-x {
+  scroll-snap-type: x mandatory;
+}
+
+.scroll-snap-start {
+  scroll-snap-align: start;
+}
+
+/* === Safe area padding === */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 32px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 40px);
+}
+
+/* === High contrast / accessibility === */
+@media (prefers-contrast: high) {
+  .card-surface,
+  .menu-item-card,
+  .category-tab {
+    border: 1px solid var(--color-charcoal);
+  }
+}
+
+/* === Reduced motion === */
+@media (prefers-reduced-motion: reduce) {
+  .kiosk-scroll-container,
+  .category-tabs {
+    scroll-behavior: auto;
+  }
+
+  .tap-feedback {
+    transition: none;
+  }
+}
