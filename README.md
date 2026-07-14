@@ -1,166 +1,75 @@
-# Astra-Service
+# Astra-System
 
-Production-grade, offline-first automated self-checkout platform for 24/7 retail environments.
+Monorepo for Astra self-checkout components and operational artifacts.
 
-[![CI](https://github.com/astra-service/astra-system/actions/workflows/ci.yml/badge.svg)](https://github.com/astra-service/astra-system/actions/workflows/ci.yml)
+This repository contains the source, protobufs, and operational files for Astra components that support unattended and attended kiosk deployments.
 
-## Overview
+## What is actually in this repository (top-level)
 
-Astra-Service powers unattended and attended self-checkout kiosks in retail stores. It is designed to keep selling even when the internet is unavailable for up to 48 hours, using a local peer-to-peer mesh, CRDT-based state replication, and offline payment token queueing.
+- .changeset                     — changelog fragments for releases
+- .commitlintrc.json             — commitlint configuration
+- .editorconfig                  — editor configuration
+- .env.example                   — example environment variables
+- .github                        — GitHub workflows and community files
+- .gitignore
+- .husky                         — Git hooks
+- .prettierignore
+- .prettierrc
+- .spectral.json                 — API/linting config
+- AGENTS.md                      — agent-related notes
+- ARCHITECTURE.md                — architectural design and diagrams
+- astra-service/                 — service and app code (contains a Rust sync daemon)
+  - sync-daemon/                 — astra-syncd (Rust) with its own README
+- database/                      — database migrations and schema (DB artifacts)
+- docker-compose.yml             — local development compose file
+- docker-compose.prod.yml        — production compose manifest
+- docs/                          — runbooks and operational documentation
+- flake.nix                      — Nix flake for reproducible dev shell
+- infra/                         — infrastructure tooling and TLS/secret helpers
+- lefthook.yml                   — lefthook configuration for repo hooks
+- packages/                      — shared packages/libraries
+- proto/                         — .proto schemas and go-generation layout (has its own README)
+- services/                      — service implementations (Go modules and related code)
 
-### Key Features
+## Notable subprojects
 
-- **Offline-first:** 48 hours of autonomous kiosk operation.
-- **P2P mesh:** libp2p + QUIC + Noise for secure in-store sync.
-- **CRDT consensus:** PN-Counters, LWW-Registers, and OR-Sets with Hybrid Logical Clocks.
-- **Zero-trust security:** mTLS, HMAC request signing, HashiCorp Vault, and OS keychain integration.
-- **Payment bridge:** Safe Rust FFI bindings for Verifone payment terminals.
-- **Observability:** OpenTelemetry, Prometheus, Grafana, Loki, and Jaeger across all languages.
-- **Auto-updates:** Signed OTA manifests and rollback-on-failure kiosk updater.
+- proto/
+  - Contains Protocol Buffer definitions and generated-code layout.
+  - See proto/README.md for instructions to regenerate code with buf or protoc and for the Go module details.
 
-## Repository Layout
+- astra-service/sync-daemon/
+  - `astra-syncd` is a Rust-based peer-to-peer sync daemon. See astra-service/sync-daemon/README.md for build, configuration, and runtime instructions.
 
-```text
-Astra-System/
-├── astra-service/          # TypeScript / React / Go / Rust monorepo
-│   ├── apps/               # Kiosk shell, admin dashboard
-│   ├── packages/           # Shared libraries (go-common, shared-types, ...)
-│   ├── services/           # Go microservices
-│   └── sync-daemon/        # Rust P2P sync daemon
-├── database/               # Migrations and schemas
-├── go/                     # Additional Go modules
-├── infra/                  # TLS, secrets, Docker security profiles
-├── proto/                  # Protocol Buffers and generated code
-├── docs/                   # Architecture and operational runbooks
-├── docker-compose.yml      # Local development stack
-├── flake.nix               # Reproducible Nix development shell
-└── ARCHITECTURE.md         # Comprehensive system design
-```
+- docs/
+  - Operational runbooks and run-time guides are stored under docs/. Refer to those files for incident response and operational procedures.
 
-## Quick Start
+## Quick, conservative build/run notes (what you can run with what's present)
 
-### Prerequisites
+- Generate protobuf code (see proto/README.md):
 
-Choose one of the following:
+  ```bash
+  cd proto
+  buf generate    # or use protoc as documented in proto/README.md
+  ```
 
-- **Nix (recommended):** `nix develop` provides Node 22, Go 1.22, Rust 1.79, PostgreSQL 16, Redis 7, NATS, and Docker.
-- **Manual:** Node 22+, pnpm 9+, Go 1.22+, Rust 1.79+, Docker, PostgreSQL 16, Redis 7, NATS.
+- Build the Rust sync daemon:
 
-### 1. Enter the Development Shell
+  ```bash
+  cd astra-service/sync-daemon
+  cargo build --release
+  ```
 
-```bash
-nix develop
-```
+- Start local services via Docker Compose (where applicable):
 
-### 2. Start the Local Infrastructure
+  ```bash
+  docker compose up -d
+  ```
 
-```bash
-docker compose up -d
-```
+This README intentionally focuses on what the repository currently contains. For detailed developer workflows, CI, and the full project vision, consult ARCHITECTURE.md and the READMEs under proto/ and astra-service/sync-daemon/.
 
-This brings up PostgreSQL, Redis, NATS JetStream, Vault, Prometheus, Grafana, and all Go microservices.
+## If you want changes
 
-### 3. Install Node Dependencies
-
-```bash
-cd astra-service
-pnpm install
-```
-
-### 4. Run the Kiosk Shell
-
-```bash
-pnpm dev
-```
-
-The kiosk simulator is available at `http://localhost:5170`.
-
-### 5. Run the Rust Sync Daemon
-
-```bash
-cd astra-service/sync-daemon
-cargo run
-```
-
-## Validation Commands
-
-### Nix
-
-```bash
-nix flake check
-nix develop --command go version
-nix develop --command rustc --version
-```
-
-### TypeScript
-
-```bash
-cd astra-service
-pnpm typecheck
-pnpm test
-pnpm lint
-pnpm format:check
-```
-
-### Go
-
-```bash
-cd astra-service/services
-go test -race ./...
-```
-
-### Rust
-
-```bash
-cd astra-service/sync-daemon
-cargo test
-cargo clippy -- -D warnings
-```
-
-### Docker Compose
-
-```bash
-docker compose config
-docker compose up -d
-docker compose ps
-```
-
-## Architecture
-
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full design covering:
-
-- System overview
-- Offline-first strategy
-- P2P mesh and Raft consensus
-- CRDTs and Hybrid Logical Clocks
-- Event sourcing and transactional outbox
-- Security model (zero trust, mTLS, secrets)
-- Payment flow (Verifone, offline tokens)
-- Deployment and CI/CD
-- Observability
-- Deep improvements summary
-
-## Operational Runbooks
-
-- [Incident Response](./docs/runbooks/incident-response.md)
-- [Payment Failure](./docs/runbooks/payment-failure-runbook.md)
-- [P2P Partition Recovery](./docs/runbooks/p2p-partition-recovery.md)
-- [Offline Mode Operations](./docs/runbooks/offline-mode-operations.md)
-
-## Security
-
-Astra-Service follows a zero-trust security model. See the [Security Model](./ARCHITECTURE.md#security-model) section of ARCHITECTURE.md for details on mTLS, secrets management, and PCI-DSS compliance.
-
-## Contributing
-
-1. Create a feature branch from `main`.
-2. Install hooks: `pnpm prepare` (Lefthook).
-3. Make your changes and add tests.
-4. Run the validation commands above.
-5. Open a pull request.
-
-All commits must follow [Conventional Commits](https://www.conventionalcommits.org/) and pass CI.
-
-## License
-
-Proprietary — Astra-Service Engineering Team.
+Tell me whether you want:
+- a shorter README (project index only),
+- more detailed developer setup steps (Node/Go/Rust toolchains, pnpm commands), or
+- an annotated tree with links to important files — and I will update the README accordingly.
