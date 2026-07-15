@@ -4,6 +4,14 @@
   <img src="https://raw.githubusercontent.com/cat-milk/Anime-Girls-Holding-Programming-Books/master/Typescript/Beako_Reading_The_TypeScript_Programming_Language.png" width="420" alt="TypeScriptのプログラミング言語の本を読むアニメの女の子" />
 </p>
 
+<p align="center">
+  <a href="./README.md">English</a> ·
+  <a href="./README.es.md">Español</a> ·
+  <a href="./README.zh.md">中文</a> ·
+  <a href="./README.ko.md">한국어</a> ·
+  <a href="./README.ja.md"><b>日本語</b></a>
+</p>
+
 [![CI](https://img.shields.io/badge/CI-pass-green.svg)](https://github.com/anomalyco/astra-system/actions)
 [![License](https://img.shields.io/badge/license-proprietary-blue.svg)](#ライセンス)
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8.svg)](https://go.dev)
