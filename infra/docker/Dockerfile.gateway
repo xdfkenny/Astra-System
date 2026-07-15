@@ -18,7 +18,6 @@ ENV GOWORK=off
 # Workspace modules required for go.work resolution.
 COPY astra-service/go.work astra-service/go.work.sum* ./astra-service/
 COPY astra-service/packages/go-common/go.mod astra-service/packages/go-common/go.sum ./astra-service/packages/go-common/
-COPY infra/secrets/go.mod infra/secrets/go.sum* ./infra/secrets/
 COPY proto/go.mod proto/go.sum* ./proto/
 COPY astra-service/services/gateway/go.mod astra-service/services/gateway/go.sum* ./astra-service/services/gateway/
 
@@ -26,7 +25,6 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     cd astra-service/services/gateway && go mod download -x
 
 COPY astra-service/packages/go-common/ ./astra-service/packages/go-common/
-COPY infra/secrets/ ./infra/secrets/
 COPY proto/ ./proto/
 COPY astra-service/services/gateway/ ./astra-service/services/gateway/
 

@@ -312,7 +312,7 @@ jobs:
         continue-on-error: true
 
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -357,6 +357,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Normalize image namespace
+        id: image
+        run: echo "repository=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -377,9 +381,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image }}
+          images: ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}/${{ matrix.image }}
           tags: |
-            type=sha,prefix=
+            type=sha,prefix=,format=long
             type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern={{version}}
 
@@ -399,7 +403,7 @@ jobs:
       - name: Sign image with cosign
         run: |
           cosign sign --yes \
-            ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image }}@${{ steps.build.outputs.digest }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}/${{ matrix.image }}@${{ steps.build.outputs.digest }}
 
   sbom-generate:
     needs: [build-docker]
@@ -427,6 +431,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Normalize image namespace
+        id: image
+        run: echo "repository=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
 
@@ -436,12 +444,12 @@ jobs:
       - name: Generate and attest SBOM
         run: |
           mkdir -p /tmp/sboms
-          syft ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image }}:${{ github.sha }} \
+          syft ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}/${{ matrix.image }}:${{ github.sha }} \
             -o spdx-json=/tmp/sboms/${{ matrix.image }}.sbom.spdx.json
           cosign attest --yes \
             --predicate /tmp/sboms/${{ matrix.image }}.sbom.spdx.json \
             --type spdxjson \
-            ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}/${{ matrix.image }}:${{ github.sha }}
 
   release:
     needs: [build-docker, sbom-generate]

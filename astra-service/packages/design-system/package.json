@@ -38,7 +38,7 @@
     "**/*.css"
   ],
   "scripts": {
-    "build": "del /q dist\\*.* 2>nul && rd /s /q dist 2>nul && del /q *.tsbuildinfo 2>nul && tsc -p tsconfig.build.json && mkdir dist\\styles 2>nul && copy src\\styles\\*.css dist\\styles\\ 2>nul",
+    "build": "node -e \"const fs=require('node:fs'); fs.rmSync('dist',{recursive:true,force:true}); for (const f of fs.readdirSync('.').filter((name)=>name.endsWith('.tsbuildinfo'))) fs.rmSync(f,{force:true});\" && tsc -p tsconfig.build.json && node -e \"const fs=require('node:fs'); fs.mkdirSync('dist/styles',{recursive:true}); for (const f of fs.readdirSync('src/styles').filter((name)=>name.endsWith('.css'))) fs.copyFileSync('src/styles/'+f,'dist/styles/'+f);\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run"
   },

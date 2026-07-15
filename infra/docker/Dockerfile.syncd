@@ -6,7 +6,7 @@
 ARG RUST_VERSION=1.88
 
 # ── Build stage ─────────────────────────────────────────────────────────────
-FROM --platform=$BUILDPLATFORM rust:${RUST_VERSION}-bookworm AS builder
+FROM rust:${RUST_VERSION}-bookworm AS builder
 
 # protoc and openssl are required to compile the gRPC/protobuf definitions.
 RUN apt-get update && apt-get install -y --no-install-recommends \

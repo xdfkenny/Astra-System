@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { HashRouter } from "react-router-dom";
+import { ResponsiveProvider } from "../providers/ResponsiveProvider";
 import { ViewportLock } from "../components/ViewportLock";
+import { OrientationLock } from "../components/OrientationLock";
 import { TopStatusBar } from "../components/TopStatusBar";
 import { WorkflowRouter } from "../routes/WorkflowRouter";
 import { useIdleReclaim } from "../app/useIdleReclaim";
@@ -12,6 +14,9 @@ import { useNetworkMonitor } from "../app/useNetworkMonitor";
  * shell has no address bar and the OS launches Chromium in kiosk mode
  * pointed at a static `file://`-adjacent origin in some deployments —
  * hash routing avoids any server-side rewrite rule dependency.
+ *
+ * ResponsiveProvider sits below HashRouter so every descendant reads from
+ * a single ResizeObserver + orientation-change subscription.
  */
 export function App(): React.JSX.Element {
   useIdleReclaim();
@@ -19,23 +24,28 @@ export function App(): React.JSX.Element {
   useNetworkMonitor();
 
   useEffect(() => {
-    // Kiosk hardware quirk: prevent pinch-zoom / double-tap-zoom gestures that
-    // slip past viewport meta on some Chromium-embedded industrial builds.
-    const preventGesture = (e: Event): void => { e.preventDefault(); };
+    const preventGesture = (e: Event): void => {
+      e.preventDefault();
+    };
     document.addEventListener("gesturestart", preventGesture);
-    return () => { document.removeEventListener("gesturestart", preventGesture); };
+    return () => {
+      document.removeEventListener("gesturestart", preventGesture);
+    };
   }, []);
 
   return (
     <HashRouter>
-      <ViewportLock>
-        <TopStatusBar />
-        <main className="relative flex flex-1 flex-col overflow-hidden">
-          <WorkflowRouter />
-        </main>
-        {/* ARIA live region for screen-reader announcements (stage changes, errors) */}
-        <div id="astra-live-region" role="status" aria-live="polite" className="sr-only-live" />
-      </ViewportLock>
+      <ResponsiveProvider>
+        <OrientationLock>
+          <ViewportLock>
+            <TopStatusBar />
+            <main className="relative flex flex-1 flex-col overflow-hidden">
+              <WorkflowRouter />
+            </main>
+            <div id="astra-live-region" role="status" aria-live="polite" className="sr-only-live" />
+          </ViewportLock>
+        </OrientationLock>
+      </ResponsiveProvider>
     </HashRouter>
   );
 }

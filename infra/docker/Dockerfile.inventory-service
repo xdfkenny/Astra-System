@@ -16,7 +16,6 @@ ENV GOWORK=off
 
 COPY astra-service/go.work astra-service/go.work.sum* ./astra-service/
 COPY astra-service/packages/go-common/go.mod astra-service/packages/go-common/go.sum ./astra-service/packages/go-common/
-COPY infra/secrets/go.mod infra/secrets/go.sum* ./infra/secrets/
 COPY proto/go.mod proto/go.sum* ./proto/
 COPY astra-service/services/inventory-service/go.mod astra-service/services/inventory-service/go.sum* ./astra-service/services/inventory-service/
 
@@ -24,7 +23,6 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     cd astra-service/services/inventory-service && go mod download -x
 
 COPY astra-service/packages/go-common/ ./astra-service/packages/go-common/
-COPY infra/secrets/ ./infra/secrets/
 COPY proto/ ./proto/
 COPY astra-service/services/inventory-service/ ./astra-service/services/inventory-service/
 
