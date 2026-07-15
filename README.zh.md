@@ -1,7 +1,7 @@
 # Astra-System
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/cat-milk/Anime-Girls-Holding-Programming-Books/master/Mixed/Remilia_Scarlet_Holding_Rust_TypeScript_PHP_C_Lua_Book.jpg" width="420" alt="Anime girl holding Rust and TypeScript programming books" />
+  <img src="https://raw.githubusercontent.com/cat-milk/Anime-Girls-Holding-Programming-Books/master/Typescript/Beako_Reading_The_TypeScript_Programming_Language.png" width="420" alt="Anime girl reading the TypeScript programming language book" />
 </p>
 
 [![CI](https://img.shields.io/badge/CI-pass-green.svg)](https://github.com/anomalyco/astra-system/actions)
