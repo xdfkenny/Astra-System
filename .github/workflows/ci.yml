@@ -248,21 +248,50 @@ jobs:
     needs: [changes, test-unit]
     if: ${{ always() && !failure() && !cancelled() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.ops == 'true') }}
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: astra
+          POSTGRES_PASSWORD: astra-local-dev
+          POSTGRES_DB: astra_service
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U astra -d astra_service"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      nats:
+        image: nats:2-alpine
+        ports:
+          - 4222:4222
+          - 8222:8222
+        options: >-
+          --health-cmd "wget -q --spider http://localhost:8222/healthz"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
-      - name: Start infrastructure
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d postgres redis nats
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
       - name: Wait for services
         run: |
           for i in $(seq 1 30); do
-            if docker compose -f docker-compose.yml ps | grep -q "unhealthy"; then
-              sleep 2
-            else
+            if curl -fsS http://localhost:8222/healthz >/dev/null 2>&1 && \
+               curl -fsS http://localhost:5432 >/dev/null 2>&1; then
               echo "All services healthy"
               break
             fi
+            sleep 2
             if [ "$i" -eq 30 ]; then
               echo "Timed out waiting for services" >&2
               exit 1
