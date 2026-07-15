@@ -1,6 +1,7 @@
 module github.com/astra-service/go-common
 
 go 1.25.1
+
 require (
 	github.com/nats-io/nats.go v1.52.0
 	github.com/prometheus/client_golang v1.21.1
