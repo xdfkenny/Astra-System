@@ -1,4 +1,4 @@
-import QRCode from "qrcode";
+﻿import QRCode from "qrcode";
 
 /**
  * QR-code signaling for ghost-cart WebRTC offers.
@@ -14,11 +14,23 @@ export interface QrSignalingEnvelope {
   readonly kioskId: string;
 }
 
+export class GhostCartSignalingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "GhostCartSignalingError";
+  }
+}
+
 export async function generateQrDataUrl(
   envelope: QrSignalingEnvelope,
   options?: QRCode.QRCodeToDataURLOptions,
 ): Promise<string> {
-  const payload = btoa(JSON.stringify(envelope));
+  let payload: string;
+  try {
+    payload = btoa(JSON.stringify(envelope));
+  } catch {
+    throw new GhostCartSignalingError("Failed to encode ghost-cart offer");
+  }
   const url = `astra://ghost-cart#${payload}`;
   return QRCode.toDataURL(url, {
     width: 320,
@@ -31,6 +43,38 @@ export async function generateQrDataUrl(
 export function parseQrPayload(raw: string): QrSignalingEnvelope {
   const hashIndex = raw.indexOf("#");
   const payload = hashIndex >= 0 ? raw.slice(hashIndex + 1) : raw;
-  const decoded = atob(payload);
-  return JSON.parse(decoded) as QrSignalingEnvelope;
+  let decoded: string;
+  try {
+    decoded = atob(payload);
+  } catch {
+    throw new GhostCartSignalingError("Invalid ghost-cart QR encoding");
+  }
+  return parseEnvelope(decoded);
+}
+
+export function validateQrSignalingEnvelope(value: unknown): QrSignalingEnvelope {
+  if (!isEnvelope(value)) {
+    throw new GhostCartSignalingError("Invalid ghost-cart envelope");
+  }
+  return value;
+}
+
+function parseEnvelope(json: string): QrSignalingEnvelope {
+  let data: unknown;
+  try {
+    data = JSON.parse(json);
+  } catch {
+    throw new GhostCartSignalingError("Malformed ghost-cart payload");
+  }
+  return validateQrSignalingEnvelope(data);
+}
+
+function isEnvelope(value: unknown): value is QrSignalingEnvelope {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    (candidate["type"] === "offer" || candidate["type"] === "answer") &&
+    typeof candidate["sdp"] === "string" &&
+    typeof candidate["kioskId"] === "string"
+  );
 }

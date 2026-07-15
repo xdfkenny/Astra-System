@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+﻿import { useEffect, useRef } from "react";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 
 /** Time with no interaction before the kiosk reclaims an active session. */
@@ -19,6 +19,8 @@ const IMMUNE_STAGES = new Set<string>([
 export function useIdleReclaim(): void {
   const { state, send } = useKioskMachine();
   const lastInteractionAtMs = useRef(Date.now());
+  const stageRef = useRef(state.value);
+  stageRef.current = state.value;
 
   useEffect(() => {
     const recordInteraction = (): void => {
@@ -29,7 +31,7 @@ export function useIdleReclaim(): void {
     window.addEventListener("keydown", recordInteraction);
 
     const interval = window.setInterval(() => {
-      const stage = state.value as string;
+      const stage = stageRef.current as string;
       if (IMMUNE_STAGES.has(stage)) return;
       if (Date.now() - lastInteractionAtMs.current > IDLE_TIMEOUT_MS) {
         send({ type: "RETURN_TO_ATTRACT" });
@@ -41,5 +43,6 @@ export function useIdleReclaim(): void {
       window.removeEventListener("keydown", recordInteraction);
       window.clearInterval(interval);
     };
-  }, [state.value, send]);
+  }, [send]);
 }
+

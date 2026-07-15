@@ -1,16 +1,20 @@
-import { useMemo, useEffect, useState, useCallback, useRef } from "react";
+﻿import { useMemo, useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSnapshot } from "valtio";
-import {
-  cartProxy,
-} from "@astra/kiosk-state";
-import type { ReadonlyCartLineItem } from "@astra/shared-types";
+import { cartProxy } from "@astra/kiosk-state";
+import type { MenuItem, ReadonlyCartLineItem } from "@astra/shared-types";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 import { cartService } from "../state/cartService";
-import { BottomSheet } from "../components/BottomSheet";
+import { defaultLogger } from "../utils/logger";
+
+const log = defaultLogger.child("CartReviewScreen");
 
 const SILENT_ASSIST_DELAY_MS = 40_000;
+const TAX_RATE = Number.parseFloat(
+  (import.meta.env as Record<string, string | undefined>)["VITE_TAX_RATE"] ?? "0.08",
+);
 
 function formatCents(cents: number): string {
   return (cents / 100).toFixed(2);
@@ -28,11 +32,18 @@ export function CartReviewScreen(): React.JSX.Element {
   const { send } = useKioskMachine();
   const cart = useSnapshot(cartProxy);
   const [silentAssist, setSilentAssist] = useState(false);
-  const [editingLineId, setEditingLineId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const editingLine = editingLineId
-    ? cart.lines.find((l) => l.lineId === editingLineId)
-    : undefined;
+  const handleItemTap = useCallback(
+    (menuItemId: string) => {
+      const cached = queryClient.getQueryData<{ items: readonly MenuItem[] }>(["menu-catalog"]);
+      const item = cached?.items.find((i) => i.itemId === menuItemId);
+      if (item) {
+        send({ type: "SELECT_ITEM", item });
+      }
+    },
+    [queryClient, send],
+  );
 
   const itemCount = cart.lines.reduce((sum, l) => sum + l.quantity, 0);
   const isFullScreen = itemCount > 5;
@@ -41,7 +52,7 @@ export function CartReviewScreen(): React.JSX.Element {
     () => cart.lines.reduce((sum, l) => sum + lineTotalCents(l), 0),
     [cart.lines],
   );
-  const taxCents = Math.round(subtotalCents * 0.08);
+  const taxCents = Math.round(subtotalCents * TAX_RATE);
   const totalCents = subtotalCents + taxCents;
 
   useEffect(() => {
@@ -50,73 +61,22 @@ export function CartReviewScreen(): React.JSX.Element {
   }, []);
 
   const handleQuantityChange = useCallback(
-    async (lineId: string, delta: number) => {
+    (lineId: string, delta: number) => {
       const line = cart.lines.find((l) => l.lineId === lineId);
       if (!line) return;
       const next = line.quantity + delta;
-      if (next <= 0) {
-        try {
-          await cartService.removeItem(lineId);
-        } catch (error) {
-          console.error("Failed to remove item from cart:", error);
+      try {
+        if (next <= 0) {
+          cartService.removeItem(lineId);
+        } else {
+          cartService.updateQuantity(lineId, next);
         }
-      } else {
-        try {
-          await cartService.updateQuantity(lineId, next);
-        } catch (error) {
-          console.error("Failed to update quantity:", error);
-        }
+      } catch (error) {
+        log.error("Failed to update cart quantity", error);
       }
     },
     [cart.lines],
   );
-
-  const holdRef = useRef<{ timeout?: number; interval?: number }>({});
-
-  const endHold = useCallback(() => {
-    if (holdRef.current.timeout !== undefined) {
-      window.clearTimeout(holdRef.current.timeout);
-    }
-    if (holdRef.current.interval !== undefined) {
-      window.clearInterval(holdRef.current.interval);
-    }
-    holdRef.current = {};
-  }, []);
-
-  // Long-press accelerates after 500ms, repeating every 100ms. The initial
-  // change is handled by the button's onClick so keyboard activation still works.
-  const startHold = useCallback(
-    (lineId: string, delta: number) => {
-      endHold();
-      holdRef.current.timeout = window.setTimeout(() => {
-        holdRef.current.interval = window.setInterval(() => {
-          void handleQuantityChange(lineId, delta);
-        }, 100);
-      }, 500);
-    },
-    [endHold, handleQuantityChange],
-  );
-
-  useEffect(() => endHold, [endHold]);
-
-  const holdProps = useCallback(
-    (lineId: string, delta: number) => ({
-      onPointerDown: () => { startHold(lineId, delta); },
-      onPointerUp: endHold,
-      onPointerLeave: endHold,
-      onPointerCancel: endHold,
-    }),
-    [startHold, endHold],
-  );
-
-  const handleRemove = useCallback(async (lineId: string) => {
-    try {
-      await cartService.removeItem(lineId);
-    } catch (error) {
-      console.error("Failed to remove item from cart:", error);
-    }
-    setEditingLineId(null);
-  }, []);
 
   const handlePay = useCallback(() => {
     send({ type: "PROCEED_TO_PAYMENT" });
@@ -141,115 +101,126 @@ export function CartReviewScreen(): React.JSX.Element {
         role="list"
         aria-label="Cart items"
       >
+        {cart.lines.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16">
+            <p className="font-sans text-[18px] text-stone">Your cart is empty</p>
+          </div>
+        )}
         {cart.lines.map((line, idx) => (
-          <div key={line.lineId} role="listitem">
-            <div className="flex flex-col gap-2 py-3">
-              {/* Tappable item summary — opens edit sheet */}
-              <button
-                type="button"
-                onClick={() => { setEditingLineId(line.lineId); }}
-                className="flex items-start gap-3 text-left rounded-[12px] transition-colors active:bg-warm-cream/50"
-                aria-label={`Edit ${line.nameSnapshot}`}
-              >
-                {/* Thumbnail */}
-                <div className="h-16 w-16 shrink-0 rounded-[12px] bg-stone/10 overflow-hidden">
-                  <div
-                    className="h-full w-full"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, rgba(107,104,98,0.08), rgba(196,184,168,0.08))",
+          <div
+            key={line.lineId}
+            role="listitem"
+            className="cursor-pointer active:bg-warm-cream/50 rounded-[12px] transition-colors duration-100"
+            onClick={() => { handleItemTap(line.menuItemId); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") handleItemTap(line.menuItemId);
+            }}
+            tabIndex={0}
+            aria-label={`Edit ${line.nameSnapshot}. Quantity: ${String(line.quantity)}. Price: $${formatCents(lineTotalCents(line))}`}
+          >
+            <div className="flex items-start gap-3 py-3 px-1">
+              {/* Thumbnail */}
+              <div className="h-16 w-16 shrink-0 rounded-[12px] bg-stone/10 overflow-hidden">
+                <div
+                  className="h-full w-full"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, rgba(107,104,98,0.08), rgba(196,184,168,0.08))",
+                  }}
+                  aria-hidden="true"
+                />
+              </div>
+
+              {/* Details */}
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-sans text-[18px] font-medium text-charcoal truncate">
+                    {line.nameSnapshot}
+                  </span>
+                  <span className="font-sans text-[18px] font-semibold text-charcoal tabular-nums shrink-0">
+                    ${formatCents(lineTotalCents(line))}
+                  </span>
+                </div>
+
+                {/* Modifiers */}
+                {line.modifiers.length > 0 && (
+                  <p className="font-sans text-[14px] text-stone truncate">
+                    {line.modifiers
+                      .map((m) => `${m.modifierId}: +$${formatCents(m.priceDeltaCents)}`)
+                      .join(", ")}
+                  </p>
+                )}
+
+                {/* Quantity stepper */}
+                <div className="mt-1 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleQuantityChange(line.lineId, -1);
                     }}
-                    aria-hidden="true"
-                  />
-                </div>
-
-                {/* Details */}
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-sans text-[18px] font-medium text-charcoal truncate">
-                      {line.nameSnapshot}
-                    </span>
-                    <span className="font-sans text-[18px] font-semibold text-charcoal tabular-nums shrink-0">
-                      ${formatCents(lineTotalCents(line))}
-                    </span>
-                  </div>
-
-                  {/* Modifiers */}
-                  {line.modifiers.length > 0 && (
-                    <p className="font-sans text-[14px] text-stone truncate">
-                      {line.modifiers
-                        .map((m) => `${m.modifierId}: +$${formatCents(m.priceDeltaCents)}`)
-                        .join(", ")}
-                    </p>
-                  )}
-                </div>
-              </button>
-
-              {/* Quantity stepper */}
-              <div className="ml-[76px] flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleQuantityChange(line.lineId, -1)}
-                  {...holdProps(line.lineId, -1)}
-                  className="h-14 w-14 rounded-full bg-linen border border-taupe flex items-center justify-center"
-                  aria-label={`Decrease quantity of ${line.nameSnapshot}`}
-                >
-                  <svg
-                    viewBox="0 0 20 20"
-                    className="h-5 w-5 text-charcoal"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    aria-hidden="true"
+                    className="h-12 w-12 rounded-full bg-linen border border-taupe flex items-center justify-center active:bg-white/80 transition-colors duration-100"
+                    aria-label={`Decrease quantity of ${line.nameSnapshot}`}
                   >
-                    <path d="M5 10h10" strokeLinecap="round" />
-                  </svg>
-                </button>
-                <span
-                  className="font-sans text-[20px] font-semibold text-charcoal tabular-nums text-center min-w-[48px]"
-                  aria-label={`Quantity: ${String(line.quantity)}`}
-                >
-                  {line.quantity}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleQuantityChange(line.lineId, 1)}
-                  {...holdProps(line.lineId, 1)}
-                  className="h-14 w-14 rounded-full bg-linen border border-taupe flex items-center justify-center"
-                  aria-label={`Increase quantity of ${line.nameSnapshot}`}
-                >
-                  <svg
-                    viewBox="0 0 20 20"
-                    className="h-5 w-5 text-charcoal"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    aria-hidden="true"
+                    <svg
+                      viewBox="0 0 20 20"
+                      className="h-5 w-5 text-charcoal"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    >
+                      <path d="M5 10h10" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                  <span
+                    className="font-sans text-[20px] font-semibold text-charcoal tabular-nums text-center min-w-[48px]"
+                    aria-label={`Quantity: ${String(line.quantity)}`}
                   >
-                    <path d="M10 5v10M5 10h10" strokeLinecap="round" />
-                  </svg>
-                </button>
+                    {line.quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleQuantityChange(line.lineId, 1);
+                    }}
+                    className="h-12 w-12 rounded-full bg-linen border border-taupe flex items-center justify-center active:bg-white/80 transition-colors duration-100"
+                    aria-label={`Increase quantity of ${line.nameSnapshot}`}
+                  >
+                    <svg
+                      viewBox="0 0 20 20"
+                      className="h-5 w-5 text-charcoal"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    >
+                      <path d="M10 5v10M5 10h10" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Dashed divider */}
             {idx < cart.lines.length - 1 && (
-              <div className="border-t border-dashed border-taupe" />
+              <div className="border-t border-dashed border-taupe/40" />
             )}
           </div>
         ))}
 
         {/* Tap to edit hint */}
-        <p className="mt-4 text-center font-sans text-[14px] text-stone">
-          Tap an item to change quantity or remove it
-        </p>
+        {cart.lines.length > 0 && (
+          <p className="mt-4 text-center font-sans text-[14px] text-stone">
+            Tap an item to edit
+          </p>
+        )}
       </div>
 
       {/* Summary */}
       <div className="px-3 pb-3">
         <div className="flex flex-col gap-2 border-t border-taupe pt-3">
           <div className="flex items-center justify-between">
-            <span className="font-sans text-caption uppercase tracking-[0.08em] text-stone">
+            <span className="font-sans text-[13px] font-medium uppercase tracking-[0.08em] text-stone">
               Subtotal
             </span>
             <span className="font-sans text-[18px] text-charcoal tabular-nums">
@@ -257,7 +228,7 @@ export function CartReviewScreen(): React.JSX.Element {
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="font-sans text-caption uppercase tracking-[0.08em] text-stone">
+            <span className="font-sans text-[13px] font-medium uppercase tracking-[0.08em] text-stone">
               Tax
             </span>
             <span className="font-sans text-[18px] text-charcoal tabular-nums">
@@ -280,7 +251,7 @@ export function CartReviewScreen(): React.JSX.Element {
         <button
           type="button"
           onClick={handleBack}
-          className="h-14 flex-1 rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal"
+          className="h-14 flex-1 rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal active:bg-warm-cream/50 transition-colors duration-100"
           aria-label="Back to menu"
         >
           ← Back to menu
@@ -288,11 +259,15 @@ export function CartReviewScreen(): React.JSX.Element {
         <motion.button
           type="button"
           onClick={handlePay}
-          className="h-14 flex-[2] rounded-full bg-amber text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(184,126,107,0.3)]"
+          className="h-14 flex-[2] rounded-full bg-amber text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(184,126,107,0.3)] active:scale-[0.98] active:translate-y-[1px] transition-all duration-100"
           {...(silentAssist
             ? {
                 animate: { opacity: [0.8, 1, 0.8] },
-                transition: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+                transition: {
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                },
               }
             : {})}
           aria-label={`Pay $${formatCents(totalCents)}`}
@@ -300,87 +275,6 @@ export function CartReviewScreen(): React.JSX.Element {
           Pay ${formatCents(totalCents)} →
         </motion.button>
       </div>
-
-      {/* Edit item sheet */}
-      <BottomSheet
-        open={editingLine !== undefined}
-        onClose={() => { setEditingLineId(null); }}
-      >
-        {editingLine && (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-start justify-between gap-2">
-              <h2 className="font-heading text-[24px] font-semibold text-charcoal">
-                {editingLine.nameSnapshot}
-              </h2>
-              <span className="font-sans text-[18px] font-semibold text-charcoal tabular-nums shrink-0">
-                ${formatCents(lineTotalCents(editingLine))}
-              </span>
-            </div>
-
-            {editingLine.modifiers.length > 0 && (
-              <p className="font-sans text-[14px] text-stone">
-                {editingLine.modifiers
-                  .map((m) => `${m.modifierId}: +$${formatCents(m.priceDeltaCents)}`)
-                  .join(", ")}
-              </p>
-            )}
-
-            <div className="flex items-center justify-center gap-4">
-              <button
-                type="button"
-                onClick={() => handleQuantityChange(editingLine.lineId, -1)}
-                {...holdProps(editingLine.lineId, -1)}
-                className="h-14 w-14 rounded-full bg-linen border border-taupe flex items-center justify-center"
-                aria-label={`Decrease quantity of ${editingLine.nameSnapshot}`}
-              >
-                <svg
-                  viewBox="0 0 20 20"
-                  className="h-5 w-5 text-charcoal"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  aria-hidden="true"
-                >
-                  <path d="M5 10h10" strokeLinecap="round" />
-                </svg>
-              </button>
-              <span
-                className="font-sans text-[24px] font-semibold text-charcoal tabular-nums text-center min-w-[56px]"
-                aria-label={`Quantity: ${String(editingLine.quantity)}`}
-              >
-                {editingLine.quantity}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleQuantityChange(editingLine.lineId, 1)}
-                {...holdProps(editingLine.lineId, 1)}
-                className="h-14 w-14 rounded-full bg-linen border border-taupe flex items-center justify-center"
-                aria-label={`Increase quantity of ${editingLine.nameSnapshot}`}
-              >
-                <svg
-                  viewBox="0 0 20 20"
-                  className="h-5 w-5 text-charcoal"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  aria-hidden="true"
-                >
-                  <path d="M10 5v10M5 10h10" strokeLinecap="round" />
-                </svg>
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => { void handleRemove(editingLine.lineId); }}
-              className="h-14 w-full rounded-[16px] border border-soft-rose bg-white/70 font-sans text-[16px] font-medium text-soft-rose"
-              aria-label={`Remove ${editingLine.nameSnapshot} from cart`}
-            >
-              Remove from cart
-            </button>
-          </div>
-        )}
-      </BottomSheet>
     </div>
   );
 
@@ -406,7 +300,7 @@ export function CartReviewScreen(): React.JSX.Element {
         duration: 0.3,
         ease: motionTokens.easeOutExpo,
       }}
-      className="fixed inset-0 z-30 flex flex-col bg-white/95 backdrop-blur-[12px] rounded-t-[24px]"
+      className="fixed inset-0 z-30 flex flex-col bg-white/95 backdrop-blur-[12px] rounded-t-[24px] shadow-[0_8px_32px_rgba(45,42,38,0.12)]"
     >
       {/* Handle */}
       <div className="mx-auto mt-3 h-1 w-10 rounded bg-taupe" aria-hidden="true" />
@@ -414,3 +308,4 @@ export function CartReviewScreen(): React.JSX.Element {
     </motion.div>
   );
 }
+

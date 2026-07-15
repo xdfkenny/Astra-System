@@ -1,4 +1,4 @@
-/// <reference lib="webworker" />
+﻿/// <reference lib="webworker" />
 import { precacheAndRoute, cleanupOutdatedCaches } from "workbox-precaching";
 import { registerRoute } from "workbox-routing";
 import { StaleWhileRevalidate, NetworkFirst, CacheFirst } from "workbox-strategies";
@@ -50,3 +50,4 @@ self.addEventListener("install", () => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
+

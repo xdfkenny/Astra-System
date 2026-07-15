@@ -1,4 +1,4 @@
-import type { MenuItem, Category, MenuResponse } from "@astra/shared-types";
+﻿import type { MenuItem } from "@astra/shared-types";
 
 const storeId = "store-astra-001";
 const now = new Date("2026-07-07T00:00:00Z").toISOString();
@@ -27,9 +27,7 @@ function item(
   hasModifiers = false,
 ): MenuItem {
   const cat = categories[catIdx];
-  if (!cat) {
-    throw new Error(`mockMenuData: no category at index ${String(catIdx)}`);
-  }
+  if (!cat) throw new Error(`Category index ${catIdx} out of bounds`);
   return {
     itemId: `item-${String(idx).padStart(3, "0")}`,
     storeId,
@@ -123,11 +121,17 @@ function item(
   };
 }
 
-export const mockMenuResponse: MenuResponse = {
+export const mockMenuResponse = {
   storeId,
   currency: "USD",
-  taxRate: 0.0875,
-  categories: categories as unknown as readonly Category[],
+  taxRate: 0.08,
+  categories: [
+    { categoryId: "cat-coffee", name: "Coffee", displayOrder: 1, storeId, parentId: null, description: null, imageUrl: null, blurhash: null, isActive: true, createdAt: now, updatedAt: now, deletedAt: null },
+    { categoryId: "cat-pastry", name: "Pastry", displayOrder: 2, storeId, parentId: null, description: null, imageUrl: null, blurhash: null, isActive: true, createdAt: now, updatedAt: now, deletedAt: null },
+    { categoryId: "cat-sandwich", name: "Sandwiches", displayOrder: 3, storeId, parentId: null, description: null, imageUrl: null, blurhash: null, isActive: true, createdAt: now, updatedAt: now, deletedAt: null },
+    { categoryId: "cat-salad", name: "Salads & Bowls", displayOrder: 4, storeId, parentId: null, description: null, imageUrl: null, blurhash: null, isActive: true, createdAt: now, updatedAt: now, deletedAt: null },
+    { categoryId: "cat-beverage", name: "Beverages", displayOrder: 5, storeId, parentId: null, description: null, imageUrl: null, blurhash: null, isActive: true, createdAt: now, updatedAt: now, deletedAt: null },
+  ],
   items: [
     item(1, "Flat White", "Double ristretto with steamed oat milk", 550, 0, true),
     item(2, "Cold Brew", "24-hour steeped, served over ice", 480, 0, true),
@@ -143,14 +147,7 @@ export const mockMenuResponse: MenuResponse = {
     item(12, "Blueberry Scone", "Buttermilk scone with wild blueberries", 450, 1, false),
     item(13, "Turkey Brie Sandwich", "Roasted turkey, brie, arugula on ciabatta", 1290, 2, false),
     item(14, "Caprese Panini", "Fresh mozzarella, tomato, basil pesto", 1190, 2, false),
-    item(
-      15,
-      "Egg & Avocado Toast",
-      "Soft scrambled eggs, smashed avocado, sourdough",
-      1090,
-      2,
-      false,
-    ),
+    item(15, "Egg & Avocado Toast", "Soft scrambled eggs, smashed avocado, sourdough", 1090, 2, false),
     item(16, "Ham & Swiss Croissant", "Black forest ham, gruyère, dijon butter", 1240, 2, false),
     item(17, "Kale Caesar Salad", "Shaved kale, parmesan, sourdough croutons", 1190, 3, false),
     item(18, "Harvest Bowl", "Quinoa, sweet potato, chickpea, tahini dressing", 1340, 3, false),
@@ -162,3 +159,4 @@ export const mockMenuResponse: MenuResponse = {
     item(24, "Chai Latte", "House spiced chai concentrate, steamed milk", 540, 0, true),
   ],
 };
+

@@ -1,135 +1,98 @@
-export const base = {
-  linen: "#F5F3EF",
-  warmCream: "#FEF7E0",
-  cardSurface: "#FFFFFF",
-  charcoal: "#2D2A26",
-  stone: "#6B6862",
-  taupe: "#C4B8A8",
-  clay: "#B8A99A",
-} as const;
+// Color tokens for Astra-Service kiosk UI
+//
+// Retail-adapted Living Weave color system:
+// - Optimized for bright retail environments (1000+ lux)
+// - Warm, sophisticated palette with biophilic accents
+// - Full dark mode support for night shifts
+// - WCAG 2.2 AA compliant
 
-export const accent = {
-  moss: "#5A7A5C",
-  mossHover: "#4A6A4C",
-  mossPressed: "#3A5A3C",
-  amber: "#B87E6B",
-  amberHover: "#A06E5D",
-  amberPressed: "#885E4D",
-  denim: "#4A5D70",
-  denimHover: "#3A4D60",
-  deepForest: "#1A3A2A",
-  paleMint: "#E8F5E9",
-  softRose: "#C4A4A4",
-  softRoseHover: "#B08A8A",
-  offline: "#D4A843",
-  syncActive: "#5A7A5C",
-  printer: "#6B6862",
-} as const;
+export interface ColorTokens {
+  // Base & Neutrals
+  linen: string;              // #F5F3EF - primary background
+  warmCream: string;          // #FEF7E0 - secondary background
+  cardSurface: string;        // #FFFFFF at 88% opacity
+  charcoal: string;           // #2D2A26 - primary text
+  stone: string;              // #6B6862 - secondary text
+  taupe: string;              // #C4B8A8 - dividers, hairlines
+  clay: string;               // #B8A99A - subtle borders
 
-export const semantic = {
-  background: base.linen,
-  surface: base.cardSurface,
-  surfaceSunken: base.warmCream,
-  surfaceOverlay: "rgba(255, 255, 255, 0.88)",
-  primary: accent.moss,
-  "primary-hover": accent.mossHover,
-  "primary-pressed": accent.mossPressed,
-  cta: accent.amber,
-  "cta-hover": accent.amberHover,
-  "cta-pressed": accent.amberPressed,
-  secondary: accent.denim,
-  "secondary-hover": accent.denimHover,
-  success: accent.moss,
-  warning: accent.offline,
-  info: accent.denim,
-  error: accent.softRose,
-  "error-hover": accent.softRoseHover,
-  ink: base.charcoal,
-  "ink-muted": base.stone,
-  "ink-inverted": base.linen,
-  border: base.taupe,
-  "border-strong": base.clay,
-  divider: base.taupe,
-  overlay: "rgba(45, 42, 38, 0.2)",
-  "overlay-strong": "rgba(45, 42, 38, 0.55)",
-} as const;
+  // Biophilic Accents
+  moss: string;               // #5A7A5C - primary action, success
+  amber: string;              // #B87E6B - CTAs, total price highlights
+  denim: string;              // #4A5D70 - informational elements
+  deepForest: string;         // #1A3A2A - high-emphasis text (dark mode)
+  paleMint: string;           // #E8F5E9 - success backgrounds
+  softRose: string;           // #C4A4A4 - error states
 
-export const dark = {
-  background: "#1C1A17",
-  surface: "#2A2824",
-  surfaceSunken: "#1C1A17",
-  surfaceOverlay: "rgba(42, 40, 36, 0.92)",
-  primary: "#7A9A7C",
-  "primary-hover": "#8AAB8C",
-  "primary-pressed": "#9ABC9D",
-  cta: "#C49A8A",
-  "cta-hover": "#D4AA9A",
-  "cta-pressed": "#E4BAAA",
-  secondary: "#6A7D90",
-  "secondary-hover": "#7A8DA0",
-  success: "#7A9A7C",
-  warning: "#E4C46A",
-  info: "#6A7D90",
-  error: "#D4A4A4",
-  "error-hover": "#E4B4B4",
-  ink: "#F5F3EF",
-  "ink-muted": "#A8A49D",
-  "ink-inverted": "#2D2A26",
-  border: "rgba(168, 164, 157, 0.2)",
-  "border-strong": "rgba(168, 164, 157, 0.32)",
-  divider: "rgba(168, 164, 157, 0.2)",
-  overlay: "rgba(0, 0, 0, 0.55)",
-  "overlay-strong": "rgba(0, 0, 0, 0.72)",
-} as const;
+  // Functional Colors
+  offline: string;            // #D4A843 - offline mode banner
+  syncActive: string;         // #5A7A5C - P2P mesh active
+  printer: string;            // #6B6862 - thermal printer status
 
-export const highContrast = {
-  background: "#000000",
-  surface: "#0B0B0B",
-  surfaceSunken: "#000000",
-  surfaceOverlay: "rgba(0, 0, 0, 0.96)",
-  primary: "#8FD5EA",
-  "primary-hover": "#9EE5FA",
-  cta: "#FFD166",
-  "cta-hover": "#FFE18A",
-  secondary: "#8FD5EA",
-  "secondary-hover": "#9EE5FA",
-  success: "#8BE3B8",
-  warning: "#FFD166",
-  info: "#8FD5EA",
-  error: "#FF6B6B",
-  "error-hover": "#FF8B8B",
-  ink: "#FFFFFF",
-  "ink-muted": "#E0E0E0",
-  "ink-inverted": "#000000",
-  border: "rgba(255, 255, 255, 0.32)",
-  "border-strong": "rgba(255, 255, 255, 0.48)",
-  divider: "rgba(255, 255, 255, 0.32)",
-  overlay: "rgba(0, 0, 0, 0.72)",
-  "overlay-strong": "rgba(0, 0, 0, 0.88)",
-} as const;
+  // Opacity levels for overlays
+  white75: string;            // bg-white/75
+  white60: string;            // bg-white/60
+  black20: string;            // bg-charcoal/20
 
-type StringMap = Record<string, string>;
-
-function prefixKeys(record: StringMap, prefix: string): StringMap {
-  const result: StringMap = {};
-  for (const [key, value] of Object.entries(record)) {
-    result[prefix ? `${prefix}-${key}` : key] = value;
-  }
-  return result;
+  // Status-specific tints
+  successTint: string;        // #E8F5E9
+  warningTint: string;        // #FEF7E0
+  errorTint: string;          // #F5F3EF with #C4A4A4 border
 }
 
-export const flatColors: StringMap = {
-  ...prefixKeys(base, ""),
-  ...prefixKeys(accent, ""),
-  ...prefixKeys(semantic, ""),
+export const colors: ColorTokens = {
+  // Base & Neutrals
+  linen: '#F5F3EF',
+  warmCream: '#FEF7E0',
+  cardSurface: 'rgba(255, 255, 255, 0.88)',
+  charcoal: '#2D2A26',
+  stone: '#6B6862',
+  taupe: '#C4B8A8',
+  clay: '#B8A99A',
+
+  // Biophilic Accents
+  moss: '#5A7A5C',
+  amber: '#B87E6B',
+  denim: '#4A5D70',
+  deepForest: '#1A3A2A',
+  paleMint: '#E8F5E9',
+  softRose: '#C4A4A4',
+
+  // Functional Colors
+  offline: '#D4A843',
+  syncActive: '#5A7A5C',
+  printer: '#6B6862',
+
+  // Opacity levels
+  white75: 'rgba(255, 255, 255, 0.75)',
+  white60: 'rgba(255, 255, 255, 0.60)',
+  black20: 'rgba(45, 42, 38, 0.20)',
+
+  // Status tints
+  successTint: '#E8F5E9',
+  warningTint: '#FEF7E0',
+  errorTint: '#F5F3EF',
 };
 
-export const cssVariables: StringMap = Object.fromEntries(
-  Object.entries(flatColors).map(([key, value]) => [`--astra-color-${key}`, value]),
-);
+// Dark theme overrides
+export const darkColors: Partial<ColorTokens> = {
+  charcoal: '#F5F3EF',           // Linen in dark mode
+  stone: '#A8A49D',              // Lighter stone for dark mode
+  taupe: '#6B6862',              // Slightly darker taupe
+  clay: '#8B847E',               // Muted clay for dark mode
 
-export type BaseColorToken = keyof typeof base;
-export type AccentColorToken = keyof typeof accent;
-export type SemanticColorToken = keyof typeof semantic;
-export type DarkColorToken = keyof typeof dark;
-export type HighContrastColorToken = keyof typeof highContrast;
+  deepForest: '#7A9A7C',         // Moss in dark mode
+  moss: '#7A9A7C',                // Brightened moss for dark
+  paleMint: '#1A3A2A',           // Dark mint background
+  softRose: '#8C6E6E',           // Softer rose for dark
+
+  // Dark mode specific
+  cardSurface: 'rgba(42, 40, 38, 0.88)',
+  white75: 'rgba(42, 40, 38, 0.75)',
+  white60: 'rgba(42, 40, 38, 0.60)',
+  black20: 'rgba(255, 255, 255, 0.20)',
+};
+
+export const cssVariables: Record<string, string> = Object.fromEntries(
+  Object.entries(colors).map(([key, value]) => [`--astra-color-${key}`, value]),
+);

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Ambient module declarations for Native Federation remotes consumed by the
  * unified kiosk host. Each remote publishes its default React component so the
  * shell can lazy-load it at runtime.
@@ -49,3 +49,4 @@ declare module "astra_kiosk/Shell" {
   const Shell: () => React.JSX.Element;
   export default Shell;
 }
+

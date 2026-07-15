@@ -1,5 +1,4 @@
-import { motion } from "framer-motion";
-import { PrimaryButton } from "@astra/ui-kit";
+﻿import { motion } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
 
 export interface IdleTimeoutOverlayProps {
@@ -7,44 +6,52 @@ export interface IdleTimeoutOverlayProps {
   onReset: () => void;
 }
 
-/**
- * Idle timeout overlay. Arms when the customer walks away; tapping "I'm still
- * here" resumes the session, otherwise the kiosk auto-resets to Attract.
- */
 export function IdleTimeoutOverlay({
   onContinue,
   onReset,
 }: IdleTimeoutOverlayProps): React.JSX.Element {
   return (
-    <div className="absolute inset-0 z-modal flex items-center justify-center bg-overlay p-6">
+    <div
+      className="absolute inset-0 z-30 flex items-center justify-center bg-charcoal/20 p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Idle timeout warning"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{
-          duration: motionTokens.durationBase,
-          ease: motionTokens.easeStandard,
+          duration: 0.25,
+          ease: motionTokens.easeOutExpo,
         }}
-        className="w-full max-w-lg rounded-xl bg-surface p-8 text-center shadow-xl"
+        className="w-full max-w-lg rounded-[24px] bg-white p-8 text-center shadow-[0_8px_32px_rgba(45,42,38,0.12)]"
       >
-        <h2 className="font-heading text-3xl font-bold text-ink">Still shopping?</h2>
-        <p className="mt-2 text-ink-muted">Tap below to continue, or this kiosk will reset for the next customer.</p>
+        <h2 className="font-heading text-[28px] font-semibold text-charcoal">
+          Still shopping?
+        </h2>
+        <p className="mt-2 font-sans text-[18px] text-stone">
+          Tap below to continue, or this kiosk will reset for the next customer.
+        </p>
         <div className="mt-8 flex flex-col gap-3">
-          <PrimaryButton
-            variant="primary"
-            className="w-full"
+          <button
+            type="button"
             onClick={onContinue}
+            className="h-14 w-full rounded-full bg-moss text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(90,122,92,0.3)] active:scale-[0.98] active:translate-y-[1px] transition-all duration-100"
+            aria-label="I am still here"
           >
             I&apos;m Still Here
-          </PrimaryButton>
-          <PrimaryButton
-            variant="ghost"
-            className="w-full"
+          </button>
+          <button
+            type="button"
             onClick={onReset}
+            className="h-14 w-full rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal active:bg-warm-cream/50 transition-colors duration-100"
+            aria-label="Start over"
           >
             Start Over
-          </PrimaryButton>
+          </button>
         </div>
       </motion.div>
     </div>
   );
 }
+

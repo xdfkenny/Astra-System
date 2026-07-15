@@ -34,6 +34,7 @@ interface SessionState {
   lastInteractionAtMs: number;
   network: NetworkStatus;
   silentAssistArmed: boolean;
+  ghostCartTransferred: boolean;
 
   startSession: (sessionId: string) => void;
   endSession: () => void;
@@ -42,6 +43,7 @@ interface SessionState {
   setLaneMode: (mode: LaneMode) => void;
   setNetworkStatus: (status: Partial<NetworkStatus>) => void;
   armSilentAssist: (armed: boolean) => void;
+  setGhostCartTransferred: (transferred: boolean) => void;
 }
 
 /** Valid forward/backward transitions — prevents impossible UI states (e.g. skipping payment auth). */
@@ -61,6 +63,7 @@ export const useSessionStore = create<SessionState>()(
     lastInteractionAtMs: Date.now(),
     network: { online: true, syncLagMs: 0, meshPeerCount: 0, isLeader: false },
     silentAssistArmed: false,
+    ghostCartTransferred: false,
 
     startSession: (sessionId) => {
       set({ sessionId, stage: "menu", lastInteractionAtMs: Date.now() });
@@ -102,6 +105,9 @@ export const useSessionStore = create<SessionState>()(
 
     armSilentAssist: (silentAssistArmed) => {
       set({ silentAssistArmed });
+    },
+    setGhostCartTransferred: (ghostCartTransferred) => {
+      set({ ghostCartTransferred });
     },
   })),
 );

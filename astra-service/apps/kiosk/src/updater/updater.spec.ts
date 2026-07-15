@@ -1,4 +1,4 @@
-import { sha256 } from "@noble/hashes/sha2.js";
+﻿import { sha256 } from "@noble/hashes/sha2.js";
 import * as ed from "@noble/ed25519";
 import { vi } from "vitest";
 import {
@@ -258,3 +258,4 @@ function sha256Hex(data: Uint8Array): string {
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
+

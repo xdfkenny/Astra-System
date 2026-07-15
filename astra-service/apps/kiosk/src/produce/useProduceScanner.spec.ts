@@ -1,4 +1,4 @@
-import type { MenuItem } from "@astra/shared-types";
+﻿import type { MenuItem } from "@astra/shared-types";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useProduceScanner } from "./useProduceScanner";
@@ -64,3 +64,4 @@ describe("useProduceScanner", () => {
     expect(item).toBeNull();
   });
 });
+

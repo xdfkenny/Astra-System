@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+﻿import { createContext, useContext } from "react";
 import { useMachine } from "@xstate/react";
 import type { ActorRefFrom, SnapshotFrom } from "xstate";
 import { kioskMachine, type KioskEvent } from "./kioskMachine";
@@ -38,3 +38,4 @@ export function useKioskMachine(): KioskMachineContextValue {
 }
 
 export type { KioskEvent };
+

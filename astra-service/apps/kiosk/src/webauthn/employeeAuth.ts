@@ -1,4 +1,4 @@
-/**
+﻿/**
  * WebAuthn integration for employee override / supervisor authorization.
  *
  * Kiosk employees authenticate with a FIDO2 security key or platform
@@ -58,3 +58,4 @@ function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
   }
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
+

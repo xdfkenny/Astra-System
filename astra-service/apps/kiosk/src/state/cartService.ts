@@ -1,54 +1,108 @@
-import { cartProxy, resetCart as resetCartProxy } from "@astra/kiosk-state";
-import type { CartLineItem } from "@astra/shared-types";
+﻿import { cartProxy, resetCart as resetCartProxy } from "@astra/kiosk-state";
 import { ApiCart } from "@astra/kiosk-state";
+import type { CartLineItem } from "@astra/shared-types";
 import { apiClient } from "./apiClient";
 
-const KIOSK_ID = import.meta.env.VITE_KIOSK_ID ?? "kiosk-local";
-const STORE_ID = (import.meta.env["VITE_STORE_ID"] as string | undefined) ?? "store-default";
+const KIOSK_ID = (import.meta.env as Record<string, string | undefined>)["VITE_KIOSK_ID"] ?? "kiosk-local";
+const STORE_ID = (import.meta.env as Record<string, string | undefined>)["VITE_STORE_ID"] ?? "store-default";
 
-/**
- * Cart service that bridges between local state and API.
- * Handles offline/online synchronization.
- */
+const DEBOUNCE_MS = 800;
+const MAX_RETRY_DELAY_MS = 30_000;
+const BASE_RETRY_DELAY_MS = 1_000;
+
 export class CartService {
   private apiCart: ApiCart;
   private isOnline: boolean;
+  private syncDebounceTimer: ReturnType<typeof setTimeout> | null;
+  private pendingSyncVersion: number;
+  private retryDelay: number;
+  private retryTimer: ReturnType<typeof setTimeout> | null;
+  private destroyed: boolean;
 
   constructor() {
-    // Set the API client for ApiCart
     ApiCart.setApiClient(apiClient);
 
     this.apiCart = new ApiCart(KIOSK_ID, STORE_ID);
     this.isOnline = navigator.onLine;
+    this.syncDebounceTimer = null;
+    this.pendingSyncVersion = 0;
+    this.retryDelay = BASE_RETRY_DELAY_MS;
+    this.retryTimer = null;
+    this.destroyed = false;
 
-    // Initialize cart
     void this.initializeCart();
 
-    // Listen for network changes
     window.addEventListener("online", this.handleOnline);
     window.addEventListener("offline", this.handleOffline);
   }
 
-  private handleOnline = () => {
+  private handleOnline = (): void => {
     this.isOnline = true;
-    void this.syncCartToServer();
+    this.retryDelay = BASE_RETRY_DELAY_MS;
+    void this.flushSync();
   };
 
-  private handleOffline = () => {
+  private handleOffline = (): void => {
     this.isOnline = false;
+    this.cancelSync();
   };
+
+  private scheduleSync(): void {
+    if (this.syncDebounceTimer) {
+      clearTimeout(this.syncDebounceTimer);
+    }
+    this.syncDebounceTimer = setTimeout(() => {
+      void this.flushSync();
+    }, DEBOUNCE_MS);
+  }
+
+  private cancelSync(): void {
+    if (this.syncDebounceTimer) {
+      clearTimeout(this.syncDebounceTimer);
+      this.syncDebounceTimer = null;
+    }
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
+  }
+
+  private async flushSync(): Promise<void> {
+    if (!this.isOnline || this.destroyed) return;
+    if (this.syncDebounceTimer) {
+      clearTimeout(this.syncDebounceTimer);
+      this.syncDebounceTimer = null;
+    }
+
+    const version = ++this.pendingSyncVersion;
+    const localLines = cartProxy.lines.map((line) => this.mapCartLineToApiFormat(line));
+
+    try {
+      await this.apiCart.updateCart(localLines);
+      this.retryDelay = BASE_RETRY_DELAY_MS;
+    } catch (error) {
+      if (version !== this.pendingSyncVersion) return;
+      console.warn("Cart sync failed, will retry:", error);
+      this.scheduleRetry();
+    }
+  }
+
+  private scheduleRetry(): void {
+    if (this.destroyed || this.retryTimer) return;
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      void this.flushSync();
+    }, this.retryDelay);
+    this.retryDelay = Math.min(this.retryDelay * 2, MAX_RETRY_DELAY_MS);
+  }
 
   private async initializeCart(): Promise<void> {
     try {
-      // Try to create a cart on the server
       const cartState = await this.apiCart.createCart();
-
-      // Update local proxy with server cart ID
       cartProxy.cartId = cartState.cartId;
       cartProxy.sessionId = cartState.sessionId;
     } catch (error: unknown) {
       console.warn("Failed to initialize cart on server, using local cart:", error);
-      // Use local cart as fallback
     }
   }
 
@@ -58,11 +112,7 @@ export class CartService {
     nameSnapshot: string;
     unitPriceCentsSnapshot: number;
     quantity: number;
-    modifiers: {
-      modifierId: string;
-      optionId: string;
-      priceDeltaCents: number;
-    }[];
+    modifiers: { modifierId: string; optionId: string; priceDeltaCents: number }[];
     notes?: string;
     weightGrams?: number;
   } {
@@ -78,24 +128,13 @@ export class CartService {
     };
   }
 
-  private async syncCartToServer(): Promise<void> {
-    if (!this.isOnline) return;
-
-    try {
-      // Get current local cart state
-      const localLines = cartProxy.lines.map((line) => this.mapCartLineToApiFormat(line));
-
-      // Sync with server
-      await this.apiCart.updateCart(localLines);
-    } catch (error: unknown) {
-      console.error("Failed to sync cart to server:", error);
-    }
+  private markDirty(): void {
+    cartProxy.version += 1;
+    cartProxy.updatedAtMs = Date.now();
+    this.scheduleSync();
   }
 
-  /**
-   * Add an item to the cart.
-   */
-  async addItem(
+  addItem(
     menuItemId: string,
     nameSnapshot: string,
     unitPriceCentsSnapshot: number,
@@ -107,8 +146,7 @@ export class CartService {
     }[] = [],
     notes?: string,
     weightGrams?: number,
-  ): Promise<void> {
-    // Add to local cart first for immediate UI feedback
+  ): void {
     const newItem: CartLineItem = {
       lineId: crypto.randomUUID(),
       menuItemId,
@@ -117,130 +155,63 @@ export class CartService {
       quantity,
       modifiers,
       addedAtMs: Date.now(),
+      ...(notes !== undefined && { notes }),
+      ...(weightGrams !== undefined && { weightGrams }),
     };
 
-    if (notes !== undefined) newItem.notes = notes;
-    if (weightGrams !== undefined) newItem.weightGrams = weightGrams;
-
     cartProxy.lines.push(newItem);
-    cartProxy.version += 1;
-    cartProxy.updatedAtMs = Date.now();
-
-    // Try to sync with server if online
-    if (this.isOnline) {
-      try {
-        await this.apiCart.addItem(
-          menuItemId,
-          nameSnapshot,
-          unitPriceCentsSnapshot,
-          quantity,
-          modifiers,
-          notes,
-          weightGrams,
-        );
-      } catch (error: unknown) {
-        console.warn("Failed to sync addItem to server:", error);
-      }
-    }
+    this.markDirty();
   }
 
-  /**
-   * Update item quantity.
-   */
-  async updateQuantity(lineId: string, quantity: number): Promise<void> {
+  updateQuantity(lineId: string, quantity: number): void {
     const line = cartProxy.lines.find((l) => l.lineId === lineId);
     if (!line) return;
 
     if (quantity <= 0) {
-      await this.removeItem(lineId);
+      this.removeItem(lineId);
       return;
     }
 
     line.quantity = quantity;
-    cartProxy.version += 1;
-    cartProxy.updatedAtMs = Date.now();
-
-    // Try to sync with server if online
-    if (this.isOnline) {
-      try {
-        const localLines = cartProxy.lines.map((l) => this.mapCartLineToApiFormat(l));
-
-        await this.apiCart.updateCart(localLines);
-      } catch (error) {
-        console.error("Failed to update quantity on server cart, will sync later:", error);
-      }
-    }
+    this.markDirty();
   }
 
-  /**
-   * Remove an item from the cart.
-   */
-  async removeItem(lineId: string): Promise<void> {
+  removeItem(lineId: string): void {
     const idx = cartProxy.lines.findIndex((l) => l.lineId === lineId);
     if (idx === -1) return;
 
     cartProxy.lines.splice(idx, 1);
-    cartProxy.version += 1;
-    cartProxy.updatedAtMs = Date.now();
-
-    // Try to sync with server if online
-    if (this.isOnline) {
-      try {
-        const localLines = cartProxy.lines.map((l) => this.mapCartLineToApiFormat(l));
-
-        await this.apiCart.updateCart(localLines);
-      } catch (error) {
-        console.error("Failed to remove item from server cart, will sync later:", error);
-      }
-    }
+    this.markDirty();
   }
 
-  /**
-   * Reset the cart.
-   */
   resetCart(): void {
+    this.cancelSync();
     resetCartProxy(KIOSK_ID);
     this.apiCart.reset();
   }
 
-  /**
-   * Checkout the cart.
-   */
   async checkout(
     method: "credit_debit" | "nfc_apple_pay" | "nfc_google_pay" | "qr_code" | "cash_recycler",
   ): Promise<{ checkoutId: string; paymentIntentId: string }> {
-    try {
-      return await this.apiCart.checkout(method);
-    } catch (error) {
-      console.error("Failed to checkout via API:", error);
-      throw error;
-    }
+    await this.flushSync();
+    return this.apiCart.checkout(method);
   }
 
-  /**
-   * Get the current cart ID.
-   */
   getCartId(): string {
     return this.apiCart.getCartId();
   }
 
-  /**
-   * Get the current session ID.
-   */
   getSessionId(): string {
     return this.apiCart.getSessionId();
   }
 
-  /**
-   * Clean up resources.
-   */
-  destroy() {
+  destroy(): void {
+    this.destroyed = true;
+    this.cancelSync();
     window.removeEventListener("online", this.handleOnline);
     window.removeEventListener("offline", this.handleOffline);
   }
 }
 
-/**
- * Singleton instance of the cart service.
- */
 export const cartService = new CartService();
+

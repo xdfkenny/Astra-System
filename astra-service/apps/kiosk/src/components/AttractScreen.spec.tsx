@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithMachine } from "../test-utils/renderWithMachine";
 import { AttractScreen } from "../routes/AttractScreen";
@@ -35,3 +35,4 @@ describe("AttractScreen", () => {
     spy.mockRestore();
   });
 });
+

@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+﻿import { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
 import type { MenuItem, ModifierOption } from "@astra/shared-types";
@@ -87,12 +87,12 @@ export function ItemModal(): React.JSX.Element | null {
     });
   }, [item, selections]);
 
-  const handleAdd = useCallback(async (): Promise<void> => {
+  const handleAdd = useCallback((): void => {
     if (!item || !isValid) return;
     const modifierSelections = buildModifierSelections(item, selections);
-    
+
     try {
-      await cartService.addItem(
+      cartService.addItem(
         item.itemId,
         item.name,
         item.priceCents,
@@ -312,3 +312,4 @@ export function ItemModal(): React.JSX.Element | null {
     </div>
   );
 }
+

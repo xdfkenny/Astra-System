@@ -1,14 +1,13 @@
-import { useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { KioskMachineProvider, useKioskMachine } from "./machines/KioskMachineProvider";
 import { useSessionStore } from "@astra/kiosk-state";
-import { KioskMachineProvider } from "./machines/KioskMachineProvider";
-import { ResponsiveProvider } from "./providers/ResponsiveProvider";
 import { ViewportLock } from "./components/ViewportLock";
-import { OrientationLock } from "./components/OrientationLock";
 import { StatusBar } from "./components/StatusBar";
 import { OfflineBanner } from "./components/OfflineBanner";
+import { IdleTimeoutOverlay } from "./components/IdleTimeoutOverlay";
 import { WorkflowRouter } from "./routes/WorkflowRouter";
-import { useIdleReclaim } from "./hooks/useIdleReclaim";
+import { useIdleReclaim, IDLE_TIMEOUT_MS } from "./hooks/useIdleReclaim";
 import { useSilentAssist } from "./hooks/useSilentAssist";
 import { useNetworkMonitor } from "./hooks/useNetworkMonitor";
 import { useApiNetworkMonitor } from "./hooks/useApiNetworkMonitor";
@@ -18,56 +17,43 @@ import "./styles/global.css";
 import "./styles/touchFixes.css";
 import { KioskErrorBoundary } from "./components/KioskErrorBoundary";
 
-/**
- * App root. The workflow is driven by the XState kiosk machine, which is the
- * single source of truth for customer stage. HashRouter is kept for the rare
- * drive-thru preview mode that launches from a file-adjacent origin.
- *
- * ResponsiveProvider sits outermost so every descendant (including
- * OrientationLock and ViewportLock) reads from a single ResizeObserver.
- */
 export function App(): React.JSX.Element {
   return (
     <QueryClientProvider client={queryClient}>
       <KioskMachineProvider>
-        <ResponsiveProvider>
-          <OrientationLock>
-            <ViewportLock>
-              <KioskShell />
-            </ViewportLock>
-          </OrientationLock>
-        </ResponsiveProvider>
+        <ViewportLock>
+          <KioskShell />
+        </ViewportLock>
       </KioskMachineProvider>
     </QueryClientProvider>
   );
 }
 
-const OFFLINE_AMBIENT_BORDER_DELAY_MS = 5 * 60 * 1000;
+/** Show "Still shopping?" warning 15s before idle reclaim fires. */
+const IDLE_WARNING_BEFORE_MS = 15_000;
 
 function KioskShell(): React.JSX.Element {
+  const { state, send } = useKioskMachine();
+  const network = useSessionStore((s) => s.network);
+  const [showIdleWarning, setShowIdleWarning] = useState(false);
+  const [offlineLong, setOfflineLong] = useState(false);
+
   useIdleReclaim();
   useSilentAssist();
   useNetworkMonitor();
   useApiNetworkMonitor();
 
-  const online = useSessionStore((s) => s.network.online);
-  const [offlineTooLong, setOfflineTooLong] = useState(false);
-
+  // Ambient offline indicator after 5 minutes of no connectivity.
   useEffect(() => {
-    if (online) {
-      setOfflineTooLong(false);
+    if (network.online) {
+      setOfflineLong(false);
       return;
     }
-    const timer = window.setTimeout(() => {
-      setOfflineTooLong(true);
-    }, OFFLINE_AMBIENT_BORDER_DELAY_MS);
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [online]);
+    const t = window.setTimeout(() => { setOfflineLong(true); }, 5 * 60_000);
+    return () => { window.clearTimeout(t); };
+  }, [network.online]);
 
   useEffect(() => {
-    // Kiosk hardware quirk: prevent pinch-zoom / double-tap-zoom gestures.
     const preventGesture = (e: Event): void => {
       e.preventDefault();
     };
@@ -77,12 +63,52 @@ function KioskShell(): React.JSX.Element {
     };
   }, []);
 
+  // Idle timeout warning
+  useEffect(() => {
+    const isActive = !["ATTRACT", "PAYMENT", "PROCESSING", "RECEIPT"].includes(
+      state.value as string,
+    );
+    if (!isActive) {
+      setShowIdleWarning(false);
+      return;
+    }
+
+    let lastInteractionMs = Date.now();
+    const record = () => {
+      lastInteractionMs = Date.now();
+      setShowIdleWarning(false);
+    };
+    window.addEventListener("pointerdown", record);
+    window.addEventListener("keydown", record);
+
+    const interval = window.setInterval(() => {
+      const elapsed = Date.now() - lastInteractionMs;
+      const nearingTimeout = elapsed >= IDLE_TIMEOUT_MS - IDLE_WARNING_BEFORE_MS;
+      setShowIdleWarning(nearingTimeout);
+    }, 1000);
+
+    return () => {
+      window.removeEventListener("pointerdown", record);
+      window.removeEventListener("keydown", record);
+      window.clearInterval(interval);
+    };
+  }, [state.value]);
+
+  const handleIdleContinue = useCallback(() => {
+    setShowIdleWarning(false);
+  }, []);
+
+  const handleIdleReset = useCallback(() => {
+    setShowIdleWarning(false);
+    send({ type: "RETURN_TO_ATTRACT" });
+  }, [send]);
+
   return (
     <>
       <StatusBar />
       <main
-        className={`bg-linen relative flex flex-1 flex-col overflow-hidden transition-[border-color] duration-500 ${
-          offlineTooLong ? "border-2 border-offline/30" : "border-2 border-transparent"
+        className={`relative flex flex-1 flex-col overflow-hidden bg-linen transition-colors duration-700 ${
+          offlineLong ? "border-4 border-offline/30" : ""
         }`}
       >
         <KioskErrorBoundary>
@@ -90,7 +116,19 @@ function KioskShell(): React.JSX.Element {
         </KioskErrorBoundary>
       </main>
       <OfflineBanner />
-      <div id="astra-live-region" role="status" aria-live="polite" className="sr-only-live" />
+      {showIdleWarning && (
+        <IdleTimeoutOverlay
+          onContinue={handleIdleContinue}
+          onReset={handleIdleReset}
+        />
+      )}
+      <div
+        id="astra-live-region"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      />
     </>
   );
 }
+

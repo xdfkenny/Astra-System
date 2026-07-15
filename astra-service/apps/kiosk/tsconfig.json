@@ -3,6 +3,10 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "types": ["vite/client", "vitest/globals", "@types/w3c-web-nfc"]
   },
   "include": ["src"]

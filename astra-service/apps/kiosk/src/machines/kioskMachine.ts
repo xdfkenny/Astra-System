@@ -1,6 +1,11 @@
-import { assign, createMachine, fromPromise } from "xstate";
+﻿import { assign, createMachine, fromPromise } from "xstate";
 import type { MenuItem, Order, PaymentAuthorizationResult } from "@astra/shared-types";
 import type { LaneMode } from "@astra/kiosk-state";
+import { cartProxy } from "@astra/kiosk-state";
+import { apiClient } from "../state/apiClient";
+import { defaultLogger } from "../utils/logger";
+
+const log = defaultLogger.child("kioskMachine");
 
 export type KioskWorkflowStage =
   | "ATTRACT"
@@ -23,6 +28,7 @@ export interface KioskContext {
   readonly errorMessage: string | null;
   readonly apiStatus: "online" | "offline" | "degraded" | "unknown";
   readonly isOfflineMode: boolean;
+  readonly cartId: string;
 }
 
 export type KioskEvent =
@@ -46,7 +52,8 @@ export type KioskEvent =
   | { type: "CLOSE_ADMIN" }
   | { type: "API_ERROR"; message: string }
   | { type: "NETWORK_OFFLINE" }
-  | { type: "NETWORK_ONLINE" };
+  | { type: "NETWORK_ONLINE" }
+  | { type: "RETRY" };
 
 const APPROVED_STATUSES: readonly PaymentAuthorizationResult["status"][] = [
   "authorized",
@@ -65,32 +72,24 @@ function isDeclinedResult(result: PaymentAuthorizationResult): boolean {
 async function finalizeOrder(input: {
   sessionId: string;
   paymentResult: PaymentAuthorizationResult | null;
+  cartId: string;
 }): Promise<Order> {
   if (!input.paymentResult) {
     throw new Error("Cannot finalize order without a payment result.");
   }
-  await new Promise((resolve) => {
-    setTimeout(resolve, 800);
+
+  log.info("Finalizing order", {
+    sessionId: input.sessionId,
+    cartId: input.cartId,
+    authorizationId: input.paymentResult.authorizationId,
   });
-  return {
-    orderId: crypto.randomUUID(),
-    storeId: crypto.randomUUID(),
-    kioskId: "kiosk-local",
-    cartId: crypto.randomUUID(),
-    orderNumber: `${Math.floor(Math.random() * 8999) + 1000}`,
-    status: "paid",
-    subtotalCents: input.paymentResult.amountCents,
-    taxCents: 0,
-    discountCents: 0,
-    totalCents: input.paymentResult.amountCents,
-    itemsJson: [],
-    taxBreakdownJson: null,
-    metadata: { paymentAuthorizationId: input.paymentResult.authorizationId },
-    paidAt: new Date().toISOString(),
-    fulfilledAt: null,
-    cancelledAt: null,
-    createdAt: new Date().toISOString(),
-  };
+
+  const orderResponse = await apiClient.createOrder(
+    input.cartId,
+    input.paymentResult.authorizationId,
+  );
+
+  return orderResponse;
 }
 
 export const kioskMachine = createMachine(
@@ -112,6 +111,7 @@ export const kioskMachine = createMachine(
         errorMessage: null,
         apiStatus: "unknown",
         isOfflineMode: false,
+        cartId: cartProxy.cartId,
       },
     states: {
        ATTRACT: {
@@ -136,164 +136,219 @@ export const kioskMachine = createMachine(
         },
       },
        MENU: {
-        on: {
-          SELECT_ITEM: {
-            target: "ITEM_DETAIL",
-            actions: ["assignSelectedItem"],
-          },
-          GO_TO_CART: {
-            guard: "cartHasItems",
-            target: "CART",
-          },
-          CART_UPDATED: {
-            actions: ["assignCartStatus"],
-          },
-          OPEN_ADMIN: {
-            target: "ADMIN",
-          },
-          NETWORK_OFFLINE: {
-            actions: ["setOfflineMode"],
-          },
-          NETWORK_ONLINE: {
-            actions: ["setOnlineMode"],
-          },
-        },
-      },
-       ITEM_DETAIL: {
-        on: {
-          CLOSE_ITEM_DETAIL: {
-            target: "MENU",
-            actions: ["clearSelectedItem"],
-          },
-          ADD_TO_CART: {
-            target: "MENU",
-            actions: ["clearSelectedItem", "markCartHasItems"],
-          },
-          OPEN_ADMIN: {
-            target: "ADMIN",
-          },
-          NETWORK_OFFLINE: {
-            actions: ["setOfflineMode"],
-          },
-          NETWORK_ONLINE: {
-            actions: ["setOnlineMode"],
-          },
-        },
-      },
-       CART: {
-        on: {
-          BACK_TO_MENU: {
-            target: "MENU",
-          },
-          PROCEED_TO_PAYMENT: {
-            guard: "cartHasItems",
-            target: "PAYMENT",
-          },
-          OPEN_ADMIN: {
-            target: "ADMIN",
-          },
-          NETWORK_OFFLINE: {
-            actions: ["setOfflineMode"],
-          },
-          NETWORK_ONLINE: {
-            actions: ["setOnlineMode"],
-          },
-        },
-      },
-       PAYMENT: {
-        entry: ["clearError"],
-        on: {
-          PAYMENT_AUTHORIZED: {
-            guard: "paymentApproved",
-            target: "PROCESSING",
-            actions: ["assignPaymentResult"],
-          },
-          PAYMENT_DECLINED: {
-            guard: "paymentDeclined",
-            target: "CART",
-            actions: ["setDeclineError"],
-          },
-          PAYMENT_FAILED: {
-            target: "CART",
-            actions: ["setErrorMessage"],
-          },
-          CANCEL_PAYMENT: {
-            target: "CART",
-          },
-          OPEN_ADMIN: {
-            target: "ADMIN",
-          },
-          NETWORK_OFFLINE: {
-            actions: ["setOfflineMode"],
-          },
-          NETWORK_ONLINE: {
-            actions: ["setOnlineMode"],
-          },
-        },
-      },
-       PROCESSING: {
-        invoke: {
-          src: "finalizeOrder",
-          input: ({ context }) => ({
-            sessionId: context.sessionId ?? "anonymous",
-            paymentResult: context.paymentResult,
-          }),
-          onDone: {
-            target: "RECEIPT",
-            actions: assign({ order: ({ event }) => event.output as Order }),
-          },
-          onError: {
-            target: "PAYMENT",
-            actions: assign({
-              errorMessage: ({ event }) =>
-                event.error instanceof Error ? event.error.message : "Order finalization failed.",
-            }),
-          },
-        },
          on: {
-          CANCEL_PAYMENT: {
-            target: "CART",
-            actions: ["clearError"],
+           SELECT_ITEM: {
+             target: "ITEM_DETAIL",
+             actions: ["assignSelectedItem"],
+           },
+           GO_TO_CART: {
+             guard: "cartHasItems",
+             target: "CART",
+           },
+           CART_UPDATED: {
+             actions: ["assignCartStatus"],
+           },
+           RETURN_TO_ATTRACT: {
+             target: "ATTRACT",
+             actions: ["resetContext"],
+           },
+           OPEN_ADMIN: {
+             target: "ADMIN",
+           },
+           NETWORK_OFFLINE: {
+             actions: ["setOfflineMode"],
+           },
+           NETWORK_ONLINE: {
+             actions: ["setOnlineMode"],
+           },
+         },
+       },
+       ITEM_DETAIL: {
+         on: {
+           CLOSE_ITEM_DETAIL: {
+             target: "MENU",
+             actions: ["clearSelectedItem"],
+           },
+           ADD_TO_CART: {
+             target: "MENU",
+             actions: ["clearSelectedItem", "markCartHasItems"],
+           },
+           RETURN_TO_ATTRACT: {
+             target: "ATTRACT",
+             actions: ["resetContext"],
+           },
+           OPEN_ADMIN: {
+             target: "ADMIN",
+           },
+           NETWORK_OFFLINE: {
+             actions: ["setOfflineMode"],
+           },
+           NETWORK_ONLINE: {
+             actions: ["setOnlineMode"],
+           },
+         },
+       },
+       CART: {
+         on: {
+           BACK_TO_MENU: {
+             target: "MENU",
+           },
+           PROCEED_TO_PAYMENT: {
+             guard: "cartHasItems",
+             target: "PAYMENT",
+           },
+           RETURN_TO_ATTRACT: {
+             target: "ATTRACT",
+             actions: ["resetContext"],
+           },
+           OPEN_ADMIN: {
+             target: "ADMIN",
+           },
+           NETWORK_OFFLINE: {
+             actions: ["setOfflineMode"],
+           },
+           NETWORK_ONLINE: {
+             actions: ["setOnlineMode"],
+           },
+         },
+       },
+       PAYMENT: {
+         entry: ["clearError"],
+         on: {
+           PAYMENT_AUTHORIZED: {
+             guard: "paymentApproved",
+             target: "PROCESSING",
+             actions: ["assignPaymentResult"],
+           },
+           PAYMENT_DECLINED: {
+             guard: "paymentDeclined",
+             target: "CART",
+             actions: ["setDeclineError"],
+           },
+           PAYMENT_FAILED: {
+             target: "CART",
+             actions: ["setErrorMessage"],
+           },
+           CANCEL_PAYMENT: {
+             target: "CART",
+           },
+           RETURN_TO_ATTRACT: {
+             target: "ATTRACT",
+             actions: ["resetContext"],
+           },
+           OPEN_ADMIN: {
+             target: "ADMIN",
+           },
+           NETWORK_OFFLINE: {
+             actions: ["setOfflineMode"],
+           },
+           NETWORK_ONLINE: {
+             actions: ["setOnlineMode"],
+           },
+         },
+       },
+        PROCESSING: {
+          invoke: {
+            src: "finalizeOrder",
+            input: ({ context }) => ({
+              sessionId: context.sessionId ?? "anonymous",
+              paymentResult: context.paymentResult,
+              cartId: context.cartId,
+            }),
+            onDone: {
+             target: "RECEIPT",
+             actions: assign({ order: ({ event }) => event.output as Order }),
+           },
+            onError: {
+              target: "PROCESSING_ERROR",
+              actions: [
+                assign({
+                  errorMessage: ({ event }) =>
+                    event.error instanceof Error ? event.error.message : "Order finalization failed.",
+                }),
+                 () => {
+                   log.error("Order finalization failed", undefined, {
+                     sessionId: undefined,
+                   });
+                 },
+              ],
+            },
           },
-          NETWORK_OFFLINE: {
-            actions: ["setOfflineMode"],
-          },
-          NETWORK_ONLINE: {
-            actions: ["setOnlineMode"],
+         on: {
+           RETURN_TO_ATTRACT: {
+             target: "ATTRACT",
+             actions: ["resetContext"],
+           },
+           NETWORK_OFFLINE: {
+             actions: ["setOfflineMode"],
+           },
+           NETWORK_ONLINE: {
+             actions: ["setOnlineMode"],
+           },
+         },
+       },
+        PROCESSING_ERROR: {
+          on: {
+            RETRY: {
+              target: "PROCESSING",
+            },
+            CANCEL_PAYMENT: {
+              target: "CART",
+            },
+            RETURN_TO_ATTRACT: {
+              target: "ATTRACT",
+              actions: ["resetContext"],
+            },
+            OPEN_ADMIN: {
+              target: "ADMIN",
+            },
+            NETWORK_OFFLINE: {
+              actions: ["setOfflineMode"],
+            },
+            NETWORK_ONLINE: {
+              actions: ["setOnlineMode"],
+            },
           },
         },
-      },
-       RECEIPT: {
-        on: {
-          RECEIPT_ACKNOWLEDGED: {
-            target: "ATTRACT",
-            actions: ["resetContext"],
-          },
-          OPEN_ADMIN: {
-            target: "ADMIN",
-          },
-          NETWORK_OFFLINE: {
-            actions: ["setOfflineMode"],
-          },
-          NETWORK_ONLINE: {
-            actions: ["setOnlineMode"],
-          },
-        },
-      },
-       ADMIN: {
-        on: {
-          CLOSE_ADMIN: {
-            target: "ATTRACT",
-            actions: ["resetContext"],
-          },
-          NETWORK_OFFLINE: {
-            actions: ["setOfflineMode"],
-          },
-          NETWORK_ONLINE: {
-            actions: ["setOnlineMode"],
-          },
-        },
-      },
+        RECEIPT: {
+         on: {
+           RECEIPT_ACKNOWLEDGED: {
+             target: "ATTRACT",
+             actions: ["resetContext"],
+           },
+           RETURN_TO_ATTRACT: {
+             target: "ATTRACT",
+             actions: ["resetContext"],
+           },
+           OPEN_ADMIN: {
+             target: "ADMIN",
+           },
+           NETWORK_OFFLINE: {
+             actions: ["setOfflineMode"],
+           },
+           NETWORK_ONLINE: {
+             actions: ["setOnlineMode"],
+           },
+         },
+       },
+        ADMIN: {
+         on: {
+           CLOSE_ADMIN: {
+             target: "ATTRACT",
+             actions: ["resetContext"],
+           },
+           RETURN_TO_ATTRACT: {
+             target: "ATTRACT",
+             actions: ["resetContext"],
+           },
+           NETWORK_OFFLINE: {
+             actions: ["setOfflineMode"],
+           },
+           NETWORK_ONLINE: {
+             actions: ["setOnlineMode"],
+           },
+         },
+       },
     },
   },
   {
@@ -304,6 +359,8 @@ export const kioskMachine = createMachine(
             sessionId: event.sessionId,
             laneMode: event.laneMode ?? "full",
             errorMessage: null,
+            cartId: cartProxy.cartId,
+            returnTo: null,
           };
         }
         return {};
@@ -319,25 +376,37 @@ export const kioskMachine = createMachine(
       assignPaymentResult: assign(({ event }) => ({
         paymentResult: event.type === "PAYMENT_AUTHORIZED" ? event.result : null,
       })),
+      clearPaymentResult: assign({ paymentResult: null }),
+      setPaymentError: assign(({ event }) => ({
+        errorMessage:
+          event.type === "PAYMENT_DECLINED"
+            ? event.result.declineReason ?? "Payment declined. Try another method."
+            : event.type === "PAYMENT_FAILED"
+            ? event.message
+            : null,
+      })),
+      setErrorMessage: assign(({ event }) => ({
+        errorMessage: event.type === "PAYMENT_FAILED" ? event.message : "An unexpected error occurred.",
+      })),
       setDeclineError: assign(({ event }) => ({
         errorMessage:
           event.type === "PAYMENT_DECLINED"
             ? event.result.declineReason ?? "Payment declined. Try another method."
             : null,
       })),
-      setErrorMessage: assign(({ event }) => ({
-        errorMessage: event.type === "PAYMENT_FAILED" ? event.message : "An unexpected error occurred.",
-      })),
-       clearError: assign({ errorMessage: null }),
-       setOfflineMode: assign({ 
-         apiStatus: "offline", 
-         isOfflineMode: true 
+      setOnlineMode: assign({
+        apiStatus: "online",
+        isOfflineMode: false,
+      }),
+      setOfflineMode: assign({
+        apiStatus: "offline",
+        isOfflineMode: true,
+      }),
+       assignCartId: assign({
+         cartId: cartProxy.cartId,
        }),
-       setOnlineMode: assign({ 
-         apiStatus: "online", 
-         isOfflineMode: false 
-       }),
-      resetContext: assign(() => ({
+        clearError: assign({ errorMessage: null }),
+       resetContext: assign(() => ({
         sessionId: null,
         laneMode: "full",
         selectedItem: null,
@@ -346,6 +415,7 @@ export const kioskMachine = createMachine(
         paymentResult: null,
         order: null,
         errorMessage: null,
+        cartId: cartProxy.cartId,
       })),
     },
     guards: {
@@ -358,8 +428,9 @@ export const kioskMachine = createMachine(
     actors: {
       finalizeOrder: fromPromise<
         Order,
-        { sessionId: string; paymentResult: PaymentAuthorizationResult | null }
+        { sessionId: string; paymentResult: PaymentAuthorizationResult | null; cartId: string }
       >(async ({ input }) => finalizeOrder(input)),
     },
   },
 );
+

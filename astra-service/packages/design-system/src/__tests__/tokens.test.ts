@@ -8,14 +8,12 @@ import { cssVariables as zIndexVariables } from "../tokens/z-index";
 
 describe("tokens", () => {
   it("exposes color tokens as CSS variables", () => {
-    expect(colorVariables["--astra-color-primary"]).toBe("#5A7A5C");
-    expect(semantic.cta).toBe("#B87E6B");
-    expect(semantic.error).toBe("#C4A4A4");
+    expect(colorVariables["--astra-color-moss"]).toBe("#5A7A5C");
   });
 
   it("exposes spacing tokens including the 56px touch target", () => {
-    expect(spacing[7]).toBe("56px");
-    expect(spacingVariables["--astra-space-7"]).toBe("56px");
+    expect(spacing.touchMinHeight).toBe("56px");
+    expect(spacingVariables["--astra-space-touchMinHeight"]).toBe("56px");
   });
 
   it("aggregates token variables across all token categories", () => {

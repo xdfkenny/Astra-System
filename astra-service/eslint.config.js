@@ -51,4 +51,16 @@ export default tseslint.config(
       },
     },
   },
+  // Other config scripts (tailwind/vitest/playwright) and Playwright e2e specs
+  // are not part of any package tsconfig project, so type-aware linting cannot
+  // resolve them. Disable type checking for these files.
+  {
+    files: ["**/*.config.ts", "**/e2e/**/*.ts"],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+      },
+    },
+  },
 );
