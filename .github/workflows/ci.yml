@@ -275,24 +275,17 @@ jobs:
         image: nats:2-alpine
         ports:
           - 4222:4222
-          - 8222:8222
-        options: >-
-          --health-cmd "wget -q --spider http://localhost:8222/healthz"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - name: Wait for services
         run: |
-          for i in $(seq 1 30); do
-            if curl -fsS http://localhost:8222/healthz >/dev/null 2>&1 && \
-               curl -fsS http://localhost:5432 >/dev/null 2>&1; then
-              echo "All services healthy"
-              break
+          wait_port() { timeout 2 bash -c "cat < /dev/null > /dev/tcp/localhost/$1" 2>/dev/null; }
+          for i in $(seq 1 60); do
+            if wait_port 5432 && wait_port 6379 && wait_port 4222; then
+              echo "All services up"; break
             fi
             sleep 2
-            if [ "$i" -eq 30 ]; then
+            if [ "$i" -eq 60 ]; then
               echo "Timed out waiting for services" >&2
               exit 1
             fi
@@ -365,14 +358,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: 'astra-service/pnpm-lock.yaml'
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -380,9 +365,10 @@ jobs:
         with:
           toolchain: ${{ env.RUST_VERSION }}
 
-      - name: npm audit
-        run: pnpm audit --audit-level high
-        working-directory: astra-service
+      - name: Install osv-scanner
+        run: curl -sSfL https://raw.githubusercontent.com/google/osv-scanner/main/install.sh | sh -s -- -b /usr/local/bin v1.9.2
+      - name: osv-scanner (npm/pnpm HIGH,CRITICAL)
+        run: osv-scanner --lockfile=astra-service/pnpm-lock.yaml --severity-threshold=HIGH
 
       - name: cargo audit
         run: |
