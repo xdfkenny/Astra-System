@@ -367,6 +367,27 @@ jobs:
         with:
           toolchain: ${{ env.RUST_VERSION }}
 
+      - name: Set up protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: '25.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install protoc Go plugins
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Generate protobuf Go code
+        working-directory: proto
+        run: |
+          mkdir -p gen/go
+          protoc -I proto \
+            --go_out=. --go_opt=module=github.com/astra-systems/astra-service/proto \
+            --go-grpc_out=. --go-grpc_opt=module=github.com/astra-systems/astra-service/proto \
+            --grpc-gateway_out=. --grpc-gateway_opt=module=github.com/astra-systems/astra-service/proto \
+            $(find proto -name '*.proto' ! -path '*/google/*')
+
       - name: cargo audit (Rust)
         if: always()
         run: |
