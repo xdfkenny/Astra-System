@@ -13,7 +13,12 @@ export { colors, darkColors } from './tokens/colors';
 export { default as typography } from './tokens/typography';
 export { default as spacing } from './tokens/spacing';
 
-// Re-export utilities
+// Re-export design-system components and utilities from the main entry
+// (also available via subpath exports `@astra/design-system/components`
+// and `@astra/design-system/utils`). `export *` does not re-export
+// default exports, so the providers are re-exported explicitly below.
+export * from './components';
+export * from './utils';
 export { default as TailwindProvider } from './components/TailwindProvider';
 export { default as ThemeProvider } from './components/ThemeProvider';
 

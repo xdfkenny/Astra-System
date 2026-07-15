@@ -1,7 +1,6 @@
 ﻿import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
-import { haptic } from "@astra/design-system";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 
 interface ProcessingStage {
@@ -47,7 +46,9 @@ export function ProcessingScreen(): React.JSX.Element {
   useEffect(() => {
     if (prevStageLabel.current !== currentStage.label) {
       prevStageLabel.current = currentStage.label;
-      haptic("light");
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate(10);
+      }
     }
   }, [currentStage.label]);
 

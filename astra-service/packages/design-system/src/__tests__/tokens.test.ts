@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cssVariables as colorVariables, semantic } from "../tokens/colors";
+import { cssVariables as colorVariables } from "../tokens/colors";
 import { cssVariables as elevationVariables } from "../tokens/elevation";
 import { cssVariables as motionVariables } from "../tokens/motion";
 import { cssVariables as spacingVariables, spacing } from "../tokens/spacing";
