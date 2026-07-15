@@ -323,8 +323,10 @@ jobs:
           done
       - name: Integration smoke tests
         run: |
-          curl -fsS http://localhost:8222/healthz
-          curl -fsS http://localhost:5432 || true
+          probe() { timeout 2 bash -c "cat < /dev/null > /dev/tcp/localhost/$1" 2>/dev/null; }
+          for p in 5432 6379 4222; do
+            if probe "$p"; then echo "port $p reachable"; else echo "port $p NOT reachable" >&2; exit 1; fi
+          done
 
   test-e2e:
     needs: [changes, lint-ts]
@@ -366,7 +368,9 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
 
       - name: Install osv-scanner
-        run: curl -sSfL https://raw.githubusercontent.com/google/osv-scanner/main/install.sh | sh -s -- -b /usr/local/bin v1.9.2
+        run: |
+          go install github.com/google/osv-scanner/cmd/osv-scanner@v1
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - name: osv-scanner (npm/pnpm HIGH,CRITICAL)
         run: osv-scanner --lockfile=astra-service/pnpm-lock.yaml --severity-threshold=HIGH
 
