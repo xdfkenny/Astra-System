@@ -8,14 +8,17 @@
 # development keeps the hardened defaults from docker-compose.yml.
 services:
   postgres:
+    user: "0:0"
     cap_drop: []
     cap_add: []
     security_opt: []
   redis:
+    user: "0:0"
     cap_drop: []
     cap_add: []
     security_opt: []
   nats:
+    user: "0:0"
     cap_drop: []
     cap_add: []
     security_opt: []
