@@ -367,20 +367,15 @@ jobs:
         with:
           toolchain: ${{ env.RUST_VERSION }}
 
-      - name: Install osv-scanner
-        run: |
-          go install github.com/google/osv-scanner/cmd/osv-scanner@v1
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-      - name: osv-scanner (npm/pnpm HIGH,CRITICAL)
-        run: osv-scanner --lockfile=astra-service/pnpm-lock.yaml --severity-threshold=HIGH
-
-      - name: cargo audit
+      - name: cargo audit (Rust)
+        if: always()
         run: |
           cargo install cargo-audit --locked
           cargo audit
         working-directory: astra-service/sync-daemon
 
-      - name: govulncheck
+      - name: govulncheck (Go)
+        if: always()
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           for dir in astra-service/services/*/ astra-service/packages/go-common/ services/update-server/; do
@@ -390,7 +385,8 @@ jobs:
             fi
           done
 
-      - name: Trivy filesystem scan
+      - name: Trivy filesystem scan (npm/go/rust HIGH,CRITICAL)
+        if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
