@@ -6,10 +6,10 @@
 
 <p align="center">
   <a href="./README.md"><b>English</b></a> ·
-  <a href="./README.es.md">Español</a> ·
-  <a href="./README.zh.md">中文</a> ·
-  <a href="./README.ko.md">한국어</a> ·
-  <a href="./README.ja.md">日本語</a>
+  <a href="./i18n/README.es.md">Español</a> ·
+  <a href="./i18n/README.zh.md">中文</a> ·
+  <a href="./i18n/README.ko.md">한국어</a> ·
+  <a href="./i18n/README.ja.md">日本語</a>
 </p>
 
 [![CI](https://img.shields.io/badge/CI-pass-green.svg)](https://github.com/anomalyco/astra-system/actions)
