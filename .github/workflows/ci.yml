@@ -352,16 +352,14 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
 
       - name: npm audit
-        run: pnpm audit --audit-level moderate
+        run: pnpm audit --audit-level high
         working-directory: astra-service
-        continue-on-error: true
 
       - name: cargo audit
         run: |
           cargo install cargo-audit --locked
           cargo audit
         working-directory: astra-service/sync-daemon
-        continue-on-error: true
 
       - name: govulncheck
         run: |
@@ -372,7 +370,6 @@ jobs:
               (cd "${dir}" && govulncheck ./...)
             fi
           done
-        continue-on-error: true
 
       - name: Trivy filesystem scan
         uses: aquasecurity/trivy-action@v0.36.0
@@ -380,7 +377,7 @@ jobs:
           scan-type: fs
           scan-ref: .
           severity: HIGH,CRITICAL
-          exit-code: '0'
+          exit-code: '1'
           ignore-unfixed: true
 
   build-docker:
