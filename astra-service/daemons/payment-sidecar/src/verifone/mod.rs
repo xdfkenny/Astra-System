@@ -49,9 +49,7 @@ pub trait Terminal: Send + Sync {
         method: &str,
     ) -> Result<AuthorizationResult, PaymentError>;
 
-    async fn status(&self,
-        authorization_id: &str,
-    ) -> Result<AuthorizationResult, PaymentError>;
+    async fn status(&self, authorization_id: &str) -> Result<AuthorizationResult, PaymentError>;
 
     async fn cancel(&self, authorization_id: &str) -> Result<(), PaymentError>;
 }
@@ -84,8 +82,14 @@ impl Terminal for SimulatedTerminal {
             .await
             .initiate(amount_cents, currency)
             .await?;
-        let state = self.inner.lock().await.status(&token.transaction_id).await?;
-        Ok(build_result(&token.transaction_id,
+        let state = self
+            .inner
+            .lock()
+            .await
+            .status(&token.transaction_id)
+            .await?;
+        Ok(build_result(
+            &token.transaction_id,
             method,
             amount_cents,
             &token,
@@ -93,10 +97,7 @@ impl Terminal for SimulatedTerminal {
         ))
     }
 
-    async fn status(
-        &self,
-        authorization_id: &str,
-    ) -> Result<AuthorizationResult, PaymentError> {
+    async fn status(&self, authorization_id: &str) -> Result<AuthorizationResult, PaymentError> {
         let state = self.inner.lock().await.status(authorization_id).await?;
         // amount/method/opaque_token are not available from state alone in the
         // simulator; we reconstruct a minimal result. In the FFI adapter these
@@ -107,7 +108,13 @@ impl Terminal for SimulatedTerminal {
             terminal_uri: "sim://localhost".to_string(),
             authorized_at: chrono::Utc::now().to_rfc3339(),
         };
-        Ok(build_result(authorization_id, "credit_debit", 0, &token, &state))
+        Ok(build_result(
+            authorization_id,
+            "credit_debit",
+            0,
+            &token,
+            &state,
+        ))
     }
 
     async fn cancel(&self, authorization_id: &str) -> Result<(), PaymentError> {
@@ -123,9 +130,11 @@ fn build_result(
     state: &sim::SimState,
 ) -> AuthorizationResult {
     let (status, approval_code, decline_reason) = match state {
-        sim::SimState::Authorized { auth_code, .. } => {
-            (AuthorizationStatus::Authorized, Some(auth_code.clone()), None)
-        }
+        sim::SimState::Authorized { auth_code, .. } => (
+            AuthorizationStatus::Authorized,
+            Some(auth_code.clone()),
+            None,
+        ),
         sim::SimState::Declined { reason } => {
             (AuthorizationStatus::Declined, None, Some(reason.clone()))
         }

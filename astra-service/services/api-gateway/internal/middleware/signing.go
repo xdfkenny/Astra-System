@@ -55,8 +55,8 @@ func RequireSignedRequest(resolveKey func(kioskID string) ([]byte, bool)) fiber.
 
 		if err := security.VerifyRequest(key, method, c.Path(), timestamp, bodyHash, signature); err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error":   "signature_verification_failed",
-				"detail":  err.Error(),
+				"error":  "signature_verification_failed",
+				"detail": err.Error(),
 			})
 		}
 

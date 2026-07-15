@@ -8,13 +8,13 @@ import (
 
 // Config holds all runtime configuration for the admin-graphql service.
 type Config struct {
-	Environment string
-	ServiceName string
-	HTTPPort    string
-	DatabaseURL string
-	JWTSecret   []byte
-	JWTIssuer   string
-	JWTAudience string
+	Environment  string
+	ServiceName  string
+	HTTPPort     string
+	DatabaseURL  string
+	JWTSecret    []byte
+	JWTIssuer    string
+	JWTAudience  string
 	OTLPEndpoint string
 }
 

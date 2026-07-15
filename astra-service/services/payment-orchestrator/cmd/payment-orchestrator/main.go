@@ -22,8 +22,8 @@ import (
 	"github.com/astra-systems/astra-service/services/payment-orchestrator/internal/repository"
 	"github.com/astra-systems/astra-service/services/payment-orchestrator/internal/server"
 	"github.com/astra-systems/astra-service/services/payment-orchestrator/internal/service"
-	"github.com/redis/go-redis/v9"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {

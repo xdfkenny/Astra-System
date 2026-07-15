@@ -9,8 +9,8 @@ import (
 	"fmt"
 
 	"github.com/astra-service/go-common/eventbus"
-	"github.com/astra-systems/astra-service/services/order-service/internal/service"
 	eventsv1 "github.com/astra-systems/astra-service/proto/gen/go/events"
+	"github.com/astra-systems/astra-service/services/order-service/internal/service"
 	"github.com/nats-io/nats.go/jetstream"
 )
 

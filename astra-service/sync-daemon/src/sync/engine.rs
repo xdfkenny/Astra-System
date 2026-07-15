@@ -11,15 +11,15 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use std::time::Duration;
 
-use tokio::sync::{watch, RwLock, Mutex};
+use tokio::sync::{watch, Mutex, RwLock};
 use tokio::time::interval;
 use tracing::{debug, error, info, trace, warn};
 
 use crate::config::Config;
-use crate::storage::sqlite::SyncDatabase;
 use crate::p2p::mesh::P2PMeshHandle;
-use crate::sync::crdt::{LamportClock, LWWRegister};
-use crate::{DataType, DaemonState, AstraSyncError, SyncRecord};
+use crate::storage::sqlite::SyncDatabase;
+use crate::sync::crdt::{LWWRegister, LamportClock};
+use crate::{AstraSyncError, DaemonState, DataType, SyncRecord};
 
 /// Batch interval for `SyncPriority::Batched` data types.
 const BATCH_INTERVAL_SECS: u64 = 5;
@@ -38,19 +38,25 @@ pub struct SyncEngineHandle {
 impl SyncEngineHandle {
     /// Requests an immediate sync of a specific data type.
     pub async fn request_sync(&self, data_type: DataType) -> Result<(), AstraSyncError> {
-        self.cmd_tx.send(EngineCommand::SyncNow(data_type)).await
-            .map_err(|_| AstraSyncError::SyncEngine("sync engine command channel closed".to_string()))
+        self.cmd_tx
+            .send(EngineCommand::SyncNow(data_type))
+            .await
+            .map_err(|_| {
+                AstraSyncError::SyncEngine("sync engine command channel closed".to_string())
+            })
     }
 }
 
 #[derive(Debug, Clone)]
-enum EngineCommand {
+pub enum EngineCommand {
     SyncNow(DataType),
+    #[allow(dead_code)]
     Shutdown,
 }
 
 /// The sync engine holds all in-memory CRDT state and coordinates background sync.
 pub struct SyncEngine {
+    #[allow(dead_code)]
     config: Arc<Config>,
     state: Arc<RwLock<DaemonState>>,
     db: Arc<SyncDatabase>,
@@ -126,16 +132,13 @@ impl SyncEngine {
 
         // Hydrate in-memory caches from the local database.
         let inv_count = {
-            let inv_records: Vec<SyncRecord<InventoryItem>> = db.load_all(DataType::Inventory).await?;
+            let inv_records: Vec<SyncRecord<InventoryItem>> =
+                db.load_all(DataType::Inventory).await?;
             let count = inv_records.len();
             let mut inv = inventory.lock().await;
             for rec in inv_records {
-                let reg = LWWRegister::new(
-                    rec.payload,
-                    rec.origin,
-                    rec.lamport_ts,
-                    rec.wallclock_ts,
-                );
+                let reg =
+                    LWWRegister::new(rec.payload, rec.origin, rec.lamport_ts, rec.wallclock_ts);
                 inv.insert(rec.id, reg);
             }
             count
@@ -146,19 +149,16 @@ impl SyncEngine {
             let count = cart_records.len();
             let mut c = carts.lock().await;
             for rec in cart_records {
-                let reg = LWWRegister::new(
-                    rec.payload,
-                    rec.origin,
-                    rec.lamport_ts,
-                    rec.wallclock_ts,
-                );
+                let reg =
+                    LWWRegister::new(rec.payload, rec.origin, rec.lamport_ts, rec.wallclock_ts);
                 c.insert(rec.id, reg);
             }
             count
         };
 
         let tx_count = {
-            let tx_records: Vec<SyncRecord<TransactionPayload>> = db.load_all(DataType::Transaction).await?;
+            let tx_records: Vec<SyncRecord<TransactionPayload>> =
+                db.load_all(DataType::Transaction).await?;
             let count = tx_records.len();
             let mut t = transactions.lock().await;
             for rec in tx_records {
@@ -168,7 +168,8 @@ impl SyncEngine {
         };
 
         let ana_count = {
-            let ana_records: Vec<SyncRecord<AnalyticsEvent>> = db.load_all(DataType::Analytics).await?;
+            let ana_records: Vec<SyncRecord<AnalyticsEvent>> =
+                db.load_all(DataType::Analytics).await?;
             let count = ana_records.len();
             let mut a = analytics.lock().await;
             for rec in ana_records {
@@ -199,7 +200,10 @@ impl SyncEngine {
     }
 
     /// Starts the background sync loops and returns a handle plus a join handle.
-    pub async fn start(self, shutdown: watch::Receiver<bool>) -> Result<(SyncEngineHandle, tokio::task::JoinHandle<()>), AstraSyncError> {
+    pub async fn start(
+        self,
+        shutdown: watch::Receiver<bool>,
+    ) -> Result<(SyncEngineHandle, tokio::task::JoinHandle<()>), AstraSyncError> {
         let (cmd_tx, mut cmd_rx) = tokio::sync::mpsc::channel::<EngineCommand>(256);
 
         let inventory = self.inventory.clone();
@@ -319,25 +323,41 @@ impl SyncEngine {
                         match dt {
                             DataType::Inventory => {
                                 if let Err(e) = run_immediate_sync(
-                                    inventory.clone(), cmd_db.clone(), cmd_mesh.clone(),
-                                    cmd_lamport.clone(), state.clone(),
-                                ).await {
+                                    inventory.clone(),
+                                    cmd_db.clone(),
+                                    cmd_mesh.clone(),
+                                    cmd_lamport.clone(),
+                                    state.clone(),
+                                )
+                                .await
+                                {
                                     warn!(error = %e, "Immediate sync request failed");
                                 }
                             }
                             DataType::Cart | DataType::Transaction => {
                                 if let Err(e) = run_batched_sync(
-                                    carts.clone(), transactions.clone(), cmd_db.clone(),
-                                    cmd_mesh.clone(), cmd_lamport.clone(), state.clone(),
-                                ).await {
+                                    carts.clone(),
+                                    transactions.clone(),
+                                    cmd_db.clone(),
+                                    cmd_mesh.clone(),
+                                    cmd_lamport.clone(),
+                                    state.clone(),
+                                )
+                                .await
+                                {
                                     warn!(error = %e, "Batched sync request failed");
                                 }
                             }
                             DataType::Analytics => {
                                 if let Err(e) = run_delayed_sync(
-                                    analytics.clone(), cmd_db.clone(), cmd_mesh.clone(),
-                                    cmd_lamport.clone(), state.clone(),
-                                ).await {
+                                    analytics.clone(),
+                                    cmd_db.clone(),
+                                    cmd_mesh.clone(),
+                                    cmd_lamport.clone(),
+                                    state.clone(),
+                                )
+                                .await
+                                {
                                     warn!(error = %e, "Delayed sync request failed");
                                 }
                             }

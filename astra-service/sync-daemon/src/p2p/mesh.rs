@@ -79,10 +79,7 @@ impl P2PMeshHandle {
         payload: Vec<u8>,
     ) -> Result<(), AstraSyncError> {
         self.cmd_tx
-            .send(MeshCommand::Gossip {
-                data_type,
-                payload,
-            })
+            .send(MeshCommand::Gossip { data_type, payload })
             .await
             .map_err(|_| AstraSyncError::P2P("mesh command channel closed".to_string()))
     }
@@ -131,8 +128,14 @@ impl P2PMeshHandle {
 
 #[derive(Debug)]
 pub enum MeshCommand {
-    Gossip { data_type: DataType, payload: Vec<u8> },
-    SendRequest { peer: PeerId, request: SyncProtocol },
+    Gossip {
+        data_type: DataType,
+        payload: Vec<u8>,
+    },
+    SendRequest {
+        peer: PeerId,
+        request: SyncProtocol,
+    },
 }
 
 /// Combined libp2p network behaviour for the Astra mesh.
@@ -260,6 +263,7 @@ pub const SYNC_PROTOCOL: &str = "/astra-sync/1.0.0";
 
 /// libp2p-backed P2P mesh for the Astra sync daemon.
 pub struct P2PMesh {
+    #[allow(dead_code)]
     config: std::sync::Arc<Config>,
     local_peer_id: PeerId,
     swarm: Swarm<AstraMeshBehaviour>,
@@ -411,7 +415,10 @@ impl P2PMesh {
     }
 }
 
-fn build_swarm(local_key: identity::Keypair, config: &Config) -> Result<Swarm<AstraMeshBehaviour>, AstraSyncError> {
+fn build_swarm(
+    local_key: identity::Keypair,
+    config: &Config,
+) -> Result<Swarm<AstraMeshBehaviour>, AstraSyncError> {
     let peer_id = PeerId::from(local_key.public());
 
     let mdns_config = mdns::Config {
@@ -431,10 +438,13 @@ fn build_swarm(local_key: identity::Keypair, config: &Config) -> Result<Swarm<As
     let gossipsub = gossipsub::Behaviour::new(message_authenticity, gossipsub_config)
         .map_err(|e| AstraSyncError::P2P(format!("gossipsub behaviour failed: {e}")))?;
 
-    let sync_protocols = vec![(StreamProtocol::new(SYNC_PROTOCOL), request_response::ProtocolSupport::Full)];
-    let sync_cfg = request_response::Config::default()
-        .with_request_timeout(Duration::from_secs(10));
-    let sync = request_response::Behaviour::with_codec(BincodeCodec::default(), sync_protocols, sync_cfg);
+    let sync_protocols = vec![(
+        StreamProtocol::new(SYNC_PROTOCOL),
+        request_response::ProtocolSupport::Full,
+    )];
+    let sync_cfg =
+        request_response::Config::default().with_request_timeout(Duration::from_secs(10));
+    let sync = request_response::Behaviour::with_codec(BincodeCodec, sync_protocols, sync_cfg);
 
     let behaviour = AstraMeshBehaviour {
         mdns,

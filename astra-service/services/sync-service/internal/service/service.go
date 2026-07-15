@@ -143,9 +143,9 @@ func (s *Sync) Heartbeat(ctx context.Context, req *sync.HeartbeatRequest) (*sync
 	}
 
 	return &sync.HeartbeatResponse{
-		KioskId:         req.KioskId,
-		AcknowledgedAt:  hb.AcknowledgedAt.Format(time.RFC3339Nano),
-		IsLeader:        kiosk.IsLeader,
+		KioskId:        req.KioskId,
+		AcknowledgedAt: hb.AcknowledgedAt.Format(time.RFC3339Nano),
+		IsLeader:       kiosk.IsLeader,
 	}, nil
 }
 
@@ -171,7 +171,7 @@ func (s *Sync) deltasToEvents(b *sync.SyncBatch) ([]model.SyncEvent, error) {
 
 		eventType := syncEventTypeToString(d.EventType)
 		payload := map[string]any{
-			"delta_id":  d.DeltaId,
+			"delta_id":   d.DeltaId,
 			"event_type": eventType,
 		}
 		if len(d.Payload) > 0 {

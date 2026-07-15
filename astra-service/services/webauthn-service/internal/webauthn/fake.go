@@ -9,10 +9,10 @@ import (
 
 // FakeVerifier is a test double that returns predetermined responses.
 type FakeVerifier struct {
-	BeginRegistrationFunc func(user User, opts ...gwebauthn.RegistrationOption) (*protocol.CredentialCreation, *SessionData, error)
+	BeginRegistrationFunc  func(user User, opts ...gwebauthn.RegistrationOption) (*protocol.CredentialCreation, *SessionData, error)
 	FinishRegistrationFunc func(user User, session SessionData, response *protocol.ParsedCredentialCreationData) (*Credential, error)
-	BeginLoginFunc        func(user User, opts ...gwebauthn.LoginOption) (*protocol.CredentialAssertion, *SessionData, error)
-	FinishLoginFunc       func(user User, session SessionData, response *protocol.ParsedCredentialAssertionData) (*Credential, error)
+	BeginLoginFunc         func(user User, opts ...gwebauthn.LoginOption) (*protocol.CredentialAssertion, *SessionData, error)
+	FinishLoginFunc        func(user User, session SessionData, response *protocol.ParsedCredentialAssertionData) (*Credential, error)
 }
 
 // BeginRegistration delegates to BeginRegistrationFunc or returns a canned challenge.

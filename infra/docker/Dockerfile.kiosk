@@ -26,8 +26,9 @@ COPY astra-service/package.json astra-service/pnpm-lock.yaml \
 # Copy workspace packages.
 COPY astra-service/packages ./packages
 
-# Copy the kiosk host application.
-COPY astra-service/apps/kiosk ./apps/kiosk
+# Copy the full apps workspace so the pnpm workspace matches the lockfile;
+# the build step below only compiles @astra/kiosk and its dependencies.
+COPY astra-service/apps ./apps
 
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile

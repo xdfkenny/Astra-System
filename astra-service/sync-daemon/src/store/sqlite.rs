@@ -18,13 +18,13 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use parking_lot::Mutex;
-use rusqlite::{Connection, OptionalExtension, params, ToSql};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tracing::{debug, info, trace};
 
-use crate::AstraSyncError;
 use crate::crdt::hlc::Hlc;
+use crate::AstraSyncError;
 
 /// Encrypted SQLite store for local CRDT state and daemon metadata.
 #[derive(Debug, Clone)]
@@ -47,7 +47,7 @@ impl Store {
             .map_err(|e| AstraSyncError::Storage(format!("failed to open store: {e}")))?;
 
         conn.query_row(
-            &format!("PRAGMA key = \"x'{}'\"", hex::encode(&key)),
+            &format!("PRAGMA key = \"x'{}'\"", hex::encode(key)),
             [],
             |_| Ok(()),
         )
@@ -163,19 +163,18 @@ impl Store {
         tx.commit()
             .map_err(|e| AstraSyncError::Storage(format!("migration commit failed: {e}")))?;
 
-        info!(from = current_version, to = new_version, "Store migrations applied");
+        info!(
+            from = current_version,
+            to = new_version,
+            "Store migrations applied"
+        );
         Ok(())
     }
 
     /// Inserts or updates an inventory count.
-    pub fn set_inventory(
-        &self,
-        sku: &str,
-        count: i64,
-        hlc: &Hlc,
-    ) -> Result<(), AstraSyncError> {
-        let hlc_json = serde_json::to_string(hlc)
-            .map_err(|e| AstraSyncError::Serialization(e.to_string()))?;
+    pub fn set_inventory(&self, sku: &str, count: i64, hlc: &Hlc) -> Result<(), AstraSyncError> {
+        let hlc_json =
+            serde_json::to_string(hlc).map_err(|e| AstraSyncError::Serialization(e.to_string()))?;
         let now = hlc.wallclock_ms as i64;
         let conn = self.conn.lock();
         conn.execute(
@@ -194,10 +193,7 @@ impl Store {
     }
 
     /// Reads the current inventory count and HLC for a SKU.
-    pub fn get_inventory(
-        &self,
-        sku: &str,
-    ) -> Result<Option<(i64, Hlc)>, AstraSyncError> {
+    pub fn get_inventory(&self, sku: &str) -> Result<Option<(i64, Hlc)>, AstraSyncError> {
         let conn = self.conn.lock();
         let result: Option<(i64, String)> = conn
             .query_row(
@@ -231,19 +227,21 @@ impl Store {
             )
             .map_err(|e| AstraSyncError::Storage(format!("prepare failed: {e}")))?;
 
-        let rows = stmt.query_map(params![since_ms, limit as i64], |row| {
-            let sku: String = row.get(0)?;
-            let count: i64 = row.get(1)?;
-            let hlc_json: String = row.get(2)?;
-            let hlc = serde_json::from_str(&hlc_json).map_err(|e| {
-                rusqlite::Error::FromSqlConversionFailure(
-                    2,
-                    rusqlite::types::Type::Text,
-                    Box::new(e),
-                )
-            })?;
-            Ok((sku, count, hlc))
-        }).map_err(|e| AstraSyncError::Storage(format!("query failed: {e}")))?;
+        let rows = stmt
+            .query_map(params![since_ms, limit as i64], |row| {
+                let sku: String = row.get(0)?;
+                let count: i64 = row.get(1)?;
+                let hlc_json: String = row.get(2)?;
+                let hlc = serde_json::from_str(&hlc_json).map_err(|e| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        2,
+                        rusqlite::types::Type::Text,
+                        Box::new(e),
+                    )
+                })?;
+                Ok((sku, count, hlc))
+            })
+            .map_err(|e| AstraSyncError::Storage(format!("query failed: {e}")))?;
 
         let mut out = Vec::new();
         for row in rows {
@@ -262,8 +260,8 @@ impl Store {
     ) -> Result<(), AstraSyncError> {
         let payload_json = serde_json::to_string(payload)
             .map_err(|e| AstraSyncError::Serialization(e.to_string()))?;
-        let hlc_json = serde_json::to_string(hlc)
-            .map_err(|e| AstraSyncError::Serialization(e.to_string()))?;
+        let hlc_json =
+            serde_json::to_string(hlc).map_err(|e| AstraSyncError::Serialization(e.to_string()))?;
         let conn = self.conn.lock();
         conn.execute(
             "INSERT OR REPLACE INTO local_transactions (id, payload_json, hlc_json, committed, created_at_ms)
@@ -304,25 +302,27 @@ impl Store {
             )
             .map_err(|e| AstraSyncError::Storage(format!("prepare failed: {e}")))?;
 
-        let rows = stmt.query_map(params![committed as i32, limit as i64], |row| {
-            let payload_json: String = row.get(0)?;
-            let hlc_json: String = row.get(1)?;
-            let payload: T = serde_json::from_str(&payload_json).map_err(|e| {
-                rusqlite::Error::FromSqlConversionFailure(
-                    0,
-                    rusqlite::types::Type::Text,
-                    Box::new(e),
-                )
-            })?;
-            let hlc: Hlc = serde_json::from_str(&hlc_json).map_err(|e| {
-                rusqlite::Error::FromSqlConversionFailure(
-                    1,
-                    rusqlite::types::Type::Text,
-                    Box::new(e),
-                )
-            })?;
-            Ok((payload, hlc))
-        }).map_err(|e| AstraSyncError::Storage(format!("query failed: {e}")))?;
+        let rows = stmt
+            .query_map(params![committed as i32, limit as i64], |row| {
+                let payload_json: String = row.get(0)?;
+                let hlc_json: String = row.get(1)?;
+                let payload: T = serde_json::from_str(&payload_json).map_err(|e| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        0,
+                        rusqlite::types::Type::Text,
+                        Box::new(e),
+                    )
+                })?;
+                let hlc: Hlc = serde_json::from_str(&hlc_json).map_err(|e| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        1,
+                        rusqlite::types::Type::Text,
+                        Box::new(e),
+                    )
+                })?;
+                Ok((payload, hlc))
+            })
+            .map_err(|e| AstraSyncError::Storage(format!("query failed: {e}")))?;
 
         let mut out = Vec::new();
         for row in rows {
@@ -357,7 +357,8 @@ impl Store {
     }
 
     /// Writes a generic metadata value.
-    pub fn set_metadata(&self,
+    pub fn set_metadata(
+        &self,
         key: &str,
         value: &str,
         updated_at_ms: i64,
@@ -385,8 +386,8 @@ impl Store {
     ) -> Result<(), AstraSyncError> {
         let payload_json = serde_json::to_string(payload)
             .map_err(|e| AstraSyncError::Serialization(e.to_string()))?;
-        let hlc_json = serde_json::to_string(hlc)
-            .map_err(|e| AstraSyncError::Serialization(e.to_string()))?;
+        let hlc_json =
+            serde_json::to_string(hlc).map_err(|e| AstraSyncError::Serialization(e.to_string()))?;
         let conn = self.conn.lock();
         conn.execute(
             "INSERT OR REPLACE INTO offline_queue (id, kind, payload_json, hlc_json, created_at_ms, synced)
@@ -398,7 +399,10 @@ impl Store {
     }
 
     /// Loads unsynced offline queue entries.
-    pub fn load_offline_queue(&self, limit: usize) -> Result<Vec<(OfflineEntry, Hlc)>, AstraSyncError> {
+    pub fn load_offline_queue(
+        &self,
+        limit: usize,
+    ) -> Result<Vec<(OfflineEntry, Hlc)>, AstraSyncError> {
         let conn = self.conn.lock();
         let mut stmt = conn
             .prepare(
@@ -407,20 +411,29 @@ impl Store {
             )
             .map_err(|e| AstraSyncError::Storage(format!("prepare failed: {e}")))?;
 
-        let rows = stmt.query_map([limit as i64], |row| {
-            let id: String = row.get(0)?;
-            let kind: String = row.get(1)?;
-            let payload_json: String = row.get(2)?;
-            let hlc_json: String = row.get(3)?;
-            let hlc: Hlc = serde_json::from_str(&hlc_json).map_err(|e| {
-                rusqlite::Error::FromSqlConversionFailure(
-                    3,
-                    rusqlite::types::Type::Text,
-                    Box::new(e),
-                )
-            })?;
-            Ok((OfflineEntry { id, kind, payload_json }, hlc))
-        }).map_err(|e| AstraSyncError::Storage(format!("query failed: {e}")))?;
+        let rows = stmt
+            .query_map([limit as i64], |row| {
+                let id: String = row.get(0)?;
+                let kind: String = row.get(1)?;
+                let payload_json: String = row.get(2)?;
+                let hlc_json: String = row.get(3)?;
+                let hlc: Hlc = serde_json::from_str(&hlc_json).map_err(|e| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        3,
+                        rusqlite::types::Type::Text,
+                        Box::new(e),
+                    )
+                })?;
+                Ok((
+                    OfflineEntry {
+                        id,
+                        kind,
+                        payload_json,
+                    },
+                    hlc,
+                ))
+            })
+            .map_err(|e| AstraSyncError::Storage(format!("query failed: {e}")))?;
 
         let mut out = Vec::new();
         for row in rows {
@@ -437,10 +450,9 @@ impl Store {
             .map_err(|e| AstraSyncError::Storage(format!("mark_synced tx failed: {e}")))?;
         let mut count = 0usize;
         for id in ids {
-            count += tx.execute(
-                "UPDATE offline_queue SET synced = 1 WHERE id = ?1",
-                [id],
-            ).map_err(|e| AstraSyncError::Storage(format!("mark_synced failed: {e}")))?;
+            count += tx
+                .execute("UPDATE offline_queue SET synced = 1 WHERE id = ?1", [id])
+                .map_err(|e| AstraSyncError::Storage(format!("mark_synced failed: {e}")))?;
         }
         tx.commit()
             .map_err(|e| AstraSyncError::Storage(format!("mark_synced commit failed: {e}")))?;
@@ -505,7 +517,9 @@ mod tests {
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            let mut perms = std::fs::metadata(&key_path).expect("metadata").permissions();
+            let mut perms = std::fs::metadata(&key_path)
+                .expect("metadata")
+                .permissions();
             perms.set_mode(0o600);
             std::fs::set_permissions(&key_path, perms).expect("set perms");
         }
@@ -542,10 +556,12 @@ mod tests {
         store
             .insert_transaction("tx-1", &payload, &hlc, false)
             .unwrap();
-        let uncommitted: Vec<(serde_json::Value, Hlc)> = store.load_uncommitted_transactions(10).unwrap();
+        let uncommitted: Vec<(serde_json::Value, Hlc)> =
+            store.load_uncommitted_transactions(10).unwrap();
         assert_eq!(uncommitted.len(), 1);
         store.commit_transaction("tx-1").unwrap();
-        let uncommitted: Vec<(serde_json::Value, Hlc)> = store.load_uncommitted_transactions(10).unwrap();
+        let uncommitted: Vec<(serde_json::Value, Hlc)> =
+            store.load_uncommitted_transactions(10).unwrap();
         assert!(uncommitted.is_empty());
     }
 
@@ -553,7 +569,10 @@ mod tests {
     fn store_metadata_roundtrip() {
         let (store, _dir, _key) = temp_store();
         store.set_metadata("last_sync", "12345", 1).unwrap();
-        assert_eq!(store.get_metadata("last_sync").unwrap(), Some("12345".to_string()));
+        assert_eq!(
+            store.get_metadata("last_sync").unwrap(),
+            Some("12345".to_string())
+        );
     }
 
     #[test]
@@ -561,7 +580,9 @@ mod tests {
         let (store, _dir, _key) = temp_store();
         let hlc = Hlc::new("k1").unwrap();
         let payload = serde_json::json!({"op": "refill"});
-        store.enqueue_offline("q-1", "refill", &payload, &hlc).unwrap();
+        store
+            .enqueue_offline("q-1", "refill", &payload, &hlc)
+            .unwrap();
         let queued = store.load_offline_queue(10).unwrap();
         assert_eq!(queued.len(), 1);
         store.mark_offline_synced(&["q-1"]).unwrap();
@@ -578,7 +599,9 @@ mod tests {
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            let mut perms = std::fs::metadata(&key_path).expect("metadata").permissions();
+            let mut perms = std::fs::metadata(&key_path)
+                .expect("metadata")
+                .permissions();
             perms.set_mode(0o600);
             std::fs::set_permissions(&key_path, perms).expect("set perms");
         }

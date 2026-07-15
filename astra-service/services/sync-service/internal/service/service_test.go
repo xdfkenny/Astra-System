@@ -157,10 +157,10 @@ func TestDownloadBatch_DeltaCalculation(t *testing.T) {
 	})
 
 	req := &sync.DownloadBatchRequest{
-		StoreId:    storeID.String(),
-		KioskId:    kioskA.String(),
-		Since:      base.Format(time.RFC3339Nano),
-		MaxDeltas:  10,
+		StoreId:   storeID.String(),
+		KioskId:   kioskA.String(),
+		Since:     base.Format(time.RFC3339Nano),
+		MaxDeltas: 10,
 	}
 
 	batch, err := svc.DownloadBatch(context.Background(), req)

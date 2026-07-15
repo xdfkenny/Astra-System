@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/astra-service/go-common/outbox"
+	eventsv1 "github.com/astra-systems/astra-service/proto/gen/go/events"
 	"github.com/astra-systems/astra-service/services/payment-orchestrator/internal/domain"
 	"github.com/astra-systems/astra-service/services/payment-orchestrator/internal/events"
-	eventsv1 "github.com/astra-systems/astra-service/proto/gen/go/events"
 	"github.com/google/uuid"
 )
 

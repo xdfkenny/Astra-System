@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"time"
 
+	orderv1 "github.com/astra-systems/astra-service/proto/gen/go/order"
 	"github.com/astra-systems/astra-service/services/legacy-pos-adapter/internal/client"
 	"github.com/astra-systems/astra-service/services/legacy-pos-adapter/internal/repository"
-	orderv1 "github.com/astra-systems/astra-service/proto/gen/go/order"
 	"github.com/google/uuid"
 )
 

@@ -220,22 +220,22 @@ var orderType = graphql.NewObject(graphql.ObjectConfig{
 var orderItemType = graphql.NewObject(graphql.ObjectConfig{
 	Name: "OrderItem",
 	Fields: graphql.Fields{
-		"id":                &graphql.Field{Type: graphql.ID},
-		"orderId":           &graphql.Field{Type: graphql.ID},
-		"itemId":            &graphql.Field{Type: graphql.ID},
-		"nameSnapshot":      &graphql.Field{Type: graphql.String},
+		"id":                 &graphql.Field{Type: graphql.ID},
+		"orderId":            &graphql.Field{Type: graphql.ID},
+		"itemId":             &graphql.Field{Type: graphql.ID},
+		"nameSnapshot":       &graphql.Field{Type: graphql.String},
 		"priceCentsSnapshot": &graphql.Field{Type: graphql.Int},
-		"quantity":          &graphql.Field{Type: graphql.Int},
-		"lineTotalCents":    &graphql.Field{Type: graphql.Int},
+		"quantity":           &graphql.Field{Type: graphql.Int},
+		"lineTotalCents":     &graphql.Field{Type: graphql.Int},
 	},
 })
 
 var inventoryType = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Inventory",
 	Fields: graphql.Fields{
-		"id":               &graphql.Field{Type: graphql.ID},
-		"storeId":          &graphql.Field{Type: graphql.ID},
-		"itemId":           &graphql.Field{Type: graphql.ID},
+		"id":                &graphql.Field{Type: graphql.ID},
+		"storeId":           &graphql.Field{Type: graphql.ID},
+		"itemId":            &graphql.Field{Type: graphql.ID},
 		"quantityAvailable": &graphql.Field{Type: graphql.Int},
 		"quantityReserved":  &graphql.Field{Type: graphql.Int},
 		"quantityOnOrder":   &graphql.Field{Type: graphql.Int},

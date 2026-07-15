@@ -88,16 +88,16 @@ impl Hlc {
         let pt = physical_now_ms();
         let new_wallclock = self.wallclock_ms.max(pt).max(remote.wallclock_ms);
 
-        let new_counter = if new_wallclock == self.wallclock_ms && new_wallclock == remote.wallclock_ms
-        {
-            self.counter.max(remote.counter).saturating_add(1)
-        } else if new_wallclock == self.wallclock_ms {
-            self.counter.saturating_add(1)
-        } else if new_wallclock == remote.wallclock_ms {
-            remote.counter.saturating_add(1)
-        } else {
-            0
-        };
+        let new_counter =
+            if new_wallclock == self.wallclock_ms && new_wallclock == remote.wallclock_ms {
+                self.counter.max(remote.counter).saturating_add(1)
+            } else if new_wallclock == self.wallclock_ms {
+                self.counter.saturating_add(1)
+            } else if new_wallclock == remote.wallclock_ms {
+                remote.counter.saturating_add(1)
+            } else {
+                0
+            };
 
         self.wallclock_ms = new_wallclock;
         self.counter = new_counter;
@@ -133,7 +133,8 @@ impl Hlc {
     /// Causality is preserved: if `a` happened-before `b` then `a.compare_total(b)`
     /// is `Less`.  Concurrent events are ordered deterministically by `node_id`.
     pub fn compare_total(&self, other: &Hlc) -> Ordering {
-        self.compare(other).unwrap_or_else(|| self.node_id.cmp(&other.node_id))
+        self.compare(other)
+            .unwrap_or_else(|| self.node_id.cmp(&other.node_id))
     }
 
     /// Returns `true` if `self` is strictly newer than `other` in causal terms.

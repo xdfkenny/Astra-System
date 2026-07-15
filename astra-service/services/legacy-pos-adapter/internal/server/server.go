@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	orderv1 "github.com/astra-systems/astra-service/proto/gen/go/order"
 	"github.com/astra-systems/astra-service/services/legacy-pos-adapter/internal/repository"
 	"github.com/astra-systems/astra-service/services/legacy-pos-adapter/internal/service"
-	orderv1 "github.com/astra-systems/astra-service/proto/gen/go/order"
 	"google.golang.org/grpc"
 )
 

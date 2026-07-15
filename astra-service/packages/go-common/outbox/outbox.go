@@ -70,11 +70,11 @@ type SubjectResolver func(eventType string) string
 // to the outbox; also runnable as a standalone sidecar for services that
 // prefer to decouple the relay's failure domain from the API process.
 type Relay struct {
-	db          *sql.DB
-	publisher   Publisher
-	resolve     SubjectResolver
-	pollEvery   time.Duration
-	batchSize   int
+	db        *sql.DB
+	publisher Publisher
+	resolve   SubjectResolver
+	pollEvery time.Duration
+	batchSize int
 }
 
 func NewRelay(db *sql.DB, publisher Publisher, resolve SubjectResolver) *Relay {

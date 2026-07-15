@@ -25,8 +25,8 @@ type Store interface {
 // MenuService implements astra.menu.v1.MenuService.
 type MenuService struct {
 	menupb.UnimplementedMenuServiceServer
-	repo    Store
-	cache   *cache.Cache
+	repo     Store
+	cache    *cache.Cache
 	cacheTTL time.Duration
 }
 

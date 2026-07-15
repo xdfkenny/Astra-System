@@ -12,9 +12,8 @@
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, trace, warn};
 
-use crate::crypto::{SyncKey, decrypt_sync_message, encrypt_sync_message};
+use crate::crypto::{decrypt_sync_message, encrypt_sync_message, SyncKey};
 use crate::{AstraSyncError, DataType, KioskId};
 
 /// Magic bytes at the start of every sync frame for quick identification.
@@ -42,8 +41,19 @@ pub struct SyncMessage {
 }
 
 impl SyncMessage {
-    pub fn new(origin: KioskId, lamport_ts: u64, wallclock_ts: u64, payload: MessagePayload) -> Self {
-        Self { version: SYNC_VERSION, origin, lamport_ts, wallclock_ts, payload }
+    pub fn new(
+        origin: KioskId,
+        lamport_ts: u64,
+        wallclock_ts: u64,
+        payload: MessagePayload,
+    ) -> Self {
+        Self {
+            version: SYNC_VERSION,
+            origin,
+            lamport_ts,
+            wallclock_ts,
+            payload,
+        }
     }
 
     /// Serializes the message to bincode bytes.
@@ -92,9 +102,7 @@ pub enum MessagePayload {
         status: String,
     },
     /// Transaction batch (one or more transactions).
-    TransactionBatch {
-        transactions_json: Vec<String>,
-    },
+    TransactionBatch { transactions_json: Vec<String> },
     /// Analytics event.
     AnalyticsEvent {
         event_id: String,
@@ -118,10 +126,7 @@ pub enum MessagePayload {
         last_log_term: u64,
     },
     /// Raft vote response.
-    RaftVoteResponse {
-        term: u64,
-        vote_granted: bool,
-    },
+    RaftVoteResponse { term: u64, vote_granted: bool },
     /// Raft AppendEntries response.
     RaftAppendResponse {
         term: u64,
@@ -129,10 +134,7 @@ pub enum MessagePayload {
         match_index: u64,
     },
     /// Heartbeat / keepalive.
-    Heartbeat {
-        leader_id: String,
-        term: u64,
-    },
+    Heartbeat { leader_id: String, term: u64 },
 }
 
 /// A single Raft log entry embedded in an AppendEntries payload.
@@ -164,7 +166,8 @@ impl SyncFrame {
         let total_len = 4 + 1 + 4 + self.nonce.len() + 4 + self.ciphertext.len();
         if total_len > MAX_FRAME_SIZE + 13 {
             return Err(AstraSyncError::P2P(format!(
-                "frame too large: {} bytes (max {})", total_len, MAX_FRAME_SIZE
+                "frame too large: {} bytes (max {})",
+                total_len, MAX_FRAME_SIZE
             )));
         }
         let mut buf = BytesMut::with_capacity(total_len);
@@ -188,7 +191,7 @@ impl SyncFrame {
             // Corrupt or misaligned stream. Consume one byte and try again.
             buf.advance(1);
             return Some(Err(AstraSyncError::P2P(
-                "frame magic mismatch — stream may be misaligned".to_string()
+                "frame magic mismatch — stream may be misaligned".to_string(),
             )));
         }
         let version = buf[4];
@@ -256,7 +259,10 @@ mod tests {
             KioskId::from("k1"),
             42,
             1000,
-            MessagePayload::Heartbeat { leader_id: "k1".to_string(), term: 1 },
+            MessagePayload::Heartbeat {
+                leader_id: "k1".to_string(),
+                term: 1,
+            },
         );
         let bytes = msg.to_bytes().unwrap();
         let msg2 = SyncMessage::from_bytes(&bytes).unwrap();
@@ -271,7 +277,10 @@ mod tests {
             KioskId::from("k1"),
             1,
             1000,
-            MessagePayload::Heartbeat { leader_id: "k1".to_string(), term: 1 },
+            MessagePayload::Heartbeat {
+                leader_id: "k1".to_string(),
+                term: 1,
+            },
         );
         let frame = msg.encrypt(&key).unwrap();
         let encoded = frame.encode().unwrap();

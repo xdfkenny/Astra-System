@@ -19,7 +19,7 @@ use std::time::Duration;
 
 use async_nats::jetstream::context::Context;
 use async_nats::jetstream::stream::Config as StreamConfig;
-use async_nats::jetstream::consumer::pull::Config as ConsumerConfig;
+use base64::Engine;
 use tokio::sync::{watch, RwLock};
 use tokio::time::interval;
 use tracing::{debug, error, info, trace, warn};
@@ -27,7 +27,7 @@ use tracing::{debug, error, info, trace, warn};
 use crate::config::Config;
 use crate::differential_privacy::{privatize_analytics_payload, DEFAULT_EPSILON};
 use crate::storage::sqlite::SyncDatabase;
-use crate::{DaemonState, AstraSyncError, DataType, SyncRecord};
+use crate::{AstraSyncError, DaemonState, DataType, SyncRecord};
 
 /// Cloud sync handle, returned after starting the cloud sync loop.
 #[derive(Debug, Clone)]
@@ -67,20 +67,29 @@ impl CloudSync {
             }
         };
 
-        Ok(Self { config, state, db, jetstream })
+        Ok(Self {
+            config,
+            state,
+            db,
+            jetstream,
+        })
     }
 
     /// Starts the cloud sync background loop.
-    pub async fn start(self, mut shutdown: watch::Receiver<bool>) -> Result<tokio::task::JoinHandle<()>, AstraSyncError> {
+    pub async fn start(
+        self,
+        mut shutdown: watch::Receiver<bool>,
+    ) -> Result<tokio::task::JoinHandle<()>, AstraSyncError> {
         let config = self.config.clone();
         let state = self.state.clone();
         let db = self.db.clone();
         let mut jetstream = self.jetstream.clone();
 
-        let (cmd_tx, mut cmd_rx) = tokio::sync::mpsc::channel::<CloudCommand>(64);
+        let (_cmd_tx, mut cmd_rx) = tokio::sync::mpsc::channel::<CloudCommand>(64);
 
         let handle = tokio::spawn(async move {
-            let mut flush_timer = interval(Duration::from_secs(config.cloud.flush_interval_seconds));
+            let mut flush_timer =
+                interval(Duration::from_secs(config.cloud.flush_interval_seconds));
             flush_timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
             let mut reconnect_timer = interval(Duration::from_secs(30));
@@ -173,13 +182,16 @@ async fn connect_nats(config: &Config) -> Result<Context, AstraSyncError> {
 
     // Ensure the stream exists (idempotent).
     let stream_name = format!("ASTRA_{}", config.p2p.network_name.to_uppercase());
-    let _ = js.create_stream(StreamConfig {
-        name: stream_name.clone(),
-        subjects: vec![format!("astra.{}.*", config.p2p.network_name)],
-        max_messages: 1_000_000,
-        max_bytes: 10 * 1024 * 1024 * 1024, // 10 GiB
-        ..Default::default()
-    }).await.map_err(|e| AstraSyncError::Cloud(format!("stream creation failed: {e}")))?;
+    let _ = js
+        .create_stream(StreamConfig {
+            name: stream_name.clone(),
+            subjects: vec![format!("astra.{}.*", config.p2p.network_name)],
+            max_messages: 1_000_000,
+            max_bytes: 10 * 1024 * 1024 * 1024, // 10 GiB
+            ..Default::default()
+        })
+        .await
+        .map_err(|e| AstraSyncError::Cloud(format!("stream creation failed: {e}")))?;
 
     debug!(stream = %stream_name, "JetStream context ready");
     Ok(js)
@@ -194,7 +206,12 @@ async fn flush_to_cloud(
     let mut total_flushed = 0usize;
 
     // Flush each data type in priority order.
-    for data_type in [DataType::Inventory, DataType::Cart, DataType::Transaction, DataType::Analytics] {
+    for data_type in [
+        DataType::Inventory,
+        DataType::Cart,
+        DataType::Transaction,
+        DataType::Analytics,
+    ] {
         let records: Vec<SyncRecord<serde_json::Value>> = db.load_dirty(data_type, 1000).await?;
         if records.is_empty() {
             continue;
@@ -257,7 +274,7 @@ async fn flush_to_cloud(
             let msg = serde_json::json!({
                 "token_id": token_id,
                 "payload": payload_json,
-                "hmac": base64::encode(&hmac),
+                "hmac": base64::engine::general_purpose::STANDARD.encode(&hmac),
             });
             let bytes = serde_json::to_vec(&msg)
                 .map_err(|e| AstraSyncError::Serialization(e.to_string()))?;

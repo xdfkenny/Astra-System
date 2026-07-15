@@ -38,8 +38,8 @@ type Repository interface {
 // MemoryRepository is an in-memory implementation used for local development
 // and unit tests.
 type MemoryRepository struct {
-	mu   sync.RWMutex
-	byID map[string]*Submission
+	mu      sync.RWMutex
+	byID    map[string]*Submission
 	byOrder map[string][]*Submission
 }
 

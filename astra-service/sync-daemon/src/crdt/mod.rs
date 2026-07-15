@@ -72,7 +72,10 @@ struct ElementEntry<V: CrdtValue> {
 /// that set `value` to `None`.  This structure is suitable for inventory counts
 /// where the canonical state is the most recent observed count for each SKU.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(bound(serialize = "K: CrdtElement, V: CrdtValue", deserialize = "K: CrdtElement, V: CrdtValue"))]
+#[serde(bound(
+    serialize = "K: CrdtElement, V: CrdtValue",
+    deserialize = "K: CrdtElement, V: CrdtValue"
+))]
 pub struct LwwElementSet<K: CrdtElement, V: CrdtValue> {
     entries: HashMap<K, ElementEntry<V>>,
 }
@@ -133,9 +136,13 @@ impl<K: CrdtElement, V: CrdtValue> LwwElementSet<K, V> {
 
     /// Returns the current value for `key` if it is present and not removed.
     pub fn get(&self, key: &K) -> Option<&V> {
-        self.entries
-            .get(key)
-            .and_then(|entry| if entry.removed { None } else { entry.value.as_ref() })
+        self.entries.get(key).and_then(|entry| {
+            if entry.removed {
+                None
+            } else {
+                entry.value.as_ref()
+            }
+        })
     }
 
     /// Returns `true` if the key is present and not removed.
@@ -163,8 +170,7 @@ impl<K: CrdtElement, V: CrdtValue> LwwElementSet<K, V> {
 
     /// Returns the number of present elements.
     pub fn len(&self) -> usize {
-        self.entries()
-            .len()
+        self.entries().len()
     }
 
     /// Returns `true` if the set contains no present elements.
@@ -230,8 +236,7 @@ impl<V: CrdtValue> MvRegister<V> {
     /// Any existing values that are dominated by `hlc` are removed (they are
     /// causally overwritten).  Concurrent values are preserved.
     pub fn write(&mut self, value: V, hlc: Hlc) {
-        self.values
-            .retain(|entry| !hlc.dominates(&entry.hlc));
+        self.values.retain(|entry| !hlc.dominates(&entry.hlc));
         self.values.push(RegisterValue { value, hlc });
     }
 
@@ -325,11 +330,13 @@ impl<V: CrdtValue> Default for MvRegister<V> {
 impl<V: CrdtValue> CrdtMerge for MvRegister<V> {
     fn merge(&mut self, other: &Self) {
         for other_entry in &other.values {
-            let dominated = self
+            let dominated = self.values.iter().any(|our_entry| {
+                our_entry.hlc.dominates(&other_entry.hlc) && our_entry.hlc != other_entry.hlc
+            });
+            let duplicate = self
                 .values
                 .iter()
-                .any(|our_entry| our_entry.hlc.dominates(&other_entry.hlc) && our_entry.hlc != other_entry.hlc);
-            let duplicate = self.values.iter().any(|our_entry| our_entry.hlc == other_entry.hlc);
+                .any(|our_entry| our_entry.hlc == other_entry.hlc);
             if !dominated && !duplicate {
                 self.values.push(other_entry.clone());
             }
@@ -661,7 +668,8 @@ mod tests {
         let mut set = LwwElementSet::<String, u64>::new();
         set.add("sku-1".to_string(), 42, hlc("k1", 1));
         let bytes = bincode::serialize(&set).expect("serialize");
-        let decoded: LwwElementSet<String, u64> = bincode::deserialize(&bytes).expect("deserialize");
+        let decoded: LwwElementSet<String, u64> =
+            bincode::deserialize(&bytes).expect("deserialize");
         assert_eq!(set, decoded);
     }
 }

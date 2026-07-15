@@ -6,9 +6,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/astra-systems/astra-service/services/legacy-pos-adapter/internal/service"
 	eventsv1 "github.com/astra-systems/astra-service/proto/gen/go/events"
 	orderv1 "github.com/astra-systems/astra-service/proto/gen/go/order"
+	"github.com/astra-systems/astra-service/services/legacy-pos-adapter/internal/service"
 	"github.com/nats-io/nats.go/jetstream"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"

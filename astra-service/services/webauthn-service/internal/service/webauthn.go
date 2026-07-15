@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"time"
 
+	webauthnv1 "github.com/astra-systems/astra-service/proto/gen/go/webauthn"
 	"github.com/astra-systems/astra-service/services/webauthn-service/internal/repository"
 	"github.com/astra-systems/astra-service/services/webauthn-service/internal/webauthn"
-	webauthnv1 "github.com/astra-systems/astra-service/proto/gen/go/webauthn"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
@@ -348,9 +348,9 @@ func toWebAuthnProtoDescriptors(descs []protocol.CredentialDescriptor) []*webaut
 }
 
 type attestationBody struct {
-	ID       string                `json:"id"`
-	RawID    string                `json:"rawId"`
-	Type     string                `json:"type"`
+	ID       string                  `json:"id"`
+	RawID    string                  `json:"rawId"`
+	Type     string                  `json:"type"`
 	Response attestationResponseBody `json:"response"`
 }
 

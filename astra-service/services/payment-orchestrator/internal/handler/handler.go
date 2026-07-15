@@ -333,16 +333,16 @@ func parseDomainMethod(m string) (domain.PaymentMethod, bool) {
 
 func protoToMap(r *payment.PaymentResult) fiber.Map {
 	return fiber.Map{
-		"payment_id":      r.PaymentId,
-		"order_id":        r.OrderId,
-		"status":          r.Status,
-		"auth_code":       r.AuthCode,
-		"verifone_token":  r.VerifoneToken,
-		"card_brand":      r.CardBrand,
-		"card_last_four":  r.CardLastFour,
-		"decline_reason":  r.DeclineReason,
-		"receipt_text":    r.ReceiptText,
-		"processed_at":    r.ProcessedAt,
+		"payment_id":     r.PaymentId,
+		"order_id":       r.OrderId,
+		"status":         r.Status,
+		"auth_code":      r.AuthCode,
+		"verifone_token": r.VerifoneToken,
+		"card_brand":     r.CardBrand,
+		"card_last_four": r.CardLastFour,
+		"decline_reason": r.DeclineReason,
+		"receipt_text":   r.ReceiptText,
+		"processed_at":   r.ProcessedAt,
 	}
 }
 

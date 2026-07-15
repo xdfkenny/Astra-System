@@ -9,12 +9,11 @@
 //! - Constant-time key comparison and zeroization on drop.
 
 use chacha20poly1305::{
-    aead::{Aead, KeyInit, OsRng},
+    aead::{Aead, KeyInit},
     XChaCha20Poly1305, XNonce,
 };
 use hmac::{Hmac, Mac};
-use rand::{Rng, RngCore};
-use secrecy::{ExposeSecret, Secret, SecretBox, SecretVec};
+use rand::RngCore;
 use sha2::Sha256;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -65,17 +64,16 @@ impl SyncKey {
     /// Writes the key to a file with 0o600 permissions.
     pub fn write_to_file(&self, path: impl AsRef<std::path::Path>) -> Result<(), AstraSyncError> {
         let path = path.as_ref();
-        std::fs::write(path, &self.0)
+        std::fs::write(path, self.0)
             .map_err(|e| AstraSyncError::Crypto(format!("failed to write key file: {e}")))?;
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
             let mut perms = std::fs::metadata(path)
-                .map_err(|e| AstraSyncError::Io(e))?
+                .map_err(AstraSyncError::Io)?
                 .permissions();
             perms.set_mode(0o600);
-            std::fs::set_permissions(path, perms)
-                .map_err(|e| AstraSyncError::Io(e))?;
+            std::fs::set_permissions(path, perms).map_err(AstraSyncError::Io)?;
         }
         Ok(())
     }
@@ -91,7 +89,9 @@ pub struct HmacKey([u8; 32]);
 
 impl std::fmt::Debug for HmacKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("HmacKey").field("bytes", &"[REDACTED]").finish()
+        f.debug_struct("HmacKey")
+            .field("bytes", &"[REDACTED]")
+            .finish()
     }
 }
 
@@ -128,7 +128,7 @@ pub fn encrypt_sync_message(
 ) -> Result<(Vec<u8>, Vec<u8>), AstraSyncError> {
     let cipher = XChaCha20Poly1305::new_from_slice(key.as_bytes())
         .map_err(|e| AstraSyncError::Crypto(format!("invalid key length: {e}")))?;
-    let nonce = XNonce::from_slice(&[0u8; 24]); // In production, use random nonce via OsRng
+    let _nonce = XNonce::from_slice(&[0u8; 24]); // In production, use random nonce via OsRng
     let mut nonce_bytes = [0u8; 24];
     rand::thread_rng().fill_bytes(&mut nonce_bytes);
     let nonce = XNonce::from_slice(&nonce_bytes);
@@ -152,9 +152,11 @@ pub fn decrypt_sync_message(
     let cipher = XChaCha20Poly1305::new_from_slice(key.as_bytes())
         .map_err(|e| AstraSyncError::Crypto(format!("invalid key length: {e}")))?;
     let nonce = XNonce::from_slice(nonce);
-    let plaintext = cipher
-        .decrypt(nonce, ciphertext)
-        .map_err(|e| AstraSyncError::Crypto(format!("decryption failed (bad key or tampered ciphertext): {e}")))?;
+    let plaintext = cipher.decrypt(nonce, ciphertext).map_err(|e| {
+        AstraSyncError::Crypto(format!(
+            "decryption failed (bad key or tampered ciphertext): {e}"
+        ))
+    })?;
     Ok(plaintext)
 }
 
@@ -162,8 +164,8 @@ pub fn decrypt_sync_message(
 /// Returns a 32-byte MAC tag.
 pub fn hmac_sign(key: &HmacKey, message: &[u8]) -> Vec<u8> {
     type HmacSha256 = Hmac<Sha256>;
-    let mut mac = <HmacSha256 as Mac>::new_from_slice(key.as_bytes())
-        .expect("HMAC can handle any key size");
+    let mut mac =
+        <HmacSha256 as Mac>::new_from_slice(key.as_bytes()).expect("HMAC can handle any key size");
     mac.update(message);
     mac.finalize().into_bytes().to_vec()
 }
@@ -174,7 +176,9 @@ pub fn hmac_verify(key: &HmacKey, message: &[u8], tag: &[u8]) -> Result<(), Astr
     if subtle::constant_time_eq(&expected, tag) {
         Ok(())
     } else {
-        Err(AstraSyncError::Crypto("HMAC verification failed".to_string()))
+        Err(AstraSyncError::Crypto(
+            "HMAC verification failed".to_string(),
+        ))
     }
 }
 
@@ -193,7 +197,7 @@ pub fn derive_key_from_password(
     t_cost: u32,
     p_cost: u32,
 ) -> Result<[u8; 32], AstraSyncError> {
-    use argon2::{Argon2, PasswordHasher, Algorithm, Version, Params};
+    use argon2::{Algorithm, Argon2, Params, PasswordHasher, Version};
     use password_hash::Salt;
 
     let params = Params::new(m_cost, t_cost, p_cost, Some(32))

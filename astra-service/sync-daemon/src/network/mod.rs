@@ -28,8 +28,8 @@ use libp2p::{
 use tokio::sync::{mpsc, watch};
 use tracing::{debug, info, trace, warn};
 
-use crate::AstraSyncError;
 use crate::protocol::SyncProtocol;
+use crate::AstraSyncError;
 
 /// Command interface exposed to other daemon subsystems.
 #[derive(Debug, Clone)]
@@ -39,11 +39,7 @@ pub struct NetworkHandle {
 
 impl NetworkHandle {
     /// Broadcasts a sync message on the gossipsub topic for `data_type`.
-    pub async fn gossip(
-        &self,
-        data_type: u8,
-        message: SyncProtocol,
-    ) -> Result<(), AstraSyncError> {
+    pub async fn gossip(&self, data_type: u8, message: SyncProtocol) -> Result<(), AstraSyncError> {
         let payload = message.to_bytes()?;
         self.cmd_tx
             .send(NetworkCommand::Gossip { data_type, payload })
@@ -56,7 +52,7 @@ impl NetworkHandle {
     pub async fn request_sync(
         &self,
         peer: PeerId,
-        since_lamport: u64,
+        _since_lamport: u64,
     ) -> Result<(), AstraSyncError> {
         let request = SyncProtocol::Handshake(crate::protocol::SyncHandshake {
             protocol_version: crate::protocol::PROTOCOL_VERSION,
@@ -85,9 +81,19 @@ impl NetworkHandle {
 
 #[derive(Debug)]
 enum NetworkCommand {
-    Gossip { data_type: u8, payload: Vec<u8> },
-    RequestSync { data_type: u8, since_lamport: u64 },
-    SendRequest { peer: PeerId, request: SyncProtocol },
+    Gossip {
+        data_type: u8,
+        payload: Vec<u8>,
+    },
+    #[allow(dead_code)]
+    RequestSync {
+        data_type: u8,
+        since_lamport: u64,
+    },
+    SendRequest {
+        peer: PeerId,
+        request: SyncProtocol,
+    },
 }
 
 /// Binary codec for the `/astra-sync/1.0.0` request-response protocol.
@@ -372,12 +378,19 @@ fn build_swarm(
     let gossipsub = gossipsub::Behaviour::new(message_authenticity, gossipsub_config)
         .map_err(|e| AstraSyncError::P2P(format!("gossipsub behaviour failed: {e}")))?;
 
-    let sync_protocols = vec![(StreamProtocol::new(SYNC_PROTOCOL), request_response::ProtocolSupport::Full)];
-    let sync_cfg = request_response::Config::default()
-        .with_request_timeout(Duration::from_secs(10));
-    let sync = request_response::Behaviour::with_codec(BincodeCodec::default(), sync_protocols, sync_cfg);
+    let sync_protocols = vec![(
+        StreamProtocol::new(SYNC_PROTOCOL),
+        request_response::ProtocolSupport::Full,
+    )];
+    let sync_cfg =
+        request_response::Config::default().with_request_timeout(Duration::from_secs(10));
+    let sync = request_response::Behaviour::with_codec(BincodeCodec, sync_protocols, sync_cfg);
 
-    let behaviour = AstraNetworkBehaviour { mdns, gossipsub, sync };
+    let behaviour = AstraNetworkBehaviour {
+        mdns,
+        gossipsub,
+        sync,
+    };
 
     let mut swarm = SwarmBuilder::with_existing_identity(local_key)
         .with_tokio()

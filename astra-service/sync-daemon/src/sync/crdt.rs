@@ -14,11 +14,17 @@ use std::hash::Hash;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{KioskId, AstraSyncError};
+use crate::KioskId;
 
 /// Trait bound for types that can be stored in an ORSet.
-pub trait ORSetValue: Clone + Eq + Hash + Serialize + for<'de> Deserialize<'de> + Send + Sync {}
-impl<T> ORSetValue for T where T: Clone + Eq + Hash + Serialize + for<'de> Deserialize<'de> + Send + Sync {}
+pub trait ORSetValue:
+    Clone + Eq + Hash + Serialize + for<'de> Deserialize<'de> + Send + Sync
+{
+}
+impl<T> ORSetValue for T where
+    T: Clone + Eq + Hash + Serialize + for<'de> Deserialize<'de> + Send + Sync
+{
+}
 
 // ---------------------------------------------------------------------------
 // LWW Register
@@ -44,7 +50,12 @@ pub struct LWWRegister<T> {
 impl<T: Clone + Serialize + for<'de> Deserialize<'de> + Send + Sync> LWWRegister<T> {
     /// Creates a new LWW register with an initial value and timestamp.
     pub fn new(value: T, origin: KioskId, lamport_ts: u64, wallclock_ts: u64) -> Self {
-        Self { value, lamport_ts, origin, wallclock_ts }
+        Self {
+            value,
+            lamport_ts,
+            origin,
+            wallclock_ts,
+        }
     }
 
     /// Reads the current value.
@@ -68,7 +79,12 @@ impl<T: Clone + Serialize + for<'de> Deserialize<'de> + Send + Sync> LWWRegister
 
     /// Merges another register into this one, keeping the dominant write.
     pub fn merge(&mut self, other: &Self) {
-        if Self::is_dominated(self.lamport_ts, &self.origin, other.lamport_ts, &other.origin) {
+        if Self::is_dominated(
+            self.lamport_ts,
+            &self.origin,
+            other.lamport_ts,
+            &other.origin,
+        ) {
             self.value = other.value.clone();
             self.lamport_ts = other.lamport_ts;
             self.origin = other.origin.clone();
@@ -82,7 +98,9 @@ impl<T: Clone + Serialize + for<'de> Deserialize<'de> + Send + Sync> LWWRegister
     }
 }
 
-impl<T: PartialEq + Clone + Serialize + for<'de> Deserialize<'de> + Send + Sync> PartialEq for LWWRegister<T> {
+impl<T: PartialEq + Clone + Serialize + for<'de> Deserialize<'de> + Send + Sync> PartialEq
+    for LWWRegister<T>
+{
     fn eq(&self, other: &Self) -> bool {
         self.lamport_ts == other.lamport_ts
             && self.origin == other.origin
@@ -108,7 +126,10 @@ pub struct PNCounter {
 
 impl PNCounter {
     pub fn new() -> Self {
-        Self { positives: HashMap::new(), negatives: HashMap::new() }
+        Self {
+            positives: HashMap::new(),
+            negatives: HashMap::new(),
+        }
     }
 
     /// Increments the counter by `amount` on behalf of `origin`.
@@ -144,12 +165,18 @@ impl PNCounter {
     }
 
     /// Returns the underlying positive map (for serialization/debugging).
-    pub fn positives(&self) -> &HashMap<KioskId, u64> { &self.positives }
-    pub fn negatives(&self) -> &HashMap<KioskId, u64> { &self.negatives }
+    pub fn positives(&self) -> &HashMap<KioskId, u64> {
+        &self.positives
+    }
+    pub fn negatives(&self) -> &HashMap<KioskId, u64> {
+        &self.negatives
+    }
 }
 
 impl Default for PNCounter {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PartialEq for PNCounter {
@@ -177,7 +204,10 @@ pub struct ORSet<T: ORSetValue> {
 
 impl<T: ORSetValue> ORSet<T> {
     pub fn new() -> Self {
-        Self { entries: HashMap::new(), removed_tags: Vec::new() }
+        Self {
+            entries: HashMap::new(),
+            removed_tags: Vec::new(),
+        }
     }
 
     /// Adds an element with a fresh tag.
@@ -198,7 +228,7 @@ impl<T: ORSetValue> ORSet<T> {
 
     /// Returns true if the element is present in the set.
     pub fn contains(&self, element: &T) -> bool {
-        self.entries.get(element).map_or(false, |tags| {
+        self.entries.get(element).is_some_and(|tags| {
             !tags.is_empty() && tags.iter().any(|t| !self.removed_tags.contains(t))
         })
     }
@@ -246,7 +276,9 @@ impl<T: ORSetValue> ORSet<T> {
 }
 
 impl<T: ORSetValue> Default for ORSet<T> {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<T: ORSetValue> PartialEq for ORSet<T> {
@@ -268,7 +300,9 @@ pub struct LamportClock {
 }
 
 impl LamportClock {
-    pub fn new() -> Self { Self { counter: 0 } }
+    pub fn new() -> Self {
+        Self { counter: 0 }
+    }
 
     /// Returns the current time and increments the counter.
     pub fn tick(&mut self) -> u64 {
@@ -282,11 +316,15 @@ impl LamportClock {
         self.counter
     }
 
-    pub fn now(&self) -> u64 { self.counter }
+    pub fn now(&self) -> u64 {
+        self.counter
+    }
 }
 
 impl Default for LamportClock {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

@@ -21,14 +21,14 @@ import (
 
 // Server holds the gRPC and REST listeners.
 type Server struct {
-	cfg        *config.Config
-	grpc       *grpc.Server
-	rest       *fiber.App
-	handler    *handler.REST
-	grpcImpl   *service.Payment
-	health     observability.Checkable
-	grpcLn     net.Listener
-	restLn     net.Listener
+	cfg      *config.Config
+	grpc     *grpc.Server
+	rest     *fiber.App
+	handler  *handler.REST
+	grpcImpl *service.Payment
+	health   observability.Checkable
+	grpcLn   net.Listener
+	restLn   net.Listener
 }
 
 // New creates a combined gRPC/REST server.

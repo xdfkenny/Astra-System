@@ -12,9 +12,9 @@ import (
 	"fmt"
 	"time"
 
+	authv1 "github.com/astra-systems/astra-service/proto/gen/go/auth"
 	"github.com/astra-systems/astra-service/services/webauthn-service/internal/repository"
 	"github.com/astra-systems/astra-service/services/webauthn-service/internal/webauthn"
-	authv1 "github.com/astra-systems/astra-service/proto/gen/go/auth"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -296,10 +296,10 @@ func toProtoDescriptors(descs []protocol.CredentialDescriptor) []*authv1.PublicK
 }
 
 type assertionBody struct {
-	ID       string                     `json:"id"`
-	RawID    string                     `json:"rawId"`
-	Type     string                     `json:"type"`
-	Response assertionResponseBody      `json:"response"`
+	ID       string                `json:"id"`
+	RawID    string                `json:"rawId"`
+	Type     string                `json:"type"`
+	Response assertionResponseBody `json:"response"`
 }
 
 type assertionResponseBody struct {

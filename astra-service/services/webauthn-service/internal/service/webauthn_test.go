@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	webauthnv1 "github.com/astra-systems/astra-service/proto/gen/go/webauthn"
 	"github.com/astra-systems/astra-service/services/webauthn-service/internal/repository"
 	"github.com/astra-systems/astra-service/services/webauthn-service/internal/webauthn"
-	webauthnv1 "github.com/astra-systems/astra-service/proto/gen/go/webauthn"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

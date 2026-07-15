@@ -12,12 +12,12 @@ import (
 	"time"
 
 	"github.com/astra-service/go-common/outbox"
-	"github.com/astra-systems/astra-service/services/order-service/internal/cartclient"
-	"github.com/astra-systems/astra-service/services/order-service/internal/repository"
 	cartv1 "github.com/astra-systems/astra-service/proto/gen/go/cart"
 	commonv1 "github.com/astra-systems/astra-service/proto/gen/go/common"
 	eventsv1 "github.com/astra-systems/astra-service/proto/gen/go/events"
 	orderv1 "github.com/astra-systems/astra-service/proto/gen/go/order"
+	"github.com/astra-systems/astra-service/services/order-service/internal/cartclient"
+	"github.com/astra-systems/astra-service/services/order-service/internal/repository"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -29,17 +29,17 @@ const (
 	orderAggregateType = "order"
 	currencyUSD        = "USD"
 
-	EventTypeOrderCreated    = "astra.order.created.v1"
-	EventTypeOrderPaid       = "astra.order.paid.v1"
-	EventTypeOrderFulfilled  = "astra.order.fulfilled.v1"
-	EventTypeOrderCancelled  = "astra.order.cancelled.v1"
+	EventTypeOrderCreated       = "astra.order.created.v1"
+	EventTypeOrderPaid          = "astra.order.paid.v1"
+	EventTypeOrderFulfilled     = "astra.order.fulfilled.v1"
+	EventTypeOrderCancelled     = "astra.order.cancelled.v1"
 	EventTypeOrderStatusChanged = "astra.order.status_changed.v1"
 
-	StatusPending    = "pending"
-	StatusPaid       = "paid"
-	StatusFulfilled  = "fulfilled"
-	StatusCancelled  = "cancelled"
-	StatusRefunded   = "refunded"
+	StatusPending   = "pending"
+	StatusPaid      = "paid"
+	StatusFulfilled = "fulfilled"
+	StatusCancelled = "cancelled"
+	StatusRefunded  = "refunded"
 )
 
 // OrderService implements the order domain use cases.
@@ -156,10 +156,10 @@ func (s *OrderService) ListOrders(ctx context.Context, req *orderv1.ListOrdersRe
 	resp := &orderv1.ListOrdersResponse{
 		Orders: make([]*orderv1.Order, 0, len(orders)),
 		Pagination: &commonv1.PaginationResponse{
-			Page:      page,
-			PageSize:  pageSize,
-			Total:     total,
-			HasMore:   total > int64(page*pageSize),
+			Page:     page,
+			PageSize: pageSize,
+			Total:    total,
+			HasMore:  total > int64(page*pageSize),
 		},
 	}
 	for _, order := range orders {
@@ -180,9 +180,9 @@ func (s *OrderService) UpdateOrderStatus(ctx context.Context, req *orderv1.Updat
 	newStatus := statusFromProto(req.Status)
 	eventID := uuid.New().String()
 	payload, err := json.Marshal(map[string]any{
-		"order_id": req.OrderId,
-		"status":   newStatus,
-		"reason":   req.Reason,
+		"order_id":  req.OrderId,
+		"status":    newStatus,
+		"reason":    req.Reason,
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	})
 	if err != nil {
@@ -412,11 +412,11 @@ func buildOrderCreatedEvent(order *repository.Order) ([]byte, error) {
 
 func buildOrderPaidEvent(orderID, paymentID, authCode string, paidAt time.Time) ([]byte, error) {
 	payload := map[string]any{
-		"order_id":    orderID,
-		"payment_id":  paymentID,
-		"auth_code":   authCode,
-		"paid_at":     paidAt.Format(time.RFC3339),
-		"timestamp":   paidAt.Format(time.RFC3339),
+		"order_id":   orderID,
+		"payment_id": paymentID,
+		"auth_code":  authCode,
+		"paid_at":    paidAt.Format(time.RFC3339),
+		"timestamp":  paidAt.Format(time.RFC3339),
 	}
 	return json.Marshal(payload)
 }

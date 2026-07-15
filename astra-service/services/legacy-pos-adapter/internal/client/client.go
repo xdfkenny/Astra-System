@@ -13,24 +13,24 @@ import (
 
 // LegacyPOSRequest is the payload forwarded to the legacy POS.
 type LegacyPOSRequest struct {
-	OrderID   string      `json:"order_id"`
-	CartID    string      `json:"cart_id"`
-	StoreID   string      `json:"store_id"`
-	KioskID   string      `json:"kiosk_id"`
-	Total     int64       `json:"total_cents"`
-	Currency  string      `json:"currency"`
-	Items     []POSItem   `json:"items"`
-	Timestamp time.Time   `json:"timestamp"`
+	OrderID   string            `json:"order_id"`
+	CartID    string            `json:"cart_id"`
+	StoreID   string            `json:"store_id"`
+	KioskID   string            `json:"kiosk_id"`
+	Total     int64             `json:"total_cents"`
+	Currency  string            `json:"currency"`
+	Items     []POSItem         `json:"items"`
+	Timestamp time.Time         `json:"timestamp"`
 	Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
 // POSItem mirrors an order line for the legacy POS.
 type POSItem struct {
-	ItemID     string `json:"item_id"`
-	Name       string `json:"name"`
-	Quantity   int32  `json:"quantity"`
-	UnitPrice  int64  `json:"unit_price_cents"`
-	LineTotal  int64  `json:"line_total_cents"`
+	ItemID    string `json:"item_id"`
+	Name      string `json:"name"`
+	Quantity  int32  `json:"quantity"`
+	UnitPrice int64  `json:"unit_price_cents"`
+	LineTotal int64  `json:"line_total_cents"`
 }
 
 // LegacyPOSResponse captures the legacy POS reply.

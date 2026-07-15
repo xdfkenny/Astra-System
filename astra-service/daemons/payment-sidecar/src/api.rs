@@ -41,7 +41,10 @@ pub async fn serve(addr: SocketAddr, terminal: Arc<dyn Terminal>) -> Result<(), 
         .route("/healthz", get(healthz))
         .route("/v1/payments/initiate", post(initiate_payment))
         .route("/v1/payments/:authorization_id/status", get(payment_status))
-        .route("/v1/payments/:authorization_id/cancel", post(cancel_payment))
+        .route(
+            "/v1/payments/:authorization_id/cancel",
+            post(cancel_payment),
+        )
         .layer(cors)
         .layer(RequestBodyLimitLayer::new(64 * 1024)) // 64KB — payment payloads are tiny
         .with_state(state);

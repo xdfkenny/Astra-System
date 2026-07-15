@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/astra-systems/astra-service/services/order-service/internal/service"
 	commonv1 "github.com/astra-systems/astra-service/proto/gen/go/common"
 	orderv1 "github.com/astra-systems/astra-service/proto/gen/go/order"
+	"github.com/astra-systems/astra-service/services/order-service/internal/service"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"

@@ -24,10 +24,10 @@ func (s *fakeInventoryServer) ReserveStock(ctx context.Context, req *inventoryv1
 	s.lastReserve = req
 	if s.stock == nil {
 		return &inventoryv1.StockLevel{
-			StoreId:              req.StoreId,
-			ItemId:               req.ItemId,
-			QuantityAvailable:    100,
-			QuantityReserved:     req.Quantity,
+			StoreId:           req.StoreId,
+			ItemId:            req.ItemId,
+			QuantityAvailable: 100,
+			QuantityReserved:  req.Quantity,
 		}, nil
 	}
 	return s.stock, nil

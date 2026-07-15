@@ -17,9 +17,9 @@ import (
 
 // Common domain errors returned by the repository.
 var (
-	ErrOrderNotFound  = errors.New("repository: order not found")
-	ErrOrderConflict  = errors.New("repository: order already exists")
-	ErrInvalidStatus  = errors.New("repository: invalid status transition")
+	ErrOrderNotFound = errors.New("repository: order not found")
+	ErrOrderConflict = errors.New("repository: order already exists")
+	ErrInvalidStatus = errors.New("repository: invalid status transition")
 )
 
 // OrderItem is a denormalized snapshot of a cart line at order time.

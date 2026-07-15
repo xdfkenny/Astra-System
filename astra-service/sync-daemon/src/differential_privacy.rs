@@ -23,7 +23,11 @@ pub const DEFAULT_EPSILON: f64 = 1.0;
 /// * `epsilon` — privacy budget (must be > 0).
 ///
 /// Returns the noised value as an integer, saturating at `u64` bounds.
-pub fn add_laplace_noise(value: u64, sensitivity: f64, epsilon: f64) -> Result<u64, AstraSyncError> {
+pub fn add_laplace_noise(
+    value: u64,
+    sensitivity: f64,
+    epsilon: f64,
+) -> Result<u64, AstraSyncError> {
     if epsilon <= 0.0 {
         return Err(AstraSyncError::DifferentialPrivacy(
             "epsilon must be positive".to_string(),
@@ -240,9 +244,16 @@ mod tests {
         let avg_tx = tx_count_sum / runs;
         let avg_items = item_count_sum / runs;
 
-        assert!((avg_total - aggregate.total_cents as i64).abs() < (aggregate.total_cents / 10) as i64);
-        assert!((avg_tx - aggregate.transaction_count as i64).abs() < (aggregate.transaction_count / 10) as i64);
-        assert!((avg_items - aggregate.item_count as i64).abs() < (aggregate.item_count / 10) as i64);
+        assert!(
+            (avg_total - aggregate.total_cents as i64).abs() < (aggregate.total_cents / 10) as i64
+        );
+        assert!(
+            (avg_tx - aggregate.transaction_count as i64).abs()
+                < (aggregate.transaction_count / 10) as i64
+        );
+        assert!(
+            (avg_items - aggregate.item_count as i64).abs() < (aggregate.item_count / 10) as i64
+        );
     }
 
     #[test]
@@ -274,9 +285,8 @@ mod tests {
         });
 
         let result = privatize_analytics_payload(payload, DEFAULT_EPSILON).unwrap();
-        let noised: SalesAggregate = serde_json::from_value(
-            result.get("metadata").unwrap().clone()
-        ).unwrap();
+        let noised: SalesAggregate =
+            serde_json::from_value(result.get("metadata").unwrap().clone()).unwrap();
 
         // At least one field is likely to differ over many runs; here we just
         // verify the shape is preserved and values remain non-negative.

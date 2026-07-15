@@ -10,17 +10,17 @@ import (
 
 // Config holds all runtime configuration for the inventory service.
 type Config struct {
-	Environment       string
-	Port              string
-	GRPCPort          string
-	DatabaseURL       string
-	RedisURL          string
-	NatsURL           string
-	ReservationTTL    time.Duration
-	ReservationSweep  time.Duration
-	CacheTTL          time.Duration
-	OTELExporterURL   string
-	EnableReflection  bool
+	Environment      string
+	Port             string
+	GRPCPort         string
+	DatabaseURL      string
+	RedisURL         string
+	NatsURL          string
+	ReservationTTL   time.Duration
+	ReservationSweep time.Duration
+	CacheTTL         time.Duration
+	OTELExporterURL  string
+	EnableReflection bool
 }
 
 // Load reads configuration from the environment and returns sane defaults for

@@ -30,15 +30,15 @@ const (
 
 // Credential is a stored WebAuthn credential.
 type Credential struct {
-	ActorID            string
-	ActorType          ActorType
-	StoreID            string
-	TenantID           string
-	CredentialID       string
-	PublicKey          []byte
-	IsActive           bool
-	LastLoginAt        *time.Time
-	CreatedAt          time.Time
+	ActorID      string
+	ActorType    ActorType
+	StoreID      string
+	TenantID     string
+	CredentialID string
+	PublicKey    []byte
+	IsActive     bool
+	LastLoginAt  *time.Time
+	CreatedAt    time.Time
 }
 
 // Session stores a pending challenge for assertion verification.

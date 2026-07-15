@@ -65,7 +65,12 @@ pub struct Cli {
     pub port: u16,
 
     /// Verifone terminal URI. In simulator mode this is ignored except for logs.
-    #[arg(short, long, env = "ASTRA_VERIFONE_URI", default_value = "sim://localhost")]
+    #[arg(
+        short,
+        long,
+        env = "ASTRA_VERIFONE_URI",
+        default_value = "sim://localhost"
+    )]
     pub terminal_uri: String,
 
     /// Allow binding to non-loopback addresses. DANGEROUS in production.
@@ -114,8 +119,7 @@ pub async fn run(cli: Cli) -> Result<(), PaymentError> {
 
     info!(terminal_uri = %cli.terminal_uri, %addr, "starting payment sidecar");
 
-    let terminal: Arc<dyn verifone::Terminal> =
-        Arc::new(SimulatedTerminal::new(cli.terminal_uri));
+    let terminal: Arc<dyn verifone::Terminal> = Arc::new(SimulatedTerminal::new(cli.terminal_uri));
 
     api::serve(addr, terminal)
         .await

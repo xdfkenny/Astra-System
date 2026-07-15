@@ -16,8 +16,8 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::AstraSyncError;
 use crate::crypto::{derive_key_from_password, HmacKey};
+use crate::AstraSyncError;
 
 /// An offline payment token as created by a kiosk.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -92,10 +92,7 @@ impl TokenSigner {
     /// Derives a signing key from a passphrase and salt using Argon2id.
     ///
     /// The same `(passphrase, salt)` pair must be supplied to every verifier.
-    pub fn derive_from_passphrase(
-        passphrase: &str,
-        salt: &[u8],
-    ) -> Result<Self, AstraSyncError> {
+    pub fn derive_from_passphrase(passphrase: &str, salt: &[u8]) -> Result<Self, AstraSyncError> {
         let derived = derive_key_from_password(passphrase, salt, 65536, 3, 4)?;
         let mut arr = [0u8; 32];
         arr.copy_from_slice(&derived);
@@ -105,9 +102,7 @@ impl TokenSigner {
     }
 
     /// Signs a token and returns a serializable signed token.
-    pub fn sign(&self,
-        token: &OfflinePaymentToken,
-    ) -> Result<SignedOfflineToken, AstraSyncError> {
+    pub fn sign(&self, token: &OfflinePaymentToken) -> Result<SignedOfflineToken, AstraSyncError> {
         let tag = crate::crypto::hmac_sign(&self.key, &token.canonical_bytes());
         Ok(SignedOfflineToken {
             token: token.clone(),
@@ -126,28 +121,23 @@ impl TokenSigner {
         crate::crypto::hmac_verify(&self.key, &signed.token.canonical_bytes(), &provided)?;
         if provided != expected {
             // Defensive: hmac_verify already performs constant-time comparison.
-            return Err(AstraSyncError::Crypto("offline token signature mismatch".to_string()));
+            return Err(AstraSyncError::Crypto(
+                "offline token signature mismatch".to_string(),
+            ));
         }
         Ok(signed.token.clone())
     }
 
     /// Convenience method: signs a token and serializes the result to JSON.
-    pub fn sign_to_json(
-        &self,
-        token: &OfflinePaymentToken,
-    ) -> Result<String, AstraSyncError> {
+    pub fn sign_to_json(&self, token: &OfflinePaymentToken) -> Result<String, AstraSyncError> {
         let signed = self.sign(token)?;
-        serde_json::to_string(&signed)
-            .map_err(|e| AstraSyncError::Serialization(e.to_string()))
+        serde_json::to_string(&signed).map_err(|e| AstraSyncError::Serialization(e.to_string()))
     }
 
     /// Convenience method: verifies a JSON-encoded signed token.
-    pub fn verify_from_json(
-        &self,
-        json: &str,
-    ) -> Result<OfflinePaymentToken, AstraSyncError> {
-        let signed: SignedOfflineToken = serde_json::from_str(json)
-            .map_err(|e| AstraSyncError::Serialization(e.to_string()))?;
+    pub fn verify_from_json(&self, json: &str) -> Result<OfflinePaymentToken, AstraSyncError> {
+        let signed: SignedOfflineToken =
+            serde_json::from_str(json).map_err(|e| AstraSyncError::Serialization(e.to_string()))?;
         self.verify(&signed)
     }
 }
@@ -206,10 +196,10 @@ mod tests {
     #[test]
     fn derive_key_produces_consistent_signer() {
         let salt = b"test-salt-1234";
-        let signer1 = TokenSigner::derive_from_passphrase("my secret passphrase", salt)
-            .expect("derive 1");
-        let signer2 = TokenSigner::derive_from_passphrase("my secret passphrase", salt)
-            .expect("derive 2");
+        let signer1 =
+            TokenSigner::derive_from_passphrase("my secret passphrase", salt).expect("derive 1");
+        let signer2 =
+            TokenSigner::derive_from_passphrase("my secret passphrase", salt).expect("derive 2");
         let token = sample_token();
         let signed = signer1.sign(&token).expect("sign");
         let verified = signer2.verify(&signed).expect("verify");

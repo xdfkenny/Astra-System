@@ -89,7 +89,10 @@ extern "C" {
     ) -> VfiResult;
 
     /// Cancels an in-progress transaction.
-    pub fn vfi_cancel_transaction(handle: *mut VfiHandle, transaction_id: *const c_char) -> VfiResult;
+    pub fn vfi_cancel_transaction(
+        handle: *mut VfiHandle,
+        transaction_id: *const c_char,
+    ) -> VfiResult;
 }
 
 /// Marker type indicating the FFI layer is present. Production binaries link
@@ -100,7 +103,9 @@ pub struct FfiAdapter {
 
 impl FfiAdapter {
     pub fn new() -> Self {
-        Self { _marker: PhantomData }
+        Self {
+            _marker: PhantomData,
+        }
     }
 }
 
@@ -142,7 +147,8 @@ impl VerifoneOpaqueToken {
     /// Serializes the token to a base64-encoded JSON string for transport.
     pub fn encode(&self) -> String {
         use base64::Engine;
-        base64::engine::general_purpose::STANDARD.encode(serde_json::to_vec(self).unwrap_or_default())
+        base64::engine::general_purpose::STANDARD
+            .encode(serde_json::to_vec(self).unwrap_or_default())
     }
 
     /// Deserializes from a base64-encoded JSON string.

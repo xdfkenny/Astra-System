@@ -164,7 +164,7 @@ func handleFleetHealth(deps Dependencies) fiber.Handler {
 					"paymentSuccessRate": 0.91, "meshPeers": []string{"kiosk-sim-001"},
 				},
 			},
-			"paymentLanes": deps.Breakers.Snapshot(),
+			"paymentLanes":  deps.Breakers.Snapshot(),
 			"generatedAtMs": time.Now().UnixMilli(),
 		})
 	}

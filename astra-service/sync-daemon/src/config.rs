@@ -377,9 +377,9 @@ fn apply_env_overrides(cfg: &mut Config) -> Result<(), AstraSyncError> {
     }
 
     if let Ok(v) = std::env::var("ASTRA_P2P_LISTEN_ADDR") {
-        cfg.p2p.listen_addr = v.parse().map_err(|e| {
-            AstraSyncError::Config(format!("invalid ASTRA_P2P_LISTEN_ADDR: {e}"))
-        })?;
+        cfg.p2p.listen_addr = v
+            .parse()
+            .map_err(|e| AstraSyncError::Config(format!("invalid ASTRA_P2P_LISTEN_ADDR: {e}")))?;
     }
     if let Ok(v) = std::env::var("ASTRA_P2P_BOOTSTRAP_PEERS") {
         cfg.p2p.bootstrap_peers = v.split(',').map(|s| s.trim().to_string()).collect();
@@ -436,9 +436,9 @@ fn apply_env_overrides(cfg: &mut Config) -> Result<(), AstraSyncError> {
     }
 
     if let Ok(v) = std::env::var("ASTRA_GRPC_LISTEN_ADDR") {
-        cfg.grpc.listen_addr = v.parse().map_err(|e| {
-            AstraSyncError::Config(format!("invalid ASTRA_GRPC_LISTEN_ADDR: {e}"))
-        })?;
+        cfg.grpc.listen_addr = v
+            .parse()
+            .map_err(|e| AstraSyncError::Config(format!("invalid ASTRA_GRPC_LISTEN_ADDR: {e}")))?;
     }
     if let Ok(v) = std::env::var("ASTRA_GRPC_TLS_CERT_PATH") {
         cfg.grpc.tls_cert_path = Some(v.into());

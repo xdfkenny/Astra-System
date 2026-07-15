@@ -5,14 +5,14 @@ use clap::{Parser, Subcommand, ValueEnum};
 use tokio::sync::{watch, RwLock};
 use tracing::{info, warn};
 
+use astra_syncd::cloud::CloudSync;
 use astra_syncd::config::Config;
 use astra_syncd::crypto::{HmacKey, SyncKey};
-use astra_syncd::storage::sqlite::SyncDatabase;
-use astra_syncd::p2p::mesh::P2PMesh;
-use astra_syncd::sync::engine::SyncEngine;
-use astra_syncd::raft::RaftNode;
-use astra_syncd::cloud::CloudSync;
 use astra_syncd::grpc::GrpcServer;
+use astra_syncd::p2p::mesh::P2PMesh;
+use astra_syncd::raft::RaftNode;
+use astra_syncd::storage::sqlite::SyncDatabase;
+use astra_syncd::sync::engine::SyncEngine;
 use astra_syncd::telemetry;
 use astra_syncd::{DaemonState, KioskId};
 
@@ -23,7 +23,12 @@ use astra_syncd::{DaemonState, KioskId};
 #[command(about = "Astra P2P mesh sync daemon for kiosk deployments")]
 struct Cli {
     /// Path to the TOML configuration file.
-    #[arg(short, long, value_name = "PATH", default_value = "/etc/astra-syncd/config.toml")]
+    #[arg(
+        short,
+        long,
+        value_name = "PATH",
+        default_value = "/etc/astra-syncd/config.toml"
+    )]
     config: PathBuf,
 
     /// Override log level (trace, debug, info, warn, error).
@@ -72,7 +77,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 KeyType::Hmac => {
                     let key = HmacKey::generate();
                     std::fs::write(&output, key.as_bytes())?;
-                    #[cfg(unix)] {
+                    #[cfg(unix)]
+                    {
                         use std::os::unix::fs::PermissionsExt;
                         let mut perms = std::fs::metadata(&output)?.permissions();
                         perms.set_mode(0o600);
@@ -80,7 +86,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     }
                 }
             }
-            println!("Generated {} key at {}", match key_type { KeyType::Sync => "sync", KeyType::Hmac => "hmac" }, output.display());
+            println!(
+                "Generated {} key at {}",
+                match key_type {
+                    KeyType::Sync => "sync",
+                    KeyType::Hmac => "hmac",
+                },
+                output.display()
+            );
             return Ok(());
         }
         Some(Commands::Validate) => {
@@ -132,7 +145,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     );
 
     // Shared daemon state.
-    let state = Arc::new(RwLock::new(DaemonState::new(KioskId::from(config.daemon.kiosk_id.clone()))));
+    let state = Arc::new(RwLock::new(DaemonState::new(KioskId::from(
+        config.daemon.kiosk_id.clone(),
+    ))));
 
     // Setup shutdown signal handling.
     let (shutdown_tx, shutdown_rx) = watch::channel(false);
@@ -182,7 +197,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         state.clone(),
         db.clone(),
         p2p_handle.clone(),
-    ).await?;
+    )
+    .await?;
     let raft_handle = raft.start(shutdown_rx.clone()).await?;
 
     // Start sync engine.
@@ -191,15 +207,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         state.clone(),
         db.clone(),
         p2p_handle.clone(),
-    ).await?;
+    )
+    .await?;
     let (sync_handle, sync_join_handle) = sync_engine.start(shutdown_rx.clone()).await?;
 
     // Start cloud sync (only active when leader and online).
-    let cloud = CloudSync::new(
-        config.clone(),
-        state.clone(),
-        db.clone(),
-    ).await?;
+    let cloud = CloudSync::new(config.clone(), state.clone(), db.clone()).await?;
     let cloud_handle = cloud.start(shutdown_rx.clone()).await?;
 
     // Start gRPC server for local IPC.
@@ -230,7 +243,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         sync_join_handle.await.ok();
         raft_handle.await.ok();
         p2p_join_handle.await.ok();
-    }).await;
+    })
+    .await;
 
     match shutdown_result {
         Ok(_) => info!("All subsystems shut down cleanly"),

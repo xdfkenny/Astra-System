@@ -85,6 +85,7 @@ pub fn init_terminal() -> Result<*mut VxTerminal, VerifoneError> {
 }
 
 /// Safe wrapper around `vx_start_transaction`.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub fn start_transaction(
     ptr: *mut VxTerminal,
     amount_cents: u64,
@@ -95,6 +96,7 @@ pub fn start_transaction(
 }
 
 /// Safe wrapper around `vx_wait_for_card`.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub fn wait_for_card(ptr: *mut VxTerminal, timeout_ms: u32) -> Result<VxCardInfo, VerifoneError> {
     let mut info: VxCardInfo = unsafe { std::mem::zeroed() };
     let rc = unsafe { vx_wait_for_card(ptr, timeout_ms, &mut info) };
@@ -103,6 +105,7 @@ pub fn wait_for_card(ptr: *mut VxTerminal, timeout_ms: u32) -> Result<VxCardInfo
 }
 
 /// Safe wrapper around `vx_process_payment`.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub fn process_payment(ptr: *mut VxTerminal) -> Result<VxPaymentResult, VerifoneError> {
     let mut result: VxPaymentResult = unsafe { std::mem::zeroed() };
     let rc = unsafe { vx_process_payment(ptr, &mut result) };
@@ -111,6 +114,7 @@ pub fn process_payment(ptr: *mut VxTerminal) -> Result<VxPaymentResult, Verifone
 }
 
 /// Safe wrapper around `vx_refund`.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub fn refund(
     ptr: *mut VxTerminal,
     transaction_id: &std::ffi::CStr,
@@ -132,6 +136,7 @@ pub fn refund(
 }
 
 /// Safe wrapper around `vx_close_terminal`.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub fn close_terminal(ptr: *mut VxTerminal) -> Result<(), VerifoneError> {
     let rc = unsafe { vx_close_terminal(ptr) };
     VerifoneError::from_result(rc)
@@ -259,8 +264,8 @@ mod stubs {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::stubs::set_next_result;
+    use super::*;
 
     #[test]
     fn ffi_init_terminal_success() {

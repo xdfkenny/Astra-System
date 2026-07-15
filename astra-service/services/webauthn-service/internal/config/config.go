@@ -19,9 +19,9 @@ type Config struct {
 	DatabaseMaxOpenConns int
 	DatabaseMaxIdleConns int
 
-	RPID          string
-	RPOrigin      string
-	RPName        string
+	RPID              string
+	RPOrigin          string
+	RPName            string
 	OverrideJWTSecret string
 	OverrideTokenTTL  time.Duration
 

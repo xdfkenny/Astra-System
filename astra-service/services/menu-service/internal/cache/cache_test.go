@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/astra-systems/astra-service/services/menu-service/internal/cache"
 	"github.com/astra-systems/astra-service/services/menu-service/internal/model"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
-	"github.com/alicebob/miniredis/v2"
 )
 
 func newTestCache(t *testing.T) (*cache.Cache, func()) {

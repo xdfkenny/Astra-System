@@ -101,8 +101,8 @@ pub fn start_transaction(
     if currency.len() != 3 {
         return Err(VerifoneError::InvalidParameter);
     }
-    let c_currency = std::ffi::CString::new(currency)
-        .map_err(|_| VerifoneError::InvalidParameter)?;
+    let c_currency =
+        std::ffi::CString::new(currency).map_err(|_| VerifoneError::InvalidParameter)?;
     ffi::start_transaction(terminal.ptr, amount_cents, &c_currency)
 }
 
@@ -151,10 +151,10 @@ pub fn refund(
     if currency.len() != 3 {
         return Err(VerifoneError::InvalidParameter);
     }
-    let c_txn = std::ffi::CString::new(transaction_id)
-        .map_err(|_| VerifoneError::InvalidParameter)?;
-    let c_currency = std::ffi::CString::new(currency)
-        .map_err(|_| VerifoneError::InvalidParameter)?;
+    let c_txn =
+        std::ffi::CString::new(transaction_id).map_err(|_| VerifoneError::InvalidParameter)?;
+    let c_currency =
+        std::ffi::CString::new(currency).map_err(|_| VerifoneError::InvalidParameter)?;
     let result = ffi::refund(terminal.ptr, &c_txn, amount_cents, &c_currency)?;
     Ok(RefundReceipt {
         reference: c_str_to_string(&result.reference).unwrap_or_default(),

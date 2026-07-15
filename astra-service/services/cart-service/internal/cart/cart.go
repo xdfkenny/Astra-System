@@ -32,10 +32,10 @@ const (
 // was added. The snapshot fields make the cart immutable with respect to
 // subsequent menu changes.
 type Modifier struct {
-	ModifierOptionID      string `json:"modifier_option_id"`
-	NameSnapshot          string `json:"name_snapshot"`
-	PriceDeltaCentsSnapshot int  `json:"price_delta_cents_snapshot"`
-	ModifierGroupID       string `json:"modifier_group_id"`
+	ModifierOptionID        string `json:"modifier_option_id"`
+	NameSnapshot            string `json:"name_snapshot"`
+	PriceDeltaCentsSnapshot int    `json:"price_delta_cents_snapshot"`
+	ModifierGroupID         string `json:"modifier_group_id"`
 }
 
 // Line represents a single cart line.

@@ -70,7 +70,10 @@ impl SimTerminal {
             }
         };
 
-        self.transactions.lock().unwrap().insert(transaction_id.clone(), state);
+        self.transactions
+            .lock()
+            .unwrap()
+            .insert(transaction_id.clone(), state);
 
         Ok(VerifoneOpaqueToken {
             transaction_id,
@@ -81,10 +84,7 @@ impl SimTerminal {
     }
 
     /// Returns the current state of a simulated transaction.
-    pub async fn status(
-        &self,
-        transaction_id: &str,
-    ) -> Result<SimState, PaymentError> {
+    pub async fn status(&self, transaction_id: &str) -> Result<SimState, PaymentError> {
         let txns = self.transactions.lock().unwrap();
         txns.get(transaction_id)
             .cloned()
@@ -116,11 +116,7 @@ impl SimTerminal {
     fn random_digits(&self, count: usize) -> String {
         let mut buf = vec![0u8; count];
         self.rng.fill(&mut buf).expect("rng failure");
-        buf.iter()
-            .map(|b| (b % 10).to_string())
-            .collect::<String>()
-            [..count]
-            .to_string()
+        buf.iter().map(|b| (b % 10).to_string()).collect::<String>()[..count].to_string()
     }
 }
 

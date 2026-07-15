@@ -26,11 +26,11 @@ type stubHealth struct{}
 func (stubHealth) Check(ctx context.Context) error { return nil }
 
 type mockStore struct {
-	payments      map[uuid.UUID]*domain.Payment
-	created       []*domain.Payment
-	updateErr     error
-	lastFrom      domain.PaymentStatus
-	lastTo        domain.PaymentStatus
+	payments  map[uuid.UUID]*domain.Payment
+	created   []*domain.Payment
+	updateErr error
+	lastFrom  domain.PaymentStatus
+	lastTo    domain.PaymentStatus
 }
 
 func newMockStore() *mockStore {
@@ -67,7 +67,7 @@ func (m *mockStore) UpdateStatus(ctx context.Context, id uuid.UUID, from, to dom
 type mockLocker struct{}
 
 func (mockLocker) Lock(ctx context.Context, key uuid.UUID) (bool, error) { return true, nil }
-func (mockLocker) Unlock(ctx context.Context, key uuid.UUID) error        { return nil }
+func (mockLocker) Unlock(ctx context.Context, key uuid.UUID) error       { return nil }
 
 type mockVerifone struct {
 	authorizeResp *client.AuthorizeResponse
@@ -83,8 +83,12 @@ func (m *mockVerifone) Authorize(ctx context.Context, req *client.AuthorizeReque
 	return m.authorizeResp, nil
 }
 
-func (m *mockVerifone) Capture(ctx context.Context, paymentID, verifoneToken string) error { return m.captureErr }
-func (m *mockVerifone) Settle(ctx context.Context, paymentID, verifoneToken string) error   { return m.settleErr }
+func (m *mockVerifone) Capture(ctx context.Context, paymentID, verifoneToken string) error {
+	return m.captureErr
+}
+func (m *mockVerifone) Settle(ctx context.Context, paymentID, verifoneToken string) error {
+	return m.settleErr
+}
 
 func newTestApp(t *testing.T, store service.Store, verifone client.Gateway) (*fiber.App, *REST) {
 	t.Helper()

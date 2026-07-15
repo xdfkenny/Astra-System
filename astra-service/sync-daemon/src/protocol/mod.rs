@@ -15,8 +15,8 @@
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use serde::{Deserialize, Serialize};
 
-use crate::AstraSyncError;
 use crate::crdt::hlc::Hlc;
+use crate::AstraSyncError;
 
 /// Magic bytes at the start of every frame.
 pub const SYNC_MAGIC: [u8; 4] = [0x41, 0x53, 0x54, 0x52]; // "ASTR"
@@ -84,7 +84,7 @@ impl SyncProtocol {
         if buf.len() < SYNC_MAGIC.len() + 1 + 4 {
             return None;
         }
-        if &buf[0..SYNC_MAGIC.len()] != SYNC_MAGIC {
+        if buf[0..SYNC_MAGIC.len()] != SYNC_MAGIC {
             // Stream misalignment: consume one byte and let the caller retry.
             buf.advance(1);
             return Some(Err(AstraSyncError::P2P(
@@ -202,7 +202,9 @@ mod tests {
         });
         let encoded = msg.encode().expect("encode");
         let mut buf = BytesMut::from(encoded.as_ref());
-        let decoded = SyncProtocol::decode(&mut buf).expect("frame present").expect("decode ok");
+        let decoded = SyncProtocol::decode(&mut buf)
+            .expect("frame present")
+            .expect("decode ok");
         assert_eq!(msg, decoded);
     }
 
@@ -216,7 +218,9 @@ mod tests {
         });
         let encoded = msg.encode().expect("encode");
         let mut buf = BytesMut::from(encoded.as_ref());
-        let decoded = SyncProtocol::decode(&mut buf).expect("frame present").expect("decode ok");
+        let decoded = SyncProtocol::decode(&mut buf)
+            .expect("frame present")
+            .expect("decode ok");
         assert_eq!(msg, decoded);
     }
 
@@ -229,7 +233,9 @@ mod tests {
         });
         let encoded = msg.encode().expect("encode");
         let mut buf = BytesMut::from(encoded.as_ref());
-        let decoded = SyncProtocol::decode(&mut buf).expect("frame present").expect("decode ok");
+        let decoded = SyncProtocol::decode(&mut buf)
+            .expect("frame present")
+            .expect("decode ok");
         assert_eq!(msg, decoded);
     }
 
@@ -246,7 +252,9 @@ mod tests {
         let head = buf.split_off(5);
         assert!(SyncProtocol::decode(&mut buf).is_none());
         buf.unsplit(head);
-        let decoded = SyncProtocol::decode(&mut buf).expect("frame present").expect("decode ok");
+        let decoded = SyncProtocol::decode(&mut buf)
+            .expect("frame present")
+            .expect("decode ok");
         assert_eq!(decoded, msg);
     }
 

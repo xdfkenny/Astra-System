@@ -19,21 +19,21 @@ type Repository struct {
 	db *sql.DB
 
 	// Read statements
-	getCategoriesStmt      *sql.Stmt
-	getItemsStmt           *sql.Stmt
-	getItemByIDStmt        *sql.Stmt
-	searchItemsStmt        *sql.Stmt
-	getModifierGroupsStmt  *sql.Stmt
+	getCategoriesStmt     *sql.Stmt
+	getItemsStmt          *sql.Stmt
+	getItemByIDStmt       *sql.Stmt
+	searchItemsStmt       *sql.Stmt
+	getModifierGroupsStmt *sql.Stmt
 
 	// Write statements
-	insertCategoryStmt   *sql.Stmt
-	updateCategoryStmt   *sql.Stmt
-	deleteCategoryStmt   *sql.Stmt
-	insertItemStmt       *sql.Stmt
-	updateItemStmt       *sql.Stmt
-	updateItemPriceStmt  *sql.Stmt
-	deleteItemStmt       *sql.Stmt
-	getItemPriceStmt     *sql.Stmt
+	insertCategoryStmt  *sql.Stmt
+	updateCategoryStmt  *sql.Stmt
+	deleteCategoryStmt  *sql.Stmt
+	insertItemStmt      *sql.Stmt
+	updateItemStmt      *sql.Stmt
+	updateItemPriceStmt *sql.Stmt
+	deleteItemStmt      *sql.Stmt
+	getItemPriceStmt    *sql.Stmt
 }
 
 // NewRepository prepares all SQL statements.

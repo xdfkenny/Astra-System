@@ -77,14 +77,14 @@ func signAdminToken(t *testing.T, cfg *config.Config) string {
 func authTestToken(t *testing.T, cfg *config.Config, isAdmin bool) string {
 	t.Helper()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"iss":      cfg.JWTIssuer,
-		"aud":      cfg.JWTAudience,
-		"sub":      "admin-1",
+		"iss":       cfg.JWTIssuer,
+		"aud":       cfg.JWTAudience,
+		"sub":       "admin-1",
 		"tenant_id": "tenant-1",
-		"role":     "admin",
-		"is_admin": isAdmin,
-		"iat":      time.Now().Unix(),
-		"exp":      time.Now().Add(time.Hour).Unix(),
+		"role":      "admin",
+		"is_admin":  isAdmin,
+		"iat":       time.Now().Unix(),
+		"exp":       time.Now().Add(time.Hour).Unix(),
 	})
 	signed, err := token.SignedString(cfg.JWTSecret)
 	require.NoError(t, err)

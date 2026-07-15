@@ -14,11 +14,11 @@ import (
 
 // ItemPriceChangedPayload is the schema for item price change events.
 type ItemPriceChangedPayload struct {
-	ItemID          string `json:"item_id"`
-	StoreID         string `json:"store_id"`
-	PreviousPriceCents int64 `json:"previous_price_cents"`
-	NewPriceCents   int64  `json:"new_price_cents"`
-	OccurredAtMs    int64  `json:"occurred_at_ms"`
+	ItemID             string `json:"item_id"`
+	StoreID            string `json:"store_id"`
+	PreviousPriceCents int64  `json:"previous_price_cents"`
+	NewPriceCents      int64  `json:"new_price_cents"`
+	OccurredAtMs       int64  `json:"occurred_at_ms"`
 }
 
 // MenuUpdatedPayload is the schema for menu update events.

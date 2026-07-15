@@ -20,7 +20,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use rand::Rng;
-use tokio::sync::{watch, RwLock, mpsc};
+use tokio::sync::{mpsc, watch, RwLock};
 use tokio::time::{interval, Instant};
 use tracing::{info, trace, warn};
 
@@ -28,7 +28,7 @@ use crate::config::{Config, RaftConfig};
 use crate::p2p::mesh::P2PMeshHandle;
 use crate::protocol::SyncProtocol;
 use crate::storage::sqlite::SyncDatabase;
-use crate::{DaemonState, AstraSyncError};
+use crate::{AstraSyncError, DaemonState};
 
 /// Raft node states.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,6 +50,7 @@ pub enum RaftEvent {
 pub struct RaftNode {
     config: Arc<Config>,
     state: Arc<RwLock<DaemonState>>,
+    #[allow(dead_code)]
     db: Arc<SyncDatabase>,
     mesh: P2PMeshHandle,
     /// Local Raft state machine.
@@ -100,11 +101,21 @@ impl RaftNode {
 
         info!(kiosk_id = %my_id, "Raft node initialized");
 
-        Ok(Self { config, state, db, mesh, raft_state, event_tx })
+        Ok(Self {
+            config,
+            state,
+            db,
+            mesh,
+            raft_state,
+            event_tx,
+        })
     }
 
     /// Starts the Raft event loop and returns a join handle.
-    pub async fn start(self, mut shutdown: watch::Receiver<bool>) -> Result<tokio::task::JoinHandle<()>, AstraSyncError> {
+    pub async fn start(
+        self,
+        mut shutdown: watch::Receiver<bool>,
+    ) -> Result<tokio::task::JoinHandle<()>, AstraSyncError> {
         let raft_state = self.raft_state.clone();
         let state = self.state.clone();
         let cfg = self.config.raft.clone();
@@ -276,7 +287,13 @@ impl RaftNode {
         }
         sm.voted_for = Some(candidate_id.to_string());
         sm.last_leader_heartbeat = Instant::now();
-        let _ = self.event_tx.send(RaftEvent::VoteGranted { term, voter: sm.my_id.clone() }).await;
+        let _ = self
+            .event_tx
+            .send(RaftEvent::VoteGranted {
+                term,
+                voter: sm.my_id.clone(),
+            })
+            .await;
         Ok(true)
     }
 

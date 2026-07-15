@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/astra-service/go-common/outbox"
+	inventoryv1 "github.com/astra-systems/astra-service/proto/gen/go/inventory"
 	"github.com/astra-systems/astra-service/services/inventory-service/internal/ledger"
 	"github.com/astra-systems/astra-service/services/inventory-service/internal/publisher"
-	inventoryv1 "github.com/astra-systems/astra-service/proto/gen/go/inventory"
 	"github.com/google/uuid"
 )
 

@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
+	authv1 "github.com/astra-systems/astra-service/proto/gen/go/auth"
 	"github.com/astra-systems/astra-service/services/webauthn-service/internal/repository"
 	"github.com/astra-systems/astra-service/services/webauthn-service/internal/service"
 	"github.com/astra-systems/astra-service/services/webauthn-service/internal/webauthn"
-	authv1 "github.com/astra-systems/astra-service/proto/gen/go/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"

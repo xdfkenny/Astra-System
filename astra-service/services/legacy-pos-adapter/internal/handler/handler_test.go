@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/astra-systems/astra-service/services/legacy-pos-adapter/internal/repository"
-	"github.com/astra-systems/astra-service/services/legacy-pos-adapter/internal/service"
 	eventsv1 "github.com/astra-systems/astra-service/proto/gen/go/events"
 	orderv1 "github.com/astra-systems/astra-service/proto/gen/go/order"
+	"github.com/astra-systems/astra-service/services/legacy-pos-adapter/internal/repository"
+	"github.com/astra-systems/astra-service/services/legacy-pos-adapter/internal/service"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
@@ -20,19 +20,19 @@ type fakeMsg struct {
 	data []byte
 }
 
-func (f fakeMsg) Data() []byte                                  { return f.data }
-func (f fakeMsg) Subject() string                               { return "" }
-func (f fakeMsg) Headers() nats.Header                          { return nil }
-func (f fakeMsg) Reply() string                                 { return "" }
-func (f fakeMsg) Ack() error                                    { return nil }
-func (f fakeMsg) DoubleAck(context.Context) error               { return nil }
-func (f fakeMsg) Nak() error                                    { return nil }
-func (f fakeMsg) NakWithDelay(_ time.Duration) error            { return nil }
-func (f fakeMsg) InProgress() error                             { return nil }
-func (f fakeMsg) Term() error                                   { return nil }
-func (f fakeMsg) TermWithReason(_ string) error                 { return nil }
-func (f fakeMsg) Metadata() (*jetstream.MsgMetadata, error)     { return nil, nil }
-func (f fakeMsg) Duplicate() bool                               { return false }
+func (f fakeMsg) Data() []byte                              { return f.data }
+func (f fakeMsg) Subject() string                           { return "" }
+func (f fakeMsg) Headers() nats.Header                      { return nil }
+func (f fakeMsg) Reply() string                             { return "" }
+func (f fakeMsg) Ack() error                                { return nil }
+func (f fakeMsg) DoubleAck(context.Context) error           { return nil }
+func (f fakeMsg) Nak() error                                { return nil }
+func (f fakeMsg) NakWithDelay(_ time.Duration) error        { return nil }
+func (f fakeMsg) InProgress() error                         { return nil }
+func (f fakeMsg) Term() error                               { return nil }
+func (f fakeMsg) TermWithReason(_ string) error             { return nil }
+func (f fakeMsg) Metadata() (*jetstream.MsgMetadata, error) { return nil, nil }
+func (f fakeMsg) Duplicate() bool                           { return false }
 
 func TestHandleOrderCreated(t *testing.T) {
 	orderCreated := &eventsv1.OrderCreated{

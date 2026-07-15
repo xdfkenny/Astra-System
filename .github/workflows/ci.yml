@@ -10,7 +10,7 @@ env:
   NODE_VERSION: '22'
   PNPM_VERSION: '9.12.0'
   GO_VERSION: '1.25'
-  RUST_VERSION: '1.82'
+  RUST_VERSION: '1.93'
   REGISTRY: ghcr.io
 
 jobs:

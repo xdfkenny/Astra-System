@@ -15,7 +15,7 @@ type Config struct {
 	GRPCPort string
 	HTTPPort string
 
-	DatabaseURL    string
+	DatabaseURL          string
 	DatabaseMaxOpenConns int
 	DatabaseMaxIdleConns int
 

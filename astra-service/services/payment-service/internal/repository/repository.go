@@ -31,8 +31,8 @@ var ErrInvalidOfflineHMAC = errors.New("payment: offline token hmac verification
 
 // PaymentRepository provides payment persistence on top of PostgreSQL.
 type PaymentRepository struct {
-	db        *sql.DB
-	hmacKey   []byte
+	db      *sql.DB
+	hmacKey []byte
 }
 
 func NewPaymentRepository(db *sql.DB, hmacKey []byte) *PaymentRepository {

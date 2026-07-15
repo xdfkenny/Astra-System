@@ -222,4 +222,4 @@ func (m *mockVerifone) Authorize(_ context.Context, _ *client.AuthorizeRequest) 
 }
 
 func (m *mockVerifone) Capture(_ context.Context, _, _ string) error { return m.captureErr }
-func (m *mockVerifone) Settle(_ context.Context, _, _ string) error   { return m.settleErr }
+func (m *mockVerifone) Settle(_ context.Context, _, _ string) error  { return m.settleErr }

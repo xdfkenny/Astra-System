@@ -174,17 +174,19 @@ impl RedactingWriter {
 impl Write for RedactingWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let redacted = redact_sensitive(std::str::from_utf8(buf).unwrap_or(""));
-        let mut guard = self.inner.lock().map_err(|e| {
-            io::Error::new(io::ErrorKind::Other, format!("mutex poisoned: {e}"))
-        })?;
+        let mut guard = self
+            .inner
+            .lock()
+            .map_err(|e| io::Error::other(format!("mutex poisoned: {e}")))?;
         guard.write_all(redacted.as_bytes())?;
         Ok(buf.len())
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        let mut guard = self.inner.lock().map_err(|e| {
-            io::Error::new(io::ErrorKind::Other, format!("mutex poisoned: {e}"))
-        })?;
+        let mut guard = self
+            .inner
+            .lock()
+            .map_err(|e| io::Error::other(format!("mutex poisoned: {e}")))?;
         guard.flush()
     }
 }
@@ -221,10 +223,7 @@ mod tests {
     #[test]
     fn redacts_hash() {
         let line = "hash=a3f5c9e2a3f5c9e2a3f5c9e2a3f5c9e2 other";
-        assert_eq!(
-            redact_sensitive(line),
-            "hash=[REDACTED_HASH] other"
-        );
+        assert_eq!(redact_sensitive(line), "hash=[REDACTED_HASH] other");
     }
 
     #[test]

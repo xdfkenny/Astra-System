@@ -2,6 +2,7 @@
 // operations. It consumes:
 //   - astra.payment.record_authorization: record an authorized payment
 //   - astra.payment.offline_token_received: queue a kiosk offline token
+//
 // and runs a background settlement loop for unsettled offline tokens.
 package handler
 
@@ -19,9 +20,9 @@ import (
 )
 
 type PaymentHandler struct {
-	repo      *repository.PaymentRepository
-	bus       *eventbus.Bus
-	settlementEnabled bool
+	repo               *repository.PaymentRepository
+	bus                *eventbus.Bus
+	settlementEnabled  bool
 	settlementInterval time.Duration
 }
 
@@ -72,23 +73,23 @@ func (h *PaymentHandler) HandleRecordAuthorization(ctx context.Context, msg jets
 	}
 
 	p := &domain.Payment{
-		PaymentID:      cmd.PaymentID,
-		OrderID:        cmd.OrderID,
-		KioskID:        cmd.KioskID,
-		IdempotencyKey: cmd.IdempotencyKey,
-		AmountCents:    cmd.AmountCents,
-		Currency:       cmd.Currency,
-		Method:         cmd.Method,
-		Status:         cmd.Status,
-		VerifoneToken:  cmd.VerifoneToken,
+		PaymentID:        cmd.PaymentID,
+		OrderID:          cmd.OrderID,
+		KioskID:          cmd.KioskID,
+		IdempotencyKey:   cmd.IdempotencyKey,
+		AmountCents:      cmd.AmountCents,
+		Currency:         cmd.Currency,
+		Method:           cmd.Method,
+		Status:           cmd.Status,
+		VerifoneToken:    cmd.VerifoneToken,
 		VerifoneAuthCode: cmd.AuthCode,
-		CardBrand:      cmd.CardBrand,
-		CardLastFour:   cmd.CardLastFour,
-		DeclineReason:  cmd.DeclineReason,
-		ReceiptText:    cmd.ReceiptText,
-		IsOfflineToken: cmd.IsOfflineToken,
+		CardBrand:        cmd.CardBrand,
+		CardLastFour:     cmd.CardLastFour,
+		DeclineReason:    cmd.DeclineReason,
+		ReceiptText:      cmd.ReceiptText,
+		IsOfflineToken:   cmd.IsOfflineToken,
 		OfflineTokenHMAC: cmd.OfflineHMAC,
-		CreatedAt:      time.Now().UTC(),
+		CreatedAt:        time.Now().UTC(),
 	}
 
 	if err := h.repo.RecordAuthorization(ctx, p); err != nil {
@@ -101,12 +102,12 @@ func (h *PaymentHandler) HandleRecordAuthorization(ctx context.Context, msg jets
 	// Publish a domain event for downstream consumers (order fulfillment,
 	// analytics, receipt dispatch).
 	event := map[string]interface{}{
-		"paymentId": cmd.PaymentID,
-		"orderId":   cmd.OrderID,
-		"status":    cmd.Status,
+		"paymentId":   cmd.PaymentID,
+		"orderId":     cmd.OrderID,
+		"status":      cmd.Status,
 		"amountCents": cmd.AmountCents,
-		"method":    cmd.Method,
-		"recordedAt": time.Now().UTC().Format(time.RFC3339Nano),
+		"method":      cmd.Method,
+		"recordedAt":  time.Now().UTC().Format(time.RFC3339Nano),
 	}
 	eventBytes, _ := json.Marshal(event)
 	if err := h.bus.Publish(ctx, "astra.payment.recorded.v1", eventBytes); err != nil {

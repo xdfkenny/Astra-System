@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
-	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // NewPostgresContainer starts a PostgreSQL container and applies migrations.

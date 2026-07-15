@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/astra-service/go-common/observability"
-	"github.com/astra-systems/astra-service/services/inventory-service/internal/service"
 	inventoryv1 "github.com/astra-systems/astra-service/proto/gen/go/inventory"
+	"github.com/astra-systems/astra-service/services/inventory-service/internal/service"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )

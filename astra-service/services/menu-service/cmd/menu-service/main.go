@@ -15,12 +15,12 @@ import (
 	"github.com/astra-service/go-common/observability"
 	"github.com/astra-systems/astra-service/services/menu-service/internal/cache"
 	"github.com/astra-systems/astra-service/services/menu-service/internal/config"
-	"github.com/astra-systems/astra-service/services/menu-service/internal/repository"
 	"github.com/astra-systems/astra-service/services/menu-service/internal/relay"
+	"github.com/astra-systems/astra-service/services/menu-service/internal/repository"
 	"github.com/astra-systems/astra-service/services/menu-service/internal/server"
 	"github.com/astra-systems/astra-service/services/menu-service/internal/service"
-	"github.com/redis/go-redis/v9"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {

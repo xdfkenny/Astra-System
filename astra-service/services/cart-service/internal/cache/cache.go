@@ -14,7 +14,7 @@ import (
 
 // CartCache stores serialized cart snapshots indexed by lane and session.
 type CartCache struct {
-	client *redis.Client
+	client     *redis.Client
 	defaultTTL time.Duration
 }
 
@@ -85,7 +85,9 @@ func (c *CartCache) Close() error {
 }
 
 // Ensure CartCache implements the TTL contract exposed by tests.
-var _ interface{ Get(context.Context, string, string) (*cart.Cart, error) } = (*CartCache)(nil)
+var _ interface {
+	Get(context.Context, string, string) (*cart.Cart, error)
+} = (*CartCache)(nil)
 
 // SessionTTL returns the configured default TTL.
 func (c *CartCache) SessionTTL() time.Duration {

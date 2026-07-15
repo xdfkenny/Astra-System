@@ -8,18 +8,17 @@
 //! exporter) can query sync status, request immediate syncs, and submit
 //! transactions via this interface.
 
-use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::SystemTime;
 
 use tokio::sync::{watch, RwLock};
 use tonic::{transport::Server, Request, Response, Status};
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, info};
 
 use crate::config::Config;
 use crate::storage::sqlite::SyncDatabase;
 use crate::sync::engine::SyncEngineHandle;
-use crate::{DaemonState, AstraSyncError, DataType, VERSION};
+use crate::{AstraSyncError, DaemonState, DataType, VERSION};
 
 // Include the generated protobuf code.
 pub mod proto {
@@ -44,11 +43,19 @@ impl GrpcServer {
         db: Arc<SyncDatabase>,
         sync_handle: SyncEngineHandle,
     ) -> Self {
-        Self { config, state, db, sync_handle }
+        Self {
+            config,
+            state,
+            db,
+            sync_handle,
+        }
     }
 
     /// Starts the gRPC server and returns a join handle.
-    pub async fn start(self, mut shutdown: watch::Receiver<bool>) -> Result<tokio::task::JoinHandle<()>, AstraSyncError> {
+    pub async fn start(
+        self,
+        shutdown: watch::Receiver<bool>,
+    ) -> Result<tokio::task::JoinHandle<()>, AstraSyncError> {
         let addr = self.config.grpc.listen_addr;
         let service = AstraSyncService {
             state: self.state.clone(),
@@ -140,25 +147,53 @@ impl AstraSync for AstraSyncService {
         _request: Request<proto::Empty>,
     ) -> Result<Response<SyncStatus>, Status> {
         let state = self.state.read().await;
-        let (inv_ts, _) = self.db.get_sync_state(DataType::Inventory).await
+        let (inv_ts, _) = self
+            .db
+            .get_sync_state(DataType::Inventory)
+            .await
             .unwrap_or((0, 0));
-        let (cart_ts, _) = self.db.get_sync_state(DataType::Cart).await
+        let (cart_ts, _) = self
+            .db
+            .get_sync_state(DataType::Cart)
+            .await
             .unwrap_or((0, 0));
-        let (tx_ts, _) = self.db.get_sync_state(DataType::Transaction).await
+        let (tx_ts, _) = self
+            .db
+            .get_sync_state(DataType::Transaction)
+            .await
             .unwrap_or((0, 0));
-        let (ana_ts, _) = self.db.get_sync_state(DataType::Analytics).await
+        let (ana_ts, _) = self
+            .db
+            .get_sync_state(DataType::Analytics)
+            .await
             .unwrap_or((0, 0));
 
-        let pending_inventory = self.db.load_dirty::<serde_json::Value>(DataType::Inventory, 1000).await
-            .unwrap_or_default().len() as u64;
-        let pending_carts = self.db.load_dirty::<serde_json::Value>(DataType::Cart, 1000).await
-            .unwrap_or_default().len() as u64;
-        let pending_tx = self.db.load_dirty::<serde_json::Value>(DataType::Transaction, 1000).await
-            .unwrap_or_default().len() as u64;
-        let pending_ana = self.db.load_dirty::<serde_json::Value>(DataType::Analytics, 1000).await
-            .unwrap_or_default().len() as u64;
+        let pending_inventory = self
+            .db
+            .load_dirty::<serde_json::Value>(DataType::Inventory, 1000)
+            .await
+            .unwrap_or_default()
+            .len() as u64;
+        let pending_carts = self
+            .db
+            .load_dirty::<serde_json::Value>(DataType::Cart, 1000)
+            .await
+            .unwrap_or_default()
+            .len() as u64;
+        let pending_tx = self
+            .db
+            .load_dirty::<serde_json::Value>(DataType::Transaction, 1000)
+            .await
+            .unwrap_or_default()
+            .len() as u64;
+        let pending_ana = self
+            .db
+            .load_dirty::<serde_json::Value>(DataType::Analytics, 1000)
+            .await
+            .unwrap_or_default()
+            .len() as u64;
 
-        let offline = self.db.load_offline_queue(1).await.unwrap_or_default();
+        let _offline = self.db.load_offline_queue(1).await.unwrap_or_default();
         let has_internet = state.online;
 
         Ok(Response::new(SyncStatus {
@@ -166,7 +201,11 @@ impl AstraSync for AstraSyncService {
             is_leader: state.is_leader,
             last_sync_timestamp: inv_ts.max(cart_ts).max(tx_ts).max(ana_ts),
             pending_local_records: pending_inventory + pending_carts + pending_tx + pending_ana,
-            pending_cloud_records: if state.is_leader && has_internet { 0 } else { pending_tx },
+            pending_cloud_records: if state.is_leader && has_internet {
+                0
+            } else {
+                pending_tx
+            },
             peers: vec![], // In production, populate from P2P mesh peer list.
             inventory_status: Some(DataSyncStatus {
                 data_type: proto::DataType::Inventory as i32,
@@ -249,8 +288,7 @@ impl AstraSync for AstraSyncService {
         _request: Request<proto::Empty>,
     ) -> Result<Response<OfflineQueueStatus>, Status> {
         let state = self.state.read().await;
-        let queue = self.db.load_offline_queue(10000).await
-            .unwrap_or_default();
+        let queue = self.db.load_offline_queue(10000).await.unwrap_or_default();
         let oldest = queue.first().map(|(_, _, _)| 0u64).unwrap_or(0);
         Ok(Response::new(OfflineQueueStatus {
             queued_count: queue.len() as u32,
