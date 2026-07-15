@@ -1,4 +1,3 @@
-
 import type {
   MenuResponse,
   CartResponse,
@@ -44,41 +43,37 @@ export class AstraApiClient {
   /**
    * Make an authenticated API request.
    */
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {},
-  ): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    const headers: Record<string, string> = {
+    const headers = new Headers({
       "Content-Type": "application/json",
-    };
+    });
 
     if (this.authToken) {
-      headers["Authorization"] = `Bearer ${this.authToken}`;
+      headers.set("Authorization", `Bearer ${this.authToken}`);
+    }
+
+    if (options.headers) {
+      new Headers(options.headers).forEach((value, key) => {
+        headers.set(key, value);
+      });
     }
 
     try {
       const response = await fetch(url, {
         ...options,
-          headers: {
-            ...headers,
-            // @ts-expect-error - spreading headers is safe
-            // eslint-disable-next-line @typescript-eslint/no-misused-spread
-             ...(options.headers ?? {}),
-          },
+        headers,
       });
 
       if (!response.ok) {
-         const errorData = await response.json().catch(() => ({})) as unknown;
+        const errorData = (await response.json().catch(() => ({}))) as unknown;
         throw new Error(
           (errorData as { message?: string }).message ??
             `API request failed: ${response.status} ${response.statusText}`,
         );
       }
 
-        // @ts-expect-error - returning await is intentional for error handling
-        // eslint-disable-next-line @typescript-eslint/return-await
-        return response.json() as Promise<T>;
+      return (await response.json()) as T;
     } catch (error) {
       console.error(`API request failed for ${endpoint}:`, error);
       throw error;
@@ -101,8 +96,8 @@ export class AstraApiClient {
     // Force mock data when API is not available for development
     try {
       return await this.request<MenuResponse>("/v1/menu");
-    } catch (error) {
-      console.log("API not available, using mock data for development");
+    } catch {
+      console.warn("API not available, using mock data for development");
       // Import mock data dynamically to avoid circular dependency
       const { mockMenuResponse } = await import("../routes/mockMenuData");
       return mockMenuResponse;
@@ -185,7 +180,7 @@ export class AstraApiClient {
         nameSnapshot: string;
         unitPriceCentsSnapshot: number;
         quantity: number;
-    modifiers: {
+        modifiers: {
           modifierId: string;
           optionId: string;
           priceDeltaCents: number;
@@ -255,10 +250,7 @@ export class AstraApiClient {
    * Create Order - POST /v1/orders
    * Create an order from a completed payment.
    */
-  async createOrder(
-    cartId: string,
-    paymentId: string,
-  ): Promise<OrderResponse> {
+  async createOrder(cartId: string, paymentId: string): Promise<OrderResponse> {
     return this.request<OrderResponse>("/v1/orders", {
       method: "POST",
       body: JSON.stringify({ cartId, paymentId }),
@@ -292,20 +284,24 @@ export class AstraApiClient {
    * Get Announcements - GET /v1/announcements
    * Retrieve system announcements.
    */
-  async getAnnouncements(): Promise<{ announcements: {
-    id: string;
-    title: string;
-    message: string;
-    severity: "info" | "warning" | "critical";
-    expiresAt: string;
-  }[] }> {
-    return this.request<{ announcements: {
+  async getAnnouncements(): Promise<{
+    announcements: {
       id: string;
       title: string;
       message: string;
       severity: "info" | "warning" | "critical";
       expiresAt: string;
-    }[] }>("/v1/announcements");
+    }[];
+  }> {
+    return this.request<{
+      announcements: {
+        id: string;
+        title: string;
+        message: string;
+        severity: "info" | "warning" | "critical";
+        expiresAt: string;
+      }[];
+    }>("/v1/announcements");
   }
 
   /**

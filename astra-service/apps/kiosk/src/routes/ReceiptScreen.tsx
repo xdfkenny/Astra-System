@@ -11,6 +11,7 @@ export function ReceiptScreen(): React.JSX.Element {
   const { send, state } = useKioskMachine();
   const [showPrimary, setShowPrimary] = useState(false);
   const [printerFailed, setPrinterFailed] = useState(false);
+  const [confirmation, setConfirmation] = useState<string | null>(null);
 
   const orderNumber = state.context.order?.orderNumber ?? "A-7842";
 
@@ -25,12 +26,17 @@ export function ReceiptScreen(): React.JSX.Element {
     };
   }, [send]);
 
+  const showConfirmation = (message: string) => {
+    setConfirmation(message);
+    setTimeout(() => { setConfirmation(null); }, 4000);
+  };
+
   const handlePrint = async () => {
     try {
       // In a real implementation, this would send a print request to the API
       // For now, we'll simulate the behavior
       await new Promise(resolve => setTimeout(resolve, 1000));
-      // Show success
+      showConfirmation("Printing receipt...");
     } catch (error) {
       console.error("Print failed:", error);
       setPrinterFailed(true);
@@ -43,9 +49,10 @@ export function ReceiptScreen(): React.JSX.Element {
       // In a real implementation, this would send an email request to the API
       // For now, we'll simulate the behavior
       await new Promise(resolve => setTimeout(resolve, 500));
-      // Show success notification
+      showConfirmation("Receipt sent to your account.");
     } catch (error) {
       console.error("Email failed:", error);
+      showConfirmation("Couldn't send receipt. Please try again.");
     }
   };
 
@@ -159,6 +166,43 @@ export function ReceiptScreen(): React.JSX.Element {
               <span>Printer unavailable. Receipt saved.</span>
             </div>
             {/* Progress bar */}
+            <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/20">
+              <motion.div
+                className="h-full rounded-full bg-amber"
+                initial={{ width: "100%" }}
+                animate={{ width: "0%" }}
+                transition={{ duration: 4, ease: "linear" }}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Print / email confirmation toast */}
+      <AnimatePresence>
+        {confirmation && (
+          <motion.div
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -20, opacity: 0 }}
+            transition={{ duration: 0.25, ease: motionTokens.easeOutExpo }}
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-40 rounded-[12px] bg-charcoal px-4 py-3 text-white font-sans text-[14px] shadow-md"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex items-center gap-2">
+              <svg
+                viewBox="0 0 20 20"
+                className="h-4 w-4 shrink-0 text-moss"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                aria-hidden="true"
+              >
+                <path d="M4 10l4 4 8-8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span>{confirmation}</span>
+            </div>
             <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/20">
               <motion.div
                 className="h-full rounded-full bg-amber"

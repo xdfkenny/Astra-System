@@ -195,11 +195,6 @@ export function AttractScreen(): React.JSX.Element {
         </motion.p>
       </div>
 
-      {/* Idle dim overlay — must not intercept touches */}
-      {idle && (
-        <div className="absolute inset-0 bg-black/30 z-20 pointer-events-none idle-dim-overlay" />
-      )}
-
       {/* Clip-path circle reveal on tap */}
       {reveal && (
         <motion.div

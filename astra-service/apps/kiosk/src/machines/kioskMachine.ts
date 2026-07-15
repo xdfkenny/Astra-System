@@ -250,7 +250,11 @@ export const kioskMachine = createMachine(
             }),
           },
         },
-        on: {
+         on: {
+          CANCEL_PAYMENT: {
+            target: "CART",
+            actions: ["clearError"],
+          },
           NETWORK_OFFLINE: {
             actions: ["setOfflineMode"],
           },

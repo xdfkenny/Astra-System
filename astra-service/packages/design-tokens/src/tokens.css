@@ -191,6 +191,8 @@ html.dark,
   --color-info: #6A7D90;
   --color-error: #D4A4A4;
   --color-error-hover: #E4B4B4;
+  --color-offline: #E4C46A;
+  --color-sync-active: #7A9A7C;
 
   --color-ink: #F5F3EF;
   --color-ink-muted: #A8A49D;
@@ -226,6 +228,8 @@ html.dark,
     --color-info: #6A7D90;
     --color-error: #D4A4A4;
     --color-error-hover: #E4B4B4;
+    --color-offline: #E4C46A;
+    --color-sync-active: #7A9A7C;
 
     --color-ink: #F5F3EF;
     --color-ink-muted: #A8A49D;

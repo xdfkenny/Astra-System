@@ -260,9 +260,9 @@ export function PaymentAuthScreen(): React.JSX.Element {
           disabled={!selectedMethod}
           onClick={handleConfirm}
           className="h-16 w-full rounded-full bg-amber text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(184,126,107,0.3)] disabled:opacity-50 disabled:grayscale-[0.5] transition-all duration-100 active:scale-[0.98] active:translate-y-[1px]"
-          aria-label="Confirm payment"
+          aria-label={`Pay $${formatCents(totalCents)}`}
         >
-          Confirm Payment
+          Pay ${formatCents(totalCents)}
         </button>
       </div>
 

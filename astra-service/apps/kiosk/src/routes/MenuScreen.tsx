@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
 import { useSnapshot } from "valtio";
 import { cartProxy } from "@astra/kiosk-state";
@@ -78,6 +78,7 @@ export function MenuScreen(): React.JSX.Element {
   const [searchQuery, setSearchQuery] = useState("");
   const [ghostCartOpen, setGhostCartOpen] = useState(false);
   const [tabsHeight, setTabsHeight] = useState(0);
+  const reducedMotion = useReducedMotion();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLElement>(null);
@@ -303,10 +304,17 @@ export function MenuScreen(): React.JSX.Element {
               {cat.name}
             </h3>
             <div className="px-3 pb-2">
-              {cat.items.map((item) => (
-                <button
+              {cat.items.map((item, itemIdx) => (
+                <motion.button
                   key={item.itemId}
                   type="button"
+                  initial={reducedMotion ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.25,
+                    delay: reducedMotion ? 0 : Math.min(itemIdx * 0.04, 0.4),
+                    ease: motionTokens.easeOutExpo,
+                  }}
                   onClick={() => {
                     handleSelectItem(item);
                   }}
@@ -350,7 +358,7 @@ export function MenuScreen(): React.JSX.Element {
                       </span>
                     )}
                   </div>
-                </button>
+                </motion.button>
               ))}
             </div>
           </section>

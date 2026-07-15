@@ -1,4 +1,4 @@
-import type { MenuItem } from "@astra/shared-types";
+import type { MenuItem, Category, MenuResponse } from "@astra/shared-types";
 
 const storeId = "store-astra-001";
 const now = new Date("2026-07-07T00:00:00Z").toISOString();
@@ -27,6 +27,9 @@ function item(
   hasModifiers = false,
 ): MenuItem {
   const cat = categories[catIdx];
+  if (!cat) {
+    throw new Error(`mockMenuData: no category at index ${String(catIdx)}`);
+  }
   return {
     itemId: `item-${String(idx).padStart(3, "0")}`,
     storeId,
@@ -39,7 +42,7 @@ function item(
     barcode: null,
     sku: `SKU-${String(idx).padStart(4, "0")}`,
     imageUrl: null,
-    blurhash: blobs[idx % blobs.length],
+    blurhash: blobs[idx % blobs.length] ?? null,
     taxCategory: "standard",
     isWeightBased: false,
     weightUnit: null,
@@ -120,7 +123,11 @@ function item(
   };
 }
 
-export const mockMenuResponse: { readonly items: readonly MenuItem[] } = {
+export const mockMenuResponse: MenuResponse = {
+  storeId,
+  currency: "USD",
+  taxRate: 0.0875,
+  categories: categories as unknown as readonly Category[],
   items: [
     item(1, "Flat White", "Double ristretto with steamed oat milk", 550, 0, true),
     item(2, "Cold Brew", "24-hour steeped, served over ice", 480, 0, true),
@@ -136,7 +143,14 @@ export const mockMenuResponse: { readonly items: readonly MenuItem[] } = {
     item(12, "Blueberry Scone", "Buttermilk scone with wild blueberries", 450, 1, false),
     item(13, "Turkey Brie Sandwich", "Roasted turkey, brie, arugula on ciabatta", 1290, 2, false),
     item(14, "Caprese Panini", "Fresh mozzarella, tomato, basil pesto", 1190, 2, false),
-    item(15, "Egg & Avocado Toast", "Soft scrambled eggs, smashed avocado, sourdough", 1090, 2, false),
+    item(
+      15,
+      "Egg & Avocado Toast",
+      "Soft scrambled eggs, smashed avocado, sourdough",
+      1090,
+      2,
+      false,
+    ),
     item(16, "Ham & Swiss Croissant", "Black forest ham, gruyère, dijon butter", 1240, 2, false),
     item(17, "Kale Caesar Salad", "Shaved kale, parmesan, sourdough croutons", 1190, 3, false),
     item(18, "Harvest Bowl", "Quinoa, sweet potato, chickpea, tahini dressing", 1340, 3, false),

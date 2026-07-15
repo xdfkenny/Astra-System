@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
+import { haptic } from "@astra/design-system";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 import { apiClient } from "../state/apiClient";
 
@@ -20,6 +21,11 @@ export function ProcessingScreen(): React.JSX.Element {
   const [stageIndex, setStageIndex] = useState(0);
   const [dotsFilled, setDotsFilled] = useState(0);
 
+  // Subtle haptic pulse on each stage transition (if supported by hardware).
+  useEffect(() => {
+    haptic("light");
+  }, [stageIndex]);
+
   // Progress through stages
   useEffect(() => {
     if (stageIndex >= STAGES.length) return;
@@ -27,10 +33,15 @@ export function ProcessingScreen(): React.JSX.Element {
       setStageIndex((prev) => prev + 1);
       setDotsFilled((prev) => Math.min(prev + 1, STAGES.length));
     }, STAGES[stageIndex]?.durationMs ?? 0);
-    return () => { clearTimeout(timer); };
+    return () => {
+      clearTimeout(timer);
+    };
   }, [stageIndex]);
 
-  const currentStage = STAGES[Math.min(stageIndex, STAGES.length - 1)];
+  const currentStage = STAGES[Math.min(stageIndex, STAGES.length - 1)] ?? {
+    label: "Processing...",
+    durationMs: 0,
+  };
 
   // When processing is complete, create the order
   useEffect(() => {
@@ -41,9 +52,9 @@ export function ProcessingScreen(): React.JSX.Element {
           // For now, we'll simulate this
           const paymentId = crypto.randomUUID();
           const cartId = "current-cart-id"; // This should come from state
-          
+
           const order = await apiClient.createOrder(cartId, paymentId);
-          
+
           // Send the order to the state machine
           send({ type: "ORDER_FINALIZED", order });
         } catch (error) {
@@ -51,8 +62,8 @@ export function ProcessingScreen(): React.JSX.Element {
           send({ type: "PAYMENT_FAILED", message: "Failed to finalize order" });
         }
       };
-      
-       void processOrder();
+
+      void processOrder();
     }
   }, [stageIndex, send]);
 
@@ -61,10 +72,10 @@ export function ProcessingScreen(): React.JSX.Element {
   }, [send]);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-linen/90 backdrop-blur-[4px]">
+    <div className="bg-linen/90 fixed inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-[4px]">
       {/* Animated organic blob */}
       <motion.div
-        className="h-48 w-48 rounded-full bg-moss opacity-[0.08]"
+        className="bg-moss h-48 w-48 rounded-full opacity-[0.08]"
         animate={{
           borderRadius: [
             "60% 40% 30% 70% / 60% 30% 70% 40%",
@@ -83,18 +94,12 @@ export function ProcessingScreen(): React.JSX.Element {
       />
 
       {/* Processing text */}
-      <p
-        className="mt-4 font-sans text-[18px] text-stone"
-        role="status"
-        aria-live="polite"
-      >
+      <p className="text-stone mt-4 font-sans text-[18px]" role="status" aria-live="polite">
         Processing payment...
       </p>
 
       {/* Terminal status */}
-      <p className="mt-2 font-mono text-caption text-stone">
-        Terminal: {currentStage.label}
-      </p>
+      <p className="text-caption text-stone mt-2 font-mono">Terminal: {currentStage.label}</p>
 
       {/* Progress dots */}
       <div className="mt-6 flex items-center gap-3" aria-hidden="true">
@@ -103,7 +108,10 @@ export function ProcessingScreen(): React.JSX.Element {
             key={i}
             className="h-3 w-3 rounded-full"
             animate={{
-              backgroundColor: i < dotsFilled ? "#5A7A5C" : "#C4B8A8",
+              backgroundColor:
+                i < dotsFilled
+                  ? "var(--color-moss)"
+                  : "var(--color-taupe)",
               scale: i === dotsFilled ? 1.3 : 1,
             }}
             transition={{ duration: 0.3 }}
@@ -115,7 +123,7 @@ export function ProcessingScreen(): React.JSX.Element {
       <button
         type="button"
         onClick={handleCancel}
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 h-14 rounded-[16px] bg-white/70 border border-taupe px-6 font-sans text-[16px] font-medium text-charcoal"
+        className="border-taupe text-charcoal absolute bottom-10 left-1/2 h-14 -translate-x-1/2 rounded-[16px] border bg-white/70 px-6 font-sans text-[16px] font-medium"
         aria-label="Cancel payment"
       >
         Cancel

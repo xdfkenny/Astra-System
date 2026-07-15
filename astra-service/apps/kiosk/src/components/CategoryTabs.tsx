@@ -125,7 +125,7 @@ export function CategoryTabs({
             } ${isPressed ? "scale-[0.97]" : ""}`}
             style={{
               minWidth: "56px",
-              minHeight: "44px",
+              minHeight: "56px",
             }}
           >
             <span className="pointer-events-none">{cat.label}</span>

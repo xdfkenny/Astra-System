@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState, useCallback } from "react";
+import { useMemo, useEffect, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
 import { useSnapshot } from "valtio";
@@ -8,6 +8,7 @@ import {
 import type { ReadonlyCartLineItem } from "@astra/shared-types";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 import { cartService } from "../state/cartService";
+import { BottomSheet } from "../components/BottomSheet";
 
 const SILENT_ASSIST_DELAY_MS = 40_000;
 
@@ -27,6 +28,11 @@ export function CartReviewScreen(): React.JSX.Element {
   const { send } = useKioskMachine();
   const cart = useSnapshot(cartProxy);
   const [silentAssist, setSilentAssist] = useState(false);
+  const [editingLineId, setEditingLineId] = useState<string | null>(null);
+
+  const editingLine = editingLineId
+    ? cart.lines.find((l) => l.lineId === editingLineId)
+    : undefined;
 
   const itemCount = cart.lines.reduce((sum, l) => sum + l.quantity, 0);
   const isFullScreen = itemCount > 5;
@@ -65,6 +71,53 @@ export function CartReviewScreen(): React.JSX.Element {
     [cart.lines],
   );
 
+  const holdRef = useRef<{ timeout?: number; interval?: number }>({});
+
+  const endHold = useCallback(() => {
+    if (holdRef.current.timeout !== undefined) {
+      window.clearTimeout(holdRef.current.timeout);
+    }
+    if (holdRef.current.interval !== undefined) {
+      window.clearInterval(holdRef.current.interval);
+    }
+    holdRef.current = {};
+  }, []);
+
+  // Long-press accelerates after 500ms, repeating every 100ms. The initial
+  // change is handled by the button's onClick so keyboard activation still works.
+  const startHold = useCallback(
+    (lineId: string, delta: number) => {
+      endHold();
+      holdRef.current.timeout = window.setTimeout(() => {
+        holdRef.current.interval = window.setInterval(() => {
+          void handleQuantityChange(lineId, delta);
+        }, 100);
+      }, 500);
+    },
+    [endHold, handleQuantityChange],
+  );
+
+  useEffect(() => endHold, [endHold]);
+
+  const holdProps = useCallback(
+    (lineId: string, delta: number) => ({
+      onPointerDown: () => { startHold(lineId, delta); },
+      onPointerUp: endHold,
+      onPointerLeave: endHold,
+      onPointerCancel: endHold,
+    }),
+    [startHold, endHold],
+  );
+
+  const handleRemove = useCallback(async (lineId: string) => {
+    try {
+      await cartService.removeItem(lineId);
+    } catch (error) {
+      console.error("Failed to remove item from cart:", error);
+    }
+    setEditingLineId(null);
+  }, []);
+
   const handlePay = useCallback(() => {
     send({ type: "PROCEED_TO_PAYMENT" });
   }, [send]);
@@ -90,82 +143,92 @@ export function CartReviewScreen(): React.JSX.Element {
       >
         {cart.lines.map((line, idx) => (
           <div key={line.lineId} role="listitem">
-            <div className="flex items-start gap-3 py-3">
-              {/* Thumbnail */}
-              <div className="h-16 w-16 shrink-0 rounded-[12px] bg-stone/10 overflow-hidden">
-                <div
-                  className="h-full w-full"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, rgba(107,104,98,0.08), rgba(196,184,168,0.08))",
-                  }}
-                  aria-hidden="true"
-                />
-              </div>
-
-              {/* Details */}
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-sans text-[18px] font-medium text-charcoal truncate">
-                    {line.nameSnapshot}
-                  </span>
-                  <span className="font-sans text-[18px] font-semibold text-charcoal tabular-nums shrink-0">
-                    ${formatCents(lineTotalCents(line))}
-                  </span>
+            <div className="flex flex-col gap-2 py-3">
+              {/* Tappable item summary — opens edit sheet */}
+              <button
+                type="button"
+                onClick={() => { setEditingLineId(line.lineId); }}
+                className="flex items-start gap-3 text-left rounded-[12px] transition-colors active:bg-warm-cream/50"
+                aria-label={`Edit ${line.nameSnapshot}`}
+              >
+                {/* Thumbnail */}
+                <div className="h-16 w-16 shrink-0 rounded-[12px] bg-stone/10 overflow-hidden">
+                  <div
+                    className="h-full w-full"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, rgba(107,104,98,0.08), rgba(196,184,168,0.08))",
+                    }}
+                    aria-hidden="true"
+                  />
                 </div>
 
-                {/* Modifiers */}
-                {line.modifiers.length > 0 && (
-                  <p className="font-sans text-[14px] text-stone truncate">
-                    {line.modifiers
-                      .map((m) => `${m.modifierId}: +$${formatCents(m.priceDeltaCents)}`)
-                      .join(", ")}
-                  </p>
-                )}
+                {/* Details */}
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-sans text-[18px] font-medium text-charcoal truncate">
+                      {line.nameSnapshot}
+                    </span>
+                    <span className="font-sans text-[18px] font-semibold text-charcoal tabular-nums shrink-0">
+                      ${formatCents(lineTotalCents(line))}
+                    </span>
+                  </div>
 
-                {/* Quantity stepper */}
-                <div className="mt-1 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleQuantityChange(line.lineId, -1)}
-                    className="h-12 w-12 rounded-full bg-linen border border-taupe flex items-center justify-center"
-                    aria-label={`Decrease quantity of ${line.nameSnapshot}`}
-                  >
-                    <svg
-                      viewBox="0 0 20 20"
-                      className="h-5 w-5 text-charcoal"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      aria-hidden="true"
-                    >
-                      <path d="M5 10h10" strokeLinecap="round" />
-                    </svg>
-                  </button>
-                  <span
-                    className="font-sans text-[20px] font-semibold text-charcoal tabular-nums text-center min-w-[48px]"
-                    aria-label={`Quantity: ${String(line.quantity)}`}
-                  >
-                    {line.quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleQuantityChange(line.lineId, 1)}
-                    className="h-12 w-12 rounded-full bg-linen border border-taupe flex items-center justify-center"
-                    aria-label={`Increase quantity of ${line.nameSnapshot}`}
-                  >
-                    <svg
-                      viewBox="0 0 20 20"
-                      className="h-5 w-5 text-charcoal"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      aria-hidden="true"
-                    >
-                      <path d="M10 5v10M5 10h10" strokeLinecap="round" />
-                    </svg>
-                  </button>
+                  {/* Modifiers */}
+                  {line.modifiers.length > 0 && (
+                    <p className="font-sans text-[14px] text-stone truncate">
+                      {line.modifiers
+                        .map((m) => `${m.modifierId}: +$${formatCents(m.priceDeltaCents)}`)
+                        .join(", ")}
+                    </p>
+                  )}
                 </div>
+              </button>
+
+              {/* Quantity stepper */}
+              <div className="ml-[76px] flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuantityChange(line.lineId, -1)}
+                  {...holdProps(line.lineId, -1)}
+                  className="h-14 w-14 rounded-full bg-linen border border-taupe flex items-center justify-center"
+                  aria-label={`Decrease quantity of ${line.nameSnapshot}`}
+                >
+                  <svg
+                    viewBox="0 0 20 20"
+                    className="h-5 w-5 text-charcoal"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  >
+                    <path d="M5 10h10" strokeLinecap="round" />
+                  </svg>
+                </button>
+                <span
+                  className="font-sans text-[20px] font-semibold text-charcoal tabular-nums text-center min-w-[48px]"
+                  aria-label={`Quantity: ${String(line.quantity)}`}
+                >
+                  {line.quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleQuantityChange(line.lineId, 1)}
+                  {...holdProps(line.lineId, 1)}
+                  className="h-14 w-14 rounded-full bg-linen border border-taupe flex items-center justify-center"
+                  aria-label={`Increase quantity of ${line.nameSnapshot}`}
+                >
+                  <svg
+                    viewBox="0 0 20 20"
+                    className="h-5 w-5 text-charcoal"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  >
+                    <path d="M10 5v10M5 10h10" strokeLinecap="round" />
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -178,7 +241,7 @@ export function CartReviewScreen(): React.JSX.Element {
 
         {/* Tap to edit hint */}
         <p className="mt-4 text-center font-sans text-[14px] text-stone">
-          Tap an item to edit
+          Tap an item to change quantity or remove it
         </p>
       </div>
 
@@ -237,6 +300,87 @@ export function CartReviewScreen(): React.JSX.Element {
           Pay ${formatCents(totalCents)} →
         </motion.button>
       </div>
+
+      {/* Edit item sheet */}
+      <BottomSheet
+        open={editingLine !== undefined}
+        onClose={() => { setEditingLineId(null); }}
+      >
+        {editingLine && (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start justify-between gap-2">
+              <h2 className="font-heading text-[24px] font-semibold text-charcoal">
+                {editingLine.nameSnapshot}
+              </h2>
+              <span className="font-sans text-[18px] font-semibold text-charcoal tabular-nums shrink-0">
+                ${formatCents(lineTotalCents(editingLine))}
+              </span>
+            </div>
+
+            {editingLine.modifiers.length > 0 && (
+              <p className="font-sans text-[14px] text-stone">
+                {editingLine.modifiers
+                  .map((m) => `${m.modifierId}: +$${formatCents(m.priceDeltaCents)}`)
+                  .join(", ")}
+              </p>
+            )}
+
+            <div className="flex items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => handleQuantityChange(editingLine.lineId, -1)}
+                {...holdProps(editingLine.lineId, -1)}
+                className="h-14 w-14 rounded-full bg-linen border border-taupe flex items-center justify-center"
+                aria-label={`Decrease quantity of ${editingLine.nameSnapshot}`}
+              >
+                <svg
+                  viewBox="0 0 20 20"
+                  className="h-5 w-5 text-charcoal"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                >
+                  <path d="M5 10h10" strokeLinecap="round" />
+                </svg>
+              </button>
+              <span
+                className="font-sans text-[24px] font-semibold text-charcoal tabular-nums text-center min-w-[56px]"
+                aria-label={`Quantity: ${String(editingLine.quantity)}`}
+              >
+                {editingLine.quantity}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleQuantityChange(editingLine.lineId, 1)}
+                {...holdProps(editingLine.lineId, 1)}
+                className="h-14 w-14 rounded-full bg-linen border border-taupe flex items-center justify-center"
+                aria-label={`Increase quantity of ${editingLine.nameSnapshot}`}
+              >
+                <svg
+                  viewBox="0 0 20 20"
+                  className="h-5 w-5 text-charcoal"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                >
+                  <path d="M10 5v10M5 10h10" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => { void handleRemove(editingLine.lineId); }}
+              className="h-14 w-full rounded-[16px] border border-soft-rose bg-white/70 font-sans text-[16px] font-medium text-soft-rose"
+              aria-label={`Remove ${editingLine.nameSnapshot} from cart`}
+            >
+              Remove from cart
+            </button>
+          </div>
+        )}
+      </BottomSheet>
     </div>
   );
 

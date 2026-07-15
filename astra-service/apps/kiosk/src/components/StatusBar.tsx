@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { useScroll, useSpring } from "framer-motion";
 import { useSessionStore } from "@astra/kiosk-state";
 import { useApiStatus } from "../hooks/useApiStatus";
+import { BottomSheet } from "./BottomSheet";
 
 export function StatusBar() {
   const network = useSessionStore((s) => s.network);
   const [now, setNow] = useState(() => new Date());
   const apiStatus = useApiStatus();
+  const [meshOpen, setMeshOpen] = useState(false);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -54,9 +56,7 @@ export function StatusBar() {
         type="button"
         className="flex items-center gap-1.5"
         aria-label={`P2P sync status: ${p2pLabel}. Tap for mesh details.`}
-        onClick={() => {
-          /* bottom sheet with mesh details — TBD */
-        }}
+        onClick={() => { setMeshOpen(true); }}
       >
         <span
           className="inline-block h-2 w-2 rounded-full"
@@ -157,6 +157,66 @@ export function StatusBar() {
            )}
          </svg>
        </div>
+
+      <BottomSheet open={meshOpen} onClose={() => { setMeshOpen(false); }}>
+        <div className="flex flex-col gap-4">
+          <h2 className="font-heading text-[24px] font-semibold text-charcoal">
+            Mesh network
+          </h2>
+
+          {/* Node topology */}
+          <div className="flex items-center justify-center gap-2 py-2">
+            {Array.from({ length: network.meshPeerCount + 1 }, (_, i) => {
+              const isSelf = i === 0;
+              const nodeColor = network.online
+                ? "var(--color-moss)"
+                : network.meshPeerCount > 0
+                  ? "var(--color-amber)"
+                  : "var(--color-stone)";
+              return (
+                <div key={i} className="flex items-center">
+                  <div className="flex flex-col items-center gap-1">
+                    <span
+                      className="inline-block h-4 w-4 rounded-full"
+                      style={{ backgroundColor: nodeColor }}
+                      aria-hidden="true"
+                    />
+                    <span className="font-mono text-[11px] text-stone">
+                      {isSelf ? "Lane 3" : `Lane ${String(i)}`}
+                    </span>
+                  </div>
+                  {i < network.meshPeerCount && (
+                    <span
+                      className="mx-1 mb-4 h-px w-6 bg-taupe"
+                      aria-hidden="true"
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Details */}
+          <dl className="flex flex-col gap-2 border-t border-taupe pt-3 font-mono text-[13px]">
+            <div className="flex items-center justify-between">
+              <dt className="text-stone">STATUS</dt>
+              <dd className="text-charcoal">{p2pLabel.toUpperCase()}</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-stone">PEERS</dt>
+              <dd className="text-charcoal tabular-nums">{network.meshPeerCount}</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-stone">SYNC LAG</dt>
+              <dd className="text-charcoal tabular-nums">{network.syncLagMs}ms</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-stone">ROLE</dt>
+              <dd className="text-charcoal">{network.isLeader ? "LEADER" : "FOLLOWER"}</dd>
+            </div>
+          </dl>
+        </div>
+      </BottomSheet>
     </header>
   );
 }
