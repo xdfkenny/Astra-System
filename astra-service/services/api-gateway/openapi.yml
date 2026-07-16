@@ -10,8 +10,8 @@ info:
     name: Astra-Service Engineering
     email: engineering@astra.systems
   license:
-    name: MIT
-    identifier: MIT
+    name: Apache 2.0
+    identifier: Apache-2.0
 
 servers:
   - url: https://kiosk.astra-service.internal/v1

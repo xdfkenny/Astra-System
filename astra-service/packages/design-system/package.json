@@ -2,6 +2,7 @@
   "name": "@astra/design-system",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "description": "Astra-Service foundational design system — tokens, primitives, and accessible React components.",
   "main": "./dist/index.js",

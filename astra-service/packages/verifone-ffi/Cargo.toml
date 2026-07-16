@@ -2,7 +2,7 @@
 name = "astra-verifone-ffi"
 version = "0.1.0"
 edition = "2021"
-license = "UNLICENSED"
+license = "Apache-2.0"
 description = "Safe Rust FFI bindings for the Verifone Point of Sale SDK"
 repository = "https://github.com/astra-system/astra-service"
 

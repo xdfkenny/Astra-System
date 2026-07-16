@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Astra Systems <engineering@astra.systems>"]
 description = "Local Verifone payment sidecar for Astra kiosks"
-license = "UNLICENSED"
+license = "Apache-2.0"
 repository = "https://github.com/astra-systems/astra-service"
 rust-version = "1.75"
 

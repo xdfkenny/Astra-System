@@ -2,6 +2,7 @@
   "name": "@astra/docs",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "description": "MDX documentation site for Astra-Service.",
   "scripts": {
@@ -23,9 +24,9 @@
     "@types/mdx": "^2.0.13",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.2",
-    "@vitejs/plugin-react-swc": "^3.7.1",
+    "@vitejs/plugin-react-swc": "^4.3.1",
     "typescript": "^5.7.2",
-    "vite": "^6.0.1",
+    "vite": "^8.1.4",
     "vitest": "^4.1.10"
   }
 }
