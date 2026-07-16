@@ -366,14 +366,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
-      - uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: 'astra-service/pnpm-lock.yaml'
 
       - name: Set up protoc
         uses: arduino/setup-protoc@v3
@@ -396,24 +388,11 @@ jobs:
             --grpc-gateway_out=. --grpc-gateway_opt=module=github.com/astra-systems/astra-service/proto \
             $(find proto -name '*.proto' ! -path '*/google/*')
 
-      - name: pnpm install
-        if: always()
-        run: pnpm install --frozen-lockfile
-        working-directory: astra-service
-
-      - name: cargo audit (Rust HIGH,CRITICAL only)
+      - name: cargo audit (Rust)
         if: always()
         run: |
           cargo install cargo-audit --locked
-          cargo audit --json 2>/dev/null | jq -e '
-            [.vulnerabilities.list // [] | .[] |
-              select(.advisory.severity == "high" or .advisory.severity == "critical")] |
-            if length > 0 then
-              "FAIL: \(length) HIGH/CRITICAL advisory(ies) found" | halt_error(1)
-            else
-              "PASS: no HIGH/CRITICAL advisories"
-            end
-          '
+          cargo audit
         working-directory: astra-service/sync-daemon
 
       - name: govulncheck (Go)
