@@ -1,4 +1,4 @@
 version: v2
 deps:
-  - uri: buf.build/googleapis/googleapis
+  - name: buf.build/googleapis/googleapis
     commit: 28151c0e0b364cf3bdc9b0de0c85d880
