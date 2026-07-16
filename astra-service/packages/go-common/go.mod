@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	github.com/nats-io/nats.go v1.52.0
-	github.com/prometheus/client_golang v1.21.1
+	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.21.0
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.44.0
