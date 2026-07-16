@@ -60,7 +60,7 @@ config = "0.14"
 envy = "0.4"
 
 # Error handling
-thiserror = "1.0"
+thiserror = "2.0"
 anyhow = "1.0"
 
 # Logging & Tracing
