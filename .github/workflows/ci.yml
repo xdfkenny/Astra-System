@@ -471,6 +471,18 @@ jobs:
         platform:
           - linux/amd64
           - linux/arm64
+        image:
+          - gateway
+          - menu-service
+          - cart-service
+          - order-service
+          - inventory-service
+          - payment-orchestrator
+          - sync-service
+          - update-server
+          - ml-lane-intel
+          - kiosk
+          - syncd
         include:
           - image: gateway
             dockerfile: infra/docker/Dockerfile.gateway
