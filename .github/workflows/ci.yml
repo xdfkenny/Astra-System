@@ -558,6 +558,10 @@ jobs:
             --grpc-gateway_out=. --grpc-gateway_opt=module=github.com/astra-systems/astra-service/proto \
             $(find proto -name '*.proto' ! -path '*/google/*')
 
+      - name: Normalize platform tag
+        id: plat
+        run: echo "tag=$(echo '${{ matrix.platform }}' | tr '/' '-')" >> "$GITHUB_OUTPUT"
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v6
@@ -566,10 +570,6 @@ jobs:
           tags: |
             type=raw,value=${{ github.sha }}-${{ steps.plat.outputs.tag }}
             type=raw,value=latest-${{ steps.plat.outputs.tag }},enable={{is_default_branch}}
-
-      - name: Normalize platform tag
-        id: plat
-        run: echo "tag=$(echo '${{ matrix.platform }}' | tr '/' '-')" >> "$GITHUB_OUTPUT"
 
       - name: Build and push image
         id: build
