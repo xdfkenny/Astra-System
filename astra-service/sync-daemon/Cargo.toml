@@ -27,7 +27,7 @@ libp2p = { version = "0.56", features = [
 ] }
 
 # gRPC
-tonic = "0.11"
+tonic = "0.14"
 prost = "0.12"
 tower = "0.4"
 
