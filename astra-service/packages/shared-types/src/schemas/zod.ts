@@ -156,7 +156,7 @@ export const KioskSchema = z.object({
   tenantId: UuidSchema.nullable(),
   hardwareId: z.string().min(1).max(64),
   displayName: z.string().min(1).max(64),
-  ipAddress: z.string().ip().nullable(),
+  ipAddress: z.string().regex(/^(\d{1,3}\.){3}\d{1,3}$/).nullable(),
   lastSeenAt: IsoTimestampSchema.nullable(),
   syncStatus: KioskSyncStatusSchema,
   isLeader: z.boolean(),

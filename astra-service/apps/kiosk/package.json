@@ -2,6 +2,7 @@
   "name": "@astra/kiosk",
   "version": "0.1.0",
   "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "description": "Astra-Service unified kiosk host — Native Federation shell consuming menu/cart/payment remotes.",
   "scripts": {
@@ -32,7 +33,7 @@
 
     "valtio": "^2.1.2",
     "xstate": "^5.32.5",
-    "zod": "^3.23.8",
+    "zod": "^4.4.3",
     "zustand": "^5.0.1"
   },
   "devDependencies": {
