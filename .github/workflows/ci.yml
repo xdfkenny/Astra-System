@@ -564,9 +564,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}/${{ matrix.image }}
           tags: |
-            type=sha,prefix=${{ github.sha }}-,format=long
+            type=raw,value=${{ github.sha }}-${{ matrix.platform }}
             type=raw,value=latest-${{ matrix.platform }},enable={{is_default_branch}}
-            type=semver,pattern=${{ github.sha }}-{{version}}
 
       - name: Build and push image
         id: build
