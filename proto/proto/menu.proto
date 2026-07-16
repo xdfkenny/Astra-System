@@ -124,24 +124,16 @@ service MenuService {
   rpc GetMenu(MenuRequest) returns (MenuResponse) {
     option (google.api.http) = {
       get: "/v1/menu/{store_id}"
-      additional_bindings {
-        get: "/v1/stores/{store_id}/menu"
-      }
+      additional_bindings: {get: "/v1/stores/{store_id}/menu"}
     };
   }
   rpc GetCategories(MenuRequest) returns (CategoriesResponse) {
-    option (google.api.http) = {
-      get: "/v1/categories/{store_id}"
-    };
+    option (google.api.http) = {get: "/v1/categories/{store_id}"};
   }
   rpc GetItem(GetItemRequest) returns (Item) {
-    option (google.api.http) = {
-      get: "/v1/items/{item_id}"
-    };
+    option (google.api.http) = {get: "/v1/items/{item_id}"};
   }
   rpc SearchItems(SearchItemsRequest) returns (SearchItemsResponse) {
-    option (google.api.http) = {
-      get: "/v1/items/search"
-    };
+    option (google.api.http) = {get: "/v1/items/search"};
   }
 }

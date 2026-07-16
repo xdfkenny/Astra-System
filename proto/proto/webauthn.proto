@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package astra.webauthn.v1;
 
-import "google/protobuf/timestamp.proto";
 import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/astra-systems/astra-service/proto/gen/go/webauthn;webauthn";
 

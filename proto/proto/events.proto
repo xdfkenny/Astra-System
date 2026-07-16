@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package astra.events.v1;
 
-import "google/protobuf/any.proto";
 import "common.proto";
+import "google/protobuf/any.proto";
 
 option go_package = "github.com/astra-systems/astra-service/proto/gen/go/events;events";
 
