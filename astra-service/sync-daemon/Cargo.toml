@@ -56,7 +56,7 @@ prost-types = "0.12"
 
 # Configuration & CLI
 clap = { version = "4.4", features = ["derive", "env", "cargo"] }
-config = "0.14"
+config = "0.15"
 envy = "0.4"
 
 # Error handling
