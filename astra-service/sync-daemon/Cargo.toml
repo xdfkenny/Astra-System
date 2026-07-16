@@ -70,10 +70,10 @@ tracing-appender = "0.2"
 tracing-opentelemetry = "0.25"
 
 # OpenTelemetry
-opentelemetry = "0.24"
-opentelemetry_sdk = { version = "0.24", features = ["rt-tokio"] }
-opentelemetry-otlp = { version = "0.17", features = ["grpc-tonic"] }
-opentelemetry-semantic-conventions = "0.26"
+opentelemetry = "0.32"
+opentelemetry_sdk = { version = "0.32", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.32", features = ["grpc-tonic"] }
+opentelemetry-semantic-conventions = "0.32"
 
 # Utilities
 chrono = { version = "0.4", features = ["serde"] }
