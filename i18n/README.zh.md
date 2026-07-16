@@ -263,7 +263,6 @@ pnpm dev            # kiosk-shell 热重载
 ## 文档
 
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — 系统设计、安全模型、支付流程、可观测性与灾难恢复。
-- [`AGENTS.md`](./AGENTS.md) — 面向本仓库 AI 编码代理的指引。
 - [`promt.md`](./promt.md) —「Living Weave」仿生学终端 UI 设计规范。
 - `proto/README.md`、`astra-service/sync-daemon/README.md` 与 `docs/` — 子项目与运维手册。
 
@@ -280,7 +279,7 @@ pnpm dev            # kiosk-shell 热重载
 
 ## 许可证
 
-专有软件 — 详情请参阅 `LICENSE` 文件。保留所有权利。
+依据 [Apache 许可证 2.0 版](LICENSE) 授权。
 
 ---
 

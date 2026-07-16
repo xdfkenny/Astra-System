@@ -263,7 +263,6 @@ Para manifiestos de producción, use `docker-compose.prod.yml`.
 ## Documentación
 
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — diseño del sistema, modelo de seguridad, flujos de pago, observabilidad y DR.
-- [`AGENTS.md`](./AGENTS.md) — guía para agentes de codificación de IA en este repositorio.
 - [`promt.md`](./promt.md) — la especificación de diseño de UI de quiosco biofílica "Living Weave".
 - `proto/README.md`, `astra-service/sync-daemon/README.md` y `docs/` — subproyectos y runbooks operativos.
 
@@ -280,7 +279,7 @@ Para manifiestos de producción, use `docker-compose.prod.yml`.
 
 ## Licencia
 
-Propietaria — consulte el archivo `LICENSE` para más detalles. Todos los derechos reservados.
+Licenciado bajo la [Licencia Apache, Versión 2.0](LICENSE).
 
 ---
 

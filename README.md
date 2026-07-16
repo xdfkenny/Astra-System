@@ -263,7 +263,6 @@ For production manifests, use `docker-compose.prod.yml`.
 ## Documentation
 
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — system design, security model, payment flows, observability, and DR.
-- [`AGENTS.md`](./AGENTS.md) — guidance for AI coding agents working in this repository.
 - [`promt.md`](./promt.md) — the "Living Weave" biophilic kiosk UI design specification.
 - `proto/README.md`, `astra-service/sync-daemon/README.md`, and `docs/` — subproject and operational runbooks.
 

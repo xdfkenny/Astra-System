@@ -263,7 +263,6 @@ pnpm dev            # kiosk-shell のホットリロード
 ## ドキュメント
 
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — システム設計、セキュリティモデル、決済フロー、観測性、DR。
-- [`AGENTS.md`](./AGENTS.md) — 本リポジトリで作業する AI コーディング・エージェント向けガイド。
 - [`promt.md`](./promt.md) — 「Living Weave」バイオフィリック・キオスク UI デザイン仕様。
 - `proto/README.md`、`astra-service/sync-daemon/README.md`、`docs/` — サブプロジェクトと運用ランブック。
 
@@ -280,7 +279,7 @@ pnpm dev            # kiosk-shell のホットリロード
 
 ## ライセンス
 
-独自（プロプライエタリ） — 詳細は `LICENSE` ファイルを参照してください。全権利保留。
+[Apache License 2.0](LICENSE) に基づいてライセンス供与されています。
 
 ---
 
