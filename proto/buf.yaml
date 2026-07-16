@@ -9,3 +9,9 @@ lint:
 breaking:
   use:
     - FILE
+  # BSR integration — pushes generated modules on main-branch CI.
+  # Set BUF_TOKEN in GitHub secrets for authenticated pushes.
+  # See https://buf.build/docs/bsr/overview
+  # remote: https://buf.build/astra-systems/schema
+deps:
+  - buf.build/googleapis/googleapis:latest

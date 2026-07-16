@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "astra.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "astra.labels" . | nindent 4 }}
+data:
+  NATS_URL: {{ include "astra.natsUrl" . }}
+  REDIS_ADDR: {{ .Values.global.redis.address }}
+  POSTGRES_HOST: {{ .Values.global.postgres.host }}
+  POSTGRES_PORT: {{ .Values.global.postgres.port | quote }}
+  POSTGRES_DB: {{ .Values.global.postgres.database }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ include "astra.otelEndpoint" . }}
+  LOG_LEVEL: {{ .Values.gateway.env.LOG_LEVEL | default "info" }}

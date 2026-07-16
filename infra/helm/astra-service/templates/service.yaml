@@ -1,0 +1,23 @@
+{{- range $service, $config := .Values }}
+{{- if and (kindIs "map" $config) $config.enabled $config.port }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $service | replace "_" "-" }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "astra.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $service }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ $config.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "astra.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $service }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "Astra Service Helm Values",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object",
+      "properties": {
+        "environment": { "type": "string", "enum": ["production", "staging", "development"] },
+        "registry": { "type": "string", "pattern": "^[a-zA-Z0-9._/-]+$" },
+        "imagePullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] },
+        "dnsDomain": { "type": "string" },
+        "nats": {
+          "type": "object",
+          "properties": {
+            "url": { "type": "string" }
+          },
+          "required": ["url"]
+        },
+        "redis": {
+          "type": "object",
+          "properties": {
+            "address": { "type": "string" }
+          },
+          "required": ["address"]
+        },
+        "postgres": {
+          "type": "object",
+          "properties": {
+            "host": { "type": "string" },
+            "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+            "database": { "type": "string" },
+            "user": { "type": "string" },
+            "secretName": { "type": "string" }
+          },
+          "required": ["host", "port", "database", "user", "secretName"]
+        },
+        "otel": {
+          "type": "object",
+          "properties": {
+            "endpoint": { "type": "string" }
+          },
+          "required": ["endpoint"]
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string" },
+                "memory": { "type": "string" }
+              }
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string" },
+                "memory": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "required": ["environment", "registry", "imagePullPolicy", "dnsDomain"]
+    },
+    "imagePullSecrets": { "type": "array" },
+    "nameOverride": { "type": "string" },
+    "fullnameOverride": { "type": "string" },
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "enableExternalAccess": { "type": "boolean" },
+        "allowedCIDRs": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "required": ["global"],
+  "additionalProperties": true
+}

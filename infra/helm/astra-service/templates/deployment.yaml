@@ -1,0 +1,89 @@
+{{- define "astra.deploymentTemplate" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .name }}
+  namespace: {{ .root.Release.Namespace }}
+  labels:
+    {{- include "astra.labels" .root | nindent 4 }}
+    app.kubernetes.io/component: {{ .component }}
+spec:
+  replicas: {{ .config.replicas | default 1 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "astra.selectorLabels" .root | nindent 6 }}
+      app.kubernetes.io/component: {{ .component }}
+  template:
+    metadata:
+      labels:
+        {{- include "astra.selectorLabels" .root | nindent 8 }}
+        app.kubernetes.io/component: {{ .component }}
+    spec:
+      serviceAccountName: {{ include "astra.serviceAccountName" .root }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: {{ .component }}
+          image: {{ .root.Values.global.registry }}/{{ .config.image.repository }}:{{ .config.image.tag }}
+          imagePullPolicy: {{ .root.Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .config.port }}
+              name: http
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "astra.fullname" .root }}-config
+          env:
+            - name: SERVICE_NAME
+              value: {{ .component }}
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .root.Values.global.postgres.secretName }}
+                  key: password
+                  optional: true
+          resources:
+            {{- toYaml ( .config.resources | default .root.Values.global.resources ) | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+{{- end }}
+
+{{- range $service, $config := .Values }}
+{{- if and (kindIs "map" $config) $config.enabled $config.port (not (has $service (list "nats" "redis" "postgres" "otelCollector" "prometheus" "loki" "grafana" "imagePullSecrets" "networkPolicy" "global"))) }}
+{{- $params := dict "root" $ "name" ($service | replace "_" "-") "component" $service "config" $config }}
+{{- template "astra.deploymentTemplate" $params }}
+{{- end }}
+{{- end }}

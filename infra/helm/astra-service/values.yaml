@@ -1,0 +1,192 @@
+# Default values for astra-service.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  environment: production
+  registry: ghcr.io/astra-systems
+  imagePullPolicy: IfNotPresent
+  dnsDomain: astra.svc.cluster.local
+
+  # Shared infrastructure endpoints
+  nats:
+    url: nats://nats:4222
+  redis:
+    address: redis:6379
+  postgres:
+    host: postgres
+    port: 5432
+    database: astra_service
+    user: astra
+    secretName: postgres-credentials
+  otel:
+    endpoint: http://otel-collector:4317
+
+  # Resource defaults
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# ── Application services ──────────────────────────────────────
+
+gateway:
+  enabled: true
+  image:
+    repository: gateway
+    tag: latest
+  replicas: 2
+  port: 8080
+  env:
+    LOG_LEVEL: info
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  ingress:
+    enabled: true
+    host: api.astra.local
+    annotations:
+      cert-manager.io/cluster-issuer: astra-letsencrypt
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 512Mi
+
+menuService:
+  enabled: true
+  image:
+    repository: menu-service
+    tag: latest
+  replicas: 2
+  port: 8081
+
+cartService:
+  enabled: true
+  image:
+    repository: cart-service
+    tag: latest
+  replicas: 2
+  port: 8082
+
+orderService:
+  enabled: true
+  image:
+    repository: order-service
+    tag: latest
+  replicas: 2
+  port: 8083
+
+inventoryService:
+  enabled: true
+  image:
+    repository: inventory-service
+    tag: latest
+  replicas: 2
+  port: 8084
+
+paymentOrchestrator:
+  enabled: true
+  image:
+    repository: payment-orchestrator
+    tag: latest
+  replicas: 2
+  port: 8085
+
+syncService:
+  enabled: true
+  image:
+    repository: sync-service
+    tag: latest
+  replicas: 2
+  port: 8086
+
+updateServer:
+  enabled: true
+  image:
+    repository: update-server
+    tag: latest
+  replicas: 1
+  port: 8087
+
+# ── Stateful infrastructure ───────────────────────────────────
+
+nats:
+  enabled: true
+  image: nats:2-alpine
+  replicas: 3
+  port: 4222
+  clusterPort: 6222
+  httpPort: 8222
+  storage: 10Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+redis:
+  enabled: true
+  image: redis:7-alpine
+  replicas: 1
+  port: 6379
+  storage: 5Gi
+
+postgres:
+  enabled: true
+  image: postgres:16-alpine
+  port: 5432
+  storage: 20Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2
+      memory: 2Gi
+
+# ── Observability ─────────────────────────────────────────────
+
+otelCollector:
+  enabled: true
+  image: otel/opentelemetry-collector-contrib:0.103.0
+  port: 4317
+
+prometheus:
+  enabled: true
+  image: prom/prometheus:v2.53.0
+  port: 9090
+  storage: 10Gi
+
+loki:
+  enabled: true
+  image: grafana/loki:3.0.0
+  port: 3100
+  storage: 10Gi
+
+grafana:
+  enabled: true
+  image: grafana/grafana:11.1.0
+  port: 3000
+  storage: 2Gi
+
+# ── Network policy ────────────────────────────────────────────
+
+networkPolicy:
+  enabled: true
+  enableExternalAccess: false
+  allowedCIDRs: []

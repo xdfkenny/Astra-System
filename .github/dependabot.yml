@@ -1,0 +1,293 @@
+# Automated dependency updates for Astra-System.
+# Opens PRs for outdated Go modules, NPM packages, Rust crates,
+# and Docker base images.
+
+version: 2
+updates:
+  # ── TypeScript / pnpm workspace ──────────────────────────────
+  - package-ecosystem: npm
+    directory: "/astra-service"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 10
+    versioning-strategy: increase
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "javascript"
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      state-manager:
+        patterns:
+          - "zustand"
+          - "valtio"
+          - "@tanstack/react-query"
+      vite:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "vite-plugin-*"
+    ignore:
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+
+  # ── Go services (astra-service/services/*) ───────────────────
+  - package-ecosystem: gomod
+    directory: "/astra-service/services/gateway"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 5
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "go"
+    groups:
+      go-otel:
+        patterns:
+          - "go.opentelemetry.io/*"
+      go-grpc:
+        patterns:
+          - "google.golang.org/grpc"
+          - "google.golang.org/protobuf"
+
+  - package-ecosystem: gomod
+    directory: "/astra-service/services/menu-service"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "go"
+
+  - package-ecosystem: gomod
+    directory: "/astra-service/services/cart-service"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "go"
+
+  - package-ecosystem: gomod
+    directory: "/astra-service/services/order-service"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "go"
+
+  - package-ecosystem: gomod
+    directory: "/astra-service/services/inventory-service"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "go"
+
+  - package-ecosystem: gomod
+    directory: "/astra-service/services/payment-orchestrator"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "go"
+
+  - package-ecosystem: gomod
+    directory: "/astra-service/services/payment-service"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "go"
+
+  - package-ecosystem: gomod
+    directory: "/astra-service/services/sync-service"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "go"
+
+  - package-ecosystem: gomod
+    directory: "/astra-service/services/api-gateway"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "go"
+
+  - package-ecosystem: gomod
+    directory: "/astra-service/packages/go-common"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "go"
+
+  - package-ecosystem: gomod
+    directory: "/services/update-server"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "go"
+
+  - package-ecosystem: gomod
+    directory: "/proto"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "go"
+
+  # ── Rust crates ──────────────────────────────────────────────
+  - package-ecosystem: cargo
+    directory: "/astra-service/sync-daemon"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 5
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "rust"
+    groups:
+      rust-opentelemetry:
+        patterns:
+          - "opentelemetry*"
+      rust-libp2p:
+        patterns:
+          - "libp2p*"
+
+  - package-ecosystem: cargo
+    directory: "/astra-service/daemons/payment-sidecar"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 3
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "rust"
+
+  # ── Docker images ────────────────────────────────────────────
+  - package-ecosystem: docker
+    directory: "/infra/docker"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 5
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "docker"
+    ignore:
+      - dependency-name: "golang"
+        update-types: ["version-update:semver-major"]
+
+  # ── GitHub Actions ───────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 5
+    assignees:
+      - "astra-systems/fe-kiosk"
+    labels:
+      - "dependencies"
+      - "ci"
+    groups:
+      actions-all:
+        patterns:
+          - "*"

@@ -27,10 +27,12 @@ use libp2p::{
     Multiaddr, PeerId, StreamProtocol, Swarm, SwarmBuilder,
 };
 use tokio::sync::{broadcast, mpsc, watch, Mutex};
-use tracing::{debug, info, trace, warn};
+use opentelemetry::Context;
+use tracing::{debug, info, span, trace, warn, Span, Level};
 
 use crate::config::Config;
 use crate::protocol::{SyncProtocol, PROTOCOL_VERSION};
+use crate::telemetry::baggage;
 use crate::{AstraSyncError, DataType};
 
 #[cfg(test)]
@@ -90,6 +92,16 @@ impl P2PMeshHandle {
         peer: PeerId,
         since_lamport: u64,
     ) -> Result<(), AstraSyncError> {
+        // Embed current OTel baggage in the handshake nonce for distributed
+        // trace propagation across the mesh.
+        let baggage_wire = crate::telemetry::baggage::encode_baggage(
+            &opentelemetry::Context::current(),
+        );
+        let nonce = if !baggage_wire.is_empty() {
+            baggage_wire.into_bytes()
+        } else {
+            crate::crypto::content_hash(&since_lamport.to_be_bytes())[..16].to_vec()
+        };
         let request = SyncProtocol::Handshake(crate::protocol::SyncHandshake {
             protocol_version: PROTOCOL_VERSION,
             kiosk_id: self.local_peer_id.to_string(),
@@ -98,7 +110,7 @@ impl P2PMeshHandle {
                 DataType::Cart as u8,
                 DataType::Transaction as u8,
             ],
-            nonce: crate::crypto::content_hash(&since_lamport.to_be_bytes())[..16].to_vec(),
+            nonce,
         });
         self.send_request(peer, request).await
     }
@@ -320,14 +332,15 @@ impl P2PMesh {
                             MeshCommand::Gossip { data_type, payload } => {
                                 let topic = data_type_topic(data_type);
                                 trace!(?topic, len = payload.len(), "Publishing gossip message");
+                                let _span = span!(Level::TRACE, "mesh.gossip.publish", ?topic).entered();
                                 if let Err(e) = self.swarm.behaviour_mut().gossipsub.publish(topic, payload) {
                                     warn!(%e, "Gossip publish failed");
                                 }
                             }
                             MeshCommand::SendRequest { peer, request } => {
-                                trace!(%peer, "Sending sync request");
+                                let _span = span!(Level::TRACE, "mesh.send_request", %peer).entered();
                                 let request_id = self.swarm.behaviour_mut().sync.send_request(&peer, request);
-                                trace!(?request_id, %peer, "Sync request queued");
+                                trace!(?request_id, "Sync request queued");
                             }
                         }
                     }
@@ -353,7 +366,8 @@ impl P2PMesh {
                                 message,
                                 ..
                             })) => {
-                                trace!(%propagation_source, topic = ?message.topic, "Received gossip message");
+                                let _span = span!(Level::TRACE, "mesh.gossip.recv", %propagation_source).entered();
+                                trace!(topic = ?message.topic, "Received gossip message");
                                 if let Some(data_type) = data_type_from_topic_hash(&message.topic.clone().into_string()
                                 ) {
                                     let _ = self.event_tx.send(MeshEvent::Gossip {
@@ -368,20 +382,37 @@ impl P2PMesh {
                                 message,
                                 ..
                             })) => {
-                                match message {
+                                let _span = span!(Level::DEBUG, "mesh.sync.message", %peer).entered();
+                                let request_event = match &message {
                                     request_response::Message::Request { request, .. } => {
-                                        let _ = self.event_tx.send(MeshEvent::SyncRequest {
-                                            request,
+                                        // Extract any baggage context from the handshake nonce
+                                        if let SyncProtocol::Handshake(hs) = request {
+                                            let ctx = baggage::decode_baggage(
+                                                &Context::current(),
+                                                &String::from_utf8_lossy(&hs.nonce),
+                                            );
+                                            let _attach = ctx.attach();
+                                        }
+                                        MeshEvent::SyncRequest {
+                                            request: request.clone(),
                                             source: peer,
-                                        });
+                                        }
                                     }
                                     request_response::Message::Response { response, .. } => {
-                                        let _ = self.event_tx.send(MeshEvent::SyncResponse {
-                                            response,
+                                        if let SyncProtocol::Handshake(hs) = response {
+                                            let ctx = baggage::decode_baggage(
+                                                &Context::current(),
+                                                &String::from_utf8_lossy(&hs.nonce),
+                                            );
+                                            let _attach = ctx.attach();
+                                        }
+                                        MeshEvent::SyncResponse {
+                                            response: response.clone(),
                                             source: peer,
-                                        });
+                                        }
                                     }
-                                }
+                                };
+                                let _ = self.event_tx.send(request_event);
                             }
                             SwarmEvent::Behaviour(AstraMeshEvent::Sync(request_response::Event::OutboundFailure {
                                 peer, error, ..
@@ -394,12 +425,14 @@ impl P2PMesh {
                                 warn!(%peer, %error, "Inbound sync request failed");
                             }
                             SwarmEvent::ConnectionEstablished { peer_id, .. } => {
-                                debug!(%peer_id, "Peer connected");
+                                let _span = span!(Level::DEBUG, "mesh.connection", %peer_id).entered();
+                                debug!("Peer connected");
                                 self.connected_peers.lock().await.insert(peer_id);
                                 let _ = self.event_tx.send(MeshEvent::PeerConnected { peer_id });
                             }
                             SwarmEvent::ConnectionClosed { peer_id, cause, .. } => {
-                                debug!(%peer_id, ?cause, "Peer disconnected");
+                                let _span = span!(Level::DEBUG, "mesh.disconnection", %peer_id).entered();
+                                debug!(?cause, "Peer disconnected");
                                 self.connected_peers.lock().await.remove(&peer_id);
                                 let _ = self.event_tx.send(MeshEvent::PeerDisconnected { peer_id });
                             }

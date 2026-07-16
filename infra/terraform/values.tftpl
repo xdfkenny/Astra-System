@@ -1,0 +1,29 @@
+global:
+  environment: ${environment}
+  registry: ${global_registry}
+  imageTag: ${image_tag}
+  dnsDomain: ${dns_domain}
+  nats:
+    url: ${nats_url}
+  redis:
+    address: ${redis_address}
+  postgres:
+    host: ${postgres_host}
+    port: 5432
+    database: astra_service
+    user: astra
+    secretName: postgres-credentials
+  otel:
+    endpoint: ${otel_endpoint}
+
+gateway:
+  replicas: ${gateway_replicas}
+  ingress:
+    host: ${gateway_host}
+  resources:
+    limits:
+      cpu: "${gateway_cpu}"
+      memory: "${gateway_memory}"
+
+networkPolicy:
+  enabled: ${enable_network_policy}

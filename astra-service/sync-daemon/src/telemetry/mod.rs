@@ -8,16 +8,20 @@
 
 #![deny(unsafe_code)]
 
+pub mod baggage;
 pub mod metrics;
 
 use std::io::{self, Write};
 use std::sync::Arc;
-use std::time::Duration;
 
+use opentelemetry::baggage::BaggageExt;
+use opentelemetry::propagation::TextMapCompositePropagator;
+use opentelemetry::trace::Span as _;
 use opentelemetry::trace::TracerProvider as _;
-use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_sdk::propagation::{BaggagePropagator, TraceContextPropagator};
+use opentelemetry_sdk::export::trace::SpanData;
 use opentelemetry_sdk::runtime::Tokio;
-use opentelemetry_sdk::trace::Config;
+use opentelemetry_sdk::trace::{Config, SpanProcessor};
 use opentelemetry_sdk::Resource;
 use tracing_subscriber::layer::{Layer, SubscriberExt};
 use tracing_subscriber::{EnvFilter, Registry};
@@ -55,18 +59,19 @@ pub fn init(
         opentelemetry::KeyValue::new("deployment.environment.name", environment.to_string()),
     ]);
 
+    set_global_propagator();
+
     if std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").is_ok() {
         let exporter = opentelemetry_otlp::new_exporter()
             .tonic()
-            .with_endpoint(endpoint())
-            .with_timeout(Duration::from_secs(5));
-
-        let tracer_provider = opentelemetry_otlp::new_pipeline()
-            .tracing()
-            .with_exporter(exporter)
-            .with_trace_config(Config::default().with_resource(resource))
-            .install_batch(Tokio)
+            .build_span_exporter()
             .map_err(TelemetryInitError::OpenTelemetry)?;
+
+        let tracer_provider = opentelemetry_sdk::trace::TracerProvider::builder()
+            .with_span_processor(BaggageSpanProcessor::new())
+            .with_batch_exporter(exporter, Tokio)
+            .with_config(Config::default().with_resource(resource))
+            .build();
 
         let tracer = tracer_provider.tracer("astra-syncd");
         let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
@@ -85,6 +90,55 @@ pub fn init(
 
 fn endpoint() -> String {
     std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".into())
+}
+
+/// Set the global propagator to a composite of TraceContext + Baggage.
+fn set_global_propagator() {
+    let composite = TextMapCompositePropagator::new(vec![
+        Box::new(TraceContextPropagator::new()),
+        Box::new(BaggagePropagator::new()),
+    ]);
+    opentelemetry::global::set_text_map_propagator(composite);
+}
+
+/// A span processor that copies baggage entries onto span attributes.
+///
+/// When a span is created in a context that carries baggage, this processor
+/// enriches the span with key OTel attributes (kiosk_id, lane_id, tenant_id,
+/// transaction_id) so that they appear in OTLP export without manual wiring.
+#[derive(Debug)]
+pub struct BaggageSpanProcessor;
+
+impl BaggageSpanProcessor {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl SpanProcessor for BaggageSpanProcessor {
+    fn on_start(&self, span: &mut opentelemetry_sdk::trace::Span, cx: &opentelemetry::Context) {
+        let baggage = cx.baggage();
+        for key in &[
+            baggage::keys::KIOSK_ID,
+            baggage::keys::LANE_ID,
+            baggage::keys::TENANT_ID,
+            baggage::keys::TRANSACTION_ID,
+        ] {
+            if let Some(value) = baggage.get(key) {
+                span.set_attribute(opentelemetry::KeyValue::new(*key, value.to_string()));
+            }
+        }
+    }
+
+    fn on_end(&self, _span: SpanData) {}
+
+    fn force_flush(&self) -> opentelemetry_sdk::export::trace::ExportResult {
+        Ok(())
+    }
+
+    fn shutdown(&self) -> opentelemetry_sdk::export::trace::ExportResult {
+        Ok(())
+    }
 }
 
 /// Guard returned by [`init`]. Awaiting it flushes and shuts down the OTel

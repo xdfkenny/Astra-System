@@ -36,6 +36,11 @@ pub struct SyncMessage {
     pub lamport_ts: u64,
     /// Wall-clock timestamp.
     pub wallclock_ts: u64,
+    /// OpenTelemetry W3C Baggage header string for distributed trace
+    /// propagation across the mesh.  Empty when no telemetry context
+    /// is attached.
+    #[serde(default)]
+    pub baggage: String,
     /// The actual payload.
     pub payload: MessagePayload,
 }
@@ -52,8 +57,54 @@ impl SyncMessage {
             origin,
             lamport_ts,
             wallclock_ts,
+            baggage: String::new(),
             payload,
         }
+    }
+
+    /// Creates a message with OpenTelemetry baggage attached for distributed
+    /// tracing across the P2P mesh.
+    pub fn with_baggage(
+        origin: KioskId,
+        lamport_ts: u64,
+        wallclock_ts: u64,
+        baggage: String,
+        payload: MessagePayload,
+    ) -> Self {
+        Self {
+            version: SYNC_VERSION,
+            origin,
+            lamport_ts,
+            wallclock_ts,
+            baggage,
+            payload,
+        }
+    }
+
+    /// Attaches the current OpenTelemetry context's baggage to this message.
+    pub fn attach_current_baggage(&mut self) {
+        use opentelemetry::baggage::BaggageExt;
+        let ctx = opentelemetry::Context::current();
+        let baggage_str = crate::telemetry::baggage::encode_baggage(&ctx);
+        if !baggage_str.is_empty() {
+            self.baggage = baggage_str;
+        }
+    }
+
+    /// Rehydrates the baggage string into the current OTel context.
+    /// Call this on the receiving side before processing the message payload.
+    pub fn propagate_baggage(&self) {
+        if self.baggage.is_empty() {
+            return;
+        }
+        let ctx = opentelemetry::Context::current();
+        let updated = crate::telemetry::baggage::decode_baggage(&ctx, &self.baggage);
+        // Attach the baggage to the current context for downstream spans.
+        let _guard = updated.attach();
+        tracing::trace!(
+            baggage_len = self.baggage.len(),
+            "Propagated OTel baggage from peer"
+        );
     }
 
     /// Serializes the message to bincode bytes.

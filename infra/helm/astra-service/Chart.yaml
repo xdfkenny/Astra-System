@@ -1,0 +1,17 @@
+apiVersion: v2
+name: astra-service
+description: Helm chart for the Astra-System microservice mesh
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/astra-systems/astra-service
+sources:
+  - https://github.com/astra-systems/astra-service
+keywords:
+  - astra
+  - kiosk
+  - p2p
+  - mesh
+maintainers:
+  - name: Astra Systems Engineering
+    email: engineering@astra.systems

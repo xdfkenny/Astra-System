@@ -1,0 +1,21 @@
+Thank you for installing {{ .Chart.Name }} v{{ .Chart.Version }}.
+
+The Astra-Service mesh has been deployed to namespace {{ .Release.Namespace }}.
+
+Services deployed:
+{{- range $name, $service := .Values }}
+{{- if and (kindIs "map" $service) $service.enabled $service.port }}
+  - {{ $name | replace "_" "-" }} (port {{ $service.port }})
+{{- end }}
+{{- end }}
+
+To check the status of all pods:
+  kubectl get pods -n {{ .Release.Namespace }}
+
+To view logs for a specific service:
+  kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/component=gateway
+
+To port-forward the gateway for local testing:
+  kubectl port-forward -n {{ .Release.Namespace }} svc/gateway 8080:8080
+
+For more information, visit https://github.com/astra-systems/astra-service
