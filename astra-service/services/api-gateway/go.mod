@@ -7,7 +7,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.14
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.21.0
-	github.com/sony/gobreaker v0.5.0
+	github.com/sony/gobreaker v1.0.0
 )
 
 require (
