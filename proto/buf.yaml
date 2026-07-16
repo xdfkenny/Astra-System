@@ -14,4 +14,4 @@ breaking:
   # See https://buf.build/docs/bsr/overview
   # remote: https://buf.build/astra-systems/schema
 deps:
-  - buf.build/googleapis/googleapis:latest
+  - buf.build/googleapis/googleapis
