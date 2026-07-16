@@ -605,7 +605,7 @@ jobs:
         uses: sigstore/cosign-installer@v3
 
       - name: Install Syft
-        uses: anchore/sbom-action/download-syft@v0.17.8
+        uses: anchore/sbom-action/download-syft@v0.24.0
         id: install-syft
 
       - name: Generate and attest SBOM
