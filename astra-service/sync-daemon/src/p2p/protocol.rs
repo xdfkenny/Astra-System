@@ -83,7 +83,6 @@ impl SyncMessage {
 
     /// Attaches the current OpenTelemetry context's baggage to this message.
     pub fn attach_current_baggage(&mut self) {
-        use opentelemetry::baggage::BaggageExt;
         let ctx = opentelemetry::Context::current();
         let baggage_str = crate::telemetry::baggage::encode_baggage(&ctx);
         if !baggage_str.is_empty() {

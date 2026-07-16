@@ -38,7 +38,7 @@ pub const MAX_BAGGAGE_BYTES: usize = 4096;
 /// Values are URL-encoded per the spec.
 pub fn encode_baggage(ctx: &Context) -> String {
     let baggage = ctx.baggage();
-    if baggage.len() == 0 {
+    if baggage.is_empty() {
         return String::new();
     }
 
@@ -181,10 +181,11 @@ mod tests {
     #[test]
     fn roundtrip_baggage() {
         let ctx = Context::current();
-        let mut baggage = opentelemetry::baggage::Baggage::new();
-        baggage.insert(keys::KIOSK_ID, "kiosk-42");
-        baggage.insert(keys::LANE_ID, "L7");
-        let ctx = ctx.with_baggage(baggage);
+        let entries = vec![
+            opentelemetry::KeyValue::new(keys::KIOSK_ID, "kiosk-42"),
+            opentelemetry::KeyValue::new(keys::LANE_ID, "L7"),
+        ];
+        let ctx = ctx.with_baggage(entries);
 
         let wire = encode_baggage(&ctx);
         assert!(!wire.is_empty());
@@ -217,9 +218,8 @@ mod tests {
     #[test]
     fn percent_encoding_handles_special_chars() {
         let ctx = Context::current();
-        let mut baggage = opentelemetry::baggage::Baggage::new();
-        baggage.insert("key", "val,ue;foo=bar");
-        let ctx = ctx.with_baggage(baggage);
+        let entries = vec![opentelemetry::KeyValue::new("key", "val,ue;foo=bar")];
+        let ctx = ctx.with_baggage(entries);
 
         let wire = encode_baggage(&ctx);
         assert!(!wire.contains(',')); // raw comma would break W3C format

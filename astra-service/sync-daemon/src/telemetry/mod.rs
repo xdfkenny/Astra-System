@@ -88,6 +88,7 @@ pub fn init(
     Ok(ShutdownGuard {})
 }
 
+#[allow(dead_code)]
 fn endpoint() -> String {
     std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".into())
 }
@@ -108,6 +109,12 @@ fn set_global_propagator() {
 /// transaction_id) so that they appear in OTLP export without manual wiring.
 #[derive(Debug)]
 pub struct BaggageSpanProcessor;
+
+impl Default for BaggageSpanProcessor {
+    fn default() -> Self {
+        Self
+    }
+}
 
 impl BaggageSpanProcessor {
     pub fn new() -> Self {

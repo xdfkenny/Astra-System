@@ -28,7 +28,7 @@ use libp2p::{
 };
 use opentelemetry::Context;
 use tokio::sync::{broadcast, mpsc, watch, Mutex};
-use tracing::{debug, info, span, trace, warn, Level, Span};
+use tracing::{debug, info, span, trace, warn, Level};
 
 use crate::config::Config;
 use crate::protocol::{SyncProtocol, PROTOCOL_VERSION};
@@ -424,14 +424,16 @@ impl P2PMesh {
                                 warn!(%peer, %error, "Inbound sync request failed");
                             }
                             SwarmEvent::ConnectionEstablished { peer_id, .. } => {
-                                let _span = span!(Level::DEBUG, "mesh.connection", %peer_id).entered();
-                                debug!("Peer connected");
+                                span!(Level::DEBUG, "mesh.connection", %peer_id).in_scope(|| {
+                                    debug!("Peer connected");
+                                });
                                 self.connected_peers.lock().await.insert(peer_id);
                                 let _ = self.event_tx.send(MeshEvent::PeerConnected { peer_id });
                             }
                             SwarmEvent::ConnectionClosed { peer_id, cause, .. } => {
-                                let _span = span!(Level::DEBUG, "mesh.disconnection", %peer_id).entered();
-                                debug!(?cause, "Peer disconnected");
+                                span!(Level::DEBUG, "mesh.disconnection", %peer_id).in_scope(|| {
+                                    debug!(?cause, "Peer disconnected");
+                                });
                                 self.connected_peers.lock().await.remove(&peer_id);
                                 let _ = self.event_tx.send(MeshEvent::PeerDisconnected { peer_id });
                             }
