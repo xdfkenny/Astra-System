@@ -52,7 +52,7 @@
     "typescript": "^5.7.2",
     "vite": "^6.0.1",
     "vite-plugin-pwa": "^0.20.5",
-    "vitest": "^3.2.6",
+    "vitest": "^4.1.10",
     "workbox-background-sync": "^7.3.0",
     "workbox-core": "^7.3.0",
     "workbox-expiration": "^7.3.0",
