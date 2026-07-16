@@ -47,6 +47,8 @@ jobs:
               - 'astra-service/daemons/**'
             ops:
               - 'infra/**'
+              - 'infra/helm/**'
+              - 'infra/terraform/**'
               - 'docker-compose*.yml'
               - '.github/workflows/ci.yml'
               - 'infra/docker/Dockerfile.*'
@@ -69,6 +71,27 @@ jobs:
         working-directory: astra-service
       - run: pnpm turbo run lint typecheck --concurrency=100%
         working-directory: astra-service
+
+  lint-proto:
+    needs: changes
+    if: ${{ needs.changes.outputs.go == 'true' || needs.changes.outputs.rust == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-action@v1
+        with:
+          version: "1.50.0"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          format: true
+          lint: true
+          breaking: ${{ github.base_ref == 'main' || github.ref == 'refs/heads/main' }}
+          breaking_against: "https://github.com/${{ github.repository }}.git#branch=main,subdir=proto"
+          push: ${{ github.ref == 'refs/heads/main' }}
+          token: ${{ secrets.BUF_TOKEN || '' }}
 
   lint-go:
     needs: changes
@@ -152,7 +175,7 @@ jobs:
         working-directory: ${{ matrix.workspace }}
 
   test-unit:
-    needs: [changes, lint-ts, lint-go, lint-rust]
+    needs: [changes, lint-ts, lint-go, lint-rust, lint-proto]
     if: ${{ always() && !failure() && !cancelled() && (needs.changes.outputs.typescript == 'true' || needs.changes.outputs.go == 'true' || needs.changes.outputs.rust == 'true') }}
     runs-on: ubuntu-latest
     strategy:
@@ -366,6 +389,14 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: 'astra-service/pnpm-lock.yaml'
 
       - name: Set up protoc
         uses: arduino/setup-protoc@v3
@@ -388,11 +419,24 @@ jobs:
             --grpc-gateway_out=. --grpc-gateway_opt=module=github.com/astra-systems/astra-service/proto \
             $(find proto -name '*.proto' ! -path '*/google/*')
 
-      - name: cargo audit (Rust)
+      - name: pnpm install
+        if: always()
+        run: pnpm install --frozen-lockfile
+        working-directory: astra-service
+
+      - name: cargo audit (Rust HIGH,CRITICAL only)
         if: always()
         run: |
           cargo install cargo-audit --locked
-          cargo audit
+          cargo audit --json 2>/dev/null | jq -e '
+            [.vulnerabilities.list // [] | .[] |
+              select(.advisory.severity == "high" or .advisory.severity == "critical")] |
+            if length > 0 then
+              "FAIL: \(length) HIGH/CRITICAL advisory(ies) found" | halt_error(1)
+            else
+              "PASS: no HIGH/CRITICAL advisories"
+            end
+          '
         working-directory: astra-service/sync-daemon
 
       - name: govulncheck (Go)
@@ -560,7 +604,8 @@ jobs:
         uses: sigstore/cosign-installer@v3
 
       - name: Install Syft
-        uses: anchore/syft-action@v0
+        uses: anchore/sbom-action/download-syft@v0.17.8
+        id: install-syft
 
       - name: Generate and attest SBOM
         run: |
@@ -593,13 +638,39 @@ jobs:
 
   chaos:
     needs: changes
-    if: ${{ needs.changes.outputs.rust == 'true' && vars.ASTRA_RUN_CHAOS == 'true' }}
+    if: ${{ needs.changes.outputs.rust == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check chaos flag
+        id: chaos-flag
+        run: echo "enabled=${{ vars.ASTRA_RUN_CHAOS || false }}" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.chaos-flag.outputs.enabled == 'true'
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+      - name: Build chaos tool
+        if: steps.chaos-flag.outputs.enabled == 'true'
+        working-directory: astra-service/tools/chaos
+        run: cargo build --release
+      - name: Dry-run disk-pressure test
+        if: steps.chaos-flag.outputs.enabled == 'true'
+        working-directory: astra-service/tools/chaos
+        run: cargo run --release -- disk-pressure --dry-run --dir /tmp/astra-chaos-disk --duration 5s
+      - name: Dry-run memory-pressure test
+        if: steps.chaos-flag.outputs.enabled == 'true'
+        working-directory: astra-service/tools/chaos
+        run: cargo run --release -- memory-pressure --dry-run --duration 5s
       - name: Build sync daemon image
+        if: steps.chaos-flag.outputs.enabled == 'true'
         run: docker build -f infra/docker/Dockerfile.syncd -t astra-syncd:chaos .
-      - name: Run partition-resilience test
+      - name: Unit the chaos crate
+        if: steps.chaos-flag.outputs.enabled == 'true'
+        working-directory: astra-service/tools/chaos
+        run: cargo test
+
+      - name: Partition-resilience test (requires privileged runner)
+        if: ${{ false }}
         run: |
-          echo "Chaos tests require pumba/toxiproxy on a privileged runner."
-          echo "This job verifies the sync-daemon Docker image builds successfully."
+          echo "Partition tests require pumba/toxiproxy on a privileged runner."
+          echo "See tools/chaos/README.md for setup instructions."
