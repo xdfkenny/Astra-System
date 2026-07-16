@@ -593,6 +593,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
         image:
           - gateway
           - menu-service
@@ -616,6 +619,13 @@ jobs:
         id: image
         run: echo "repository=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
 
@@ -627,9 +637,10 @@ jobs:
         run: |
           mkdir -p /tmp/sboms
           syft ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}/${{ matrix.image }}:${{ github.sha }} \
-            -o spdx-json=/tmp/sboms/${{ matrix.image }}.sbom.spdx.json
+            --platform ${{ matrix.platform }} \
+            -o spdx-json=/tmp/sboms/${{ matrix.image }}-${{ matrix.platform }}.sbom.spdx.json
           cosign attest --yes \
-            --predicate /tmp/sboms/${{ matrix.image }}.sbom.spdx.json \
+            --predicate /tmp/sboms/${{ matrix.image }}-${{ matrix.platform }}.sbom.spdx.json \
             --type spdxjson \
             ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}/${{ matrix.image }}:${{ github.sha }}
 
