@@ -22,6 +22,8 @@
     "@astra/config": "workspace:*",
     "@mdx-js/rollup": "^3.1.0",
     "@types/mdx": "^2.0.13",
+    "@types/node": "^22.0.0",
+    "@types/node": "^26.1.1",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.2",
     "@vitejs/plugin-react-swc": "^4.3.1",
