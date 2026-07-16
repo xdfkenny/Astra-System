@@ -160,7 +160,7 @@ export class RemoteModuleManager {
   private checkSharedDependencies(deps: SharedDependency[]): string[] {
     const unmet: string[] = [];
     for (const dep of deps) {
-      const scope = __webpack_share_scopes__.default as
+      const scope = __webpack_share_scopes__["default"] as
         | Record<string, { version: string }>
         | undefined;
       const shared = scope?.[dep.name];

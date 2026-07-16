@@ -111,10 +111,19 @@ pub fn inject_telemetry_context(
         .iter()
         .map(|(k, (v, _))| KeyValue::new(k.as_str().to_string(), v.to_string()))
         .collect();
-    entries.push(KeyValue::new(keys::KIOSK_ID, telemetry_ctx.kiosk_id.clone()));
+    entries.push(KeyValue::new(
+        keys::KIOSK_ID,
+        telemetry_ctx.kiosk_id.clone(),
+    ));
     entries.push(KeyValue::new(keys::LANE_ID, telemetry_ctx.lane_id.clone()));
-    entries.push(KeyValue::new(keys::TENANT_ID, telemetry_ctx.tenant_id.clone()));
-    entries.push(KeyValue::new(keys::TRACE_ID, telemetry_ctx.trace_id.clone()));
+    entries.push(KeyValue::new(
+        keys::TENANT_ID,
+        telemetry_ctx.tenant_id.clone(),
+    ));
+    entries.push(KeyValue::new(
+        keys::TRACE_ID,
+        telemetry_ctx.trace_id.clone(),
+    ));
     ctx.with_baggage(entries)
 }
 

@@ -26,9 +26,9 @@ use libp2p::{
     swarm::{NetworkBehaviour, SwarmEvent},
     Multiaddr, PeerId, StreamProtocol, Swarm, SwarmBuilder,
 };
-use tokio::sync::{broadcast, mpsc, watch, Mutex};
 use opentelemetry::Context;
-use tracing::{debug, info, span, trace, warn, Span, Level};
+use tokio::sync::{broadcast, mpsc, watch, Mutex};
+use tracing::{debug, info, span, trace, warn, Level, Span};
 
 use crate::config::Config;
 use crate::protocol::{SyncProtocol, PROTOCOL_VERSION};
@@ -94,9 +94,8 @@ impl P2PMeshHandle {
     ) -> Result<(), AstraSyncError> {
         // Embed current OTel baggage in the handshake nonce for distributed
         // trace propagation across the mesh.
-        let baggage_wire = crate::telemetry::baggage::encode_baggage(
-            &opentelemetry::Context::current(),
-        );
+        let baggage_wire =
+            crate::telemetry::baggage::encode_baggage(&opentelemetry::Context::current());
         let nonce = if !baggage_wire.is_empty() {
             baggage_wire.into_bytes()
         } else {

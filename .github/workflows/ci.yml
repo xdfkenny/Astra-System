@@ -86,6 +86,7 @@ jobs:
         with:
           version: "1.50.0"
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          input: proto
           format: true
           lint: true
           breaking: ${{ github.base_ref == 'main' || github.ref == 'refs/heads/main' }}
