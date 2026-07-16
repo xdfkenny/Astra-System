@@ -13,7 +13,7 @@ rust-version = "1.75"
 tokio = { version = "1.35", features = ["full", "signal", "time", "sync", "rt-multi-thread"] }
 
 # P2P networking (libp2p re-exports all sub-crates via feature flags)
-libp2p = { version = "0.53", features = [
+libp2p = { version = "0.56", features = [
     "quic",
     "noise",
     "mdns",
@@ -32,7 +32,7 @@ prost = "0.12"
 tower = "0.4"
 
 # NATS JetStream
-async-nats = "0.33"
+async-nats = "0.49"
 
 # Database
 rusqlite = { version = "0.30", features = ["bundled-sqlcipher", "chrono", "uuid", "serde_json"] }
@@ -91,7 +91,7 @@ regex = "1.10"
 rand_distr = "0.4"
 
 # Metrics (optional but production-ready)
-prometheus = { version = "0.13", features = ["process"] }
+prometheus = { version = "0.14", features = ["process"] }
 metrics = "0.22"
 metrics-exporter-prometheus = "0.13"
 

@@ -326,6 +326,7 @@ impl Network {
                                 peer,
                                 request_id,
                                 error,
+                                ..
                             })) => {
                                 warn!(%peer, %request_id, %error, "Outbound sync request failed");
                             }
@@ -333,6 +334,7 @@ impl Network {
                                 peer,
                                 request_id,
                                 error,
+                                ..
                             })) => {
                                 warn!(%peer, %request_id, %error, "Inbound sync request failed");
                             }

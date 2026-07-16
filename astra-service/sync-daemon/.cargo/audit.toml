@@ -1,0 +1,8 @@
+[advisories]
+ignore = [
+    # RUSTSEC-2026-0118: NSEC3 loop - no fixed upgrade available upstream
+    "RUSTSEC-2026-0118",
+    # RUSTSEC-2026-0119: Hickory DNS CPU exhaustion - fix >=0.26.1, but
+    # libp2p-mdns pins hickory-proto < 0.26. No libp2p release yet supports it.
+    "RUSTSEC-2026-0119",
+]
