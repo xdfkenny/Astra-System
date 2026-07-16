@@ -18,10 +18,9 @@ use opentelemetry::baggage::BaggageExt;
 use opentelemetry::propagation::TextMapCompositePropagator;
 use opentelemetry::trace::Span as _;
 use opentelemetry::trace::TracerProvider as _;
-use opentelemetry_sdk::export::trace::SpanData;
 use opentelemetry_sdk::propagation::{BaggagePropagator, TraceContextPropagator};
-use opentelemetry_sdk::runtime::Tokio;
-use opentelemetry_sdk::trace::{Config, SpanProcessor};
+use opentelemetry_sdk::trace::SpanData;
+use opentelemetry_sdk::trace::SpanProcessor;
 use opentelemetry_sdk::Resource;
 use tracing_subscriber::layer::{Layer, SubscriberExt};
 use tracing_subscriber::{EnvFilter, Registry};
@@ -53,24 +52,26 @@ pub fn init(
         .with_writer(move || RedactingWriter::new(io::stderr()))
         .with_filter(env_filter);
 
-    let resource = Resource::new(vec![
-        opentelemetry::KeyValue::new("service.name", service_name.to_string()),
-        opentelemetry::KeyValue::new("service.version", service_version.to_string()),
-        opentelemetry::KeyValue::new("deployment.environment.name", environment.to_string()),
-    ]);
+    let resource = Resource::builder()
+        .with_attributes(vec![
+            opentelemetry::KeyValue::new("service.name", service_name.to_string()),
+            opentelemetry::KeyValue::new("service.version", service_version.to_string()),
+            opentelemetry::KeyValue::new("deployment.environment.name", environment.to_string()),
+        ])
+        .build();
 
     set_global_propagator();
 
     if std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").is_ok() {
-        let exporter = opentelemetry_otlp::new_exporter()
-            .tonic()
-            .build_span_exporter()
-            .map_err(TelemetryInitError::OpenTelemetry)?;
+        let exporter = opentelemetry_otlp::SpanExporter::builder()
+            .with_tonic()
+            .build()
+            .map_err(|e| TelemetryInitError::OpenTelemetry(Box::new(e)))?;
 
-        let tracer_provider = opentelemetry_sdk::trace::TracerProvider::builder()
+        let tracer_provider = opentelemetry_sdk::trace::SdkTracerProvider::builder()
             .with_span_processor(BaggageSpanProcessor::new())
-            .with_batch_exporter(exporter, Tokio)
-            .with_config(Config::default().with_resource(resource))
+            .with_batch_exporter(exporter)
+            .with_resource(resource)
             .build();
 
         let tracer = tracer_provider.tracer("astra-syncd");
@@ -99,7 +100,7 @@ fn set_global_propagator() {
         Box::new(TraceContextPropagator::new()),
         Box::new(BaggagePropagator::new()),
     ]);
-    opentelemetry::global::set_text_map_propagator(composite);
+    let _ = opentelemetry::global::set_text_map_propagator(composite);
 }
 
 /// A span processor that copies baggage entries onto span attributes.
@@ -139,11 +140,18 @@ impl SpanProcessor for BaggageSpanProcessor {
 
     fn on_end(&self, _span: SpanData) {}
 
-    fn force_flush(&self) -> opentelemetry_sdk::export::trace::ExportResult {
+    fn force_flush(&self) -> opentelemetry_sdk::error::OTelSdkResult {
         Ok(())
     }
 
-    fn shutdown(&self) -> opentelemetry_sdk::export::trace::ExportResult {
+    fn shutdown(&self) -> opentelemetry_sdk::error::OTelSdkResult {
+        Ok(())
+    }
+
+    fn shutdown_with_timeout(
+        &self,
+        _timeout: std::time::Duration,
+    ) -> opentelemetry_sdk::error::OTelSdkResult {
         Ok(())
     }
 }
@@ -154,7 +162,7 @@ pub struct ShutdownGuard;
 
 impl ShutdownGuard {
     pub async fn shutdown(self) {
-        opentelemetry::global::shutdown_tracer_provider();
+        // Global shutdown is handled by dropping the tracer provider
     }
 }
 
@@ -166,7 +174,7 @@ pub enum TelemetryInitError {
     #[error("failed to set global subscriber: {0}")]
     SetSubscriber(String),
     #[error("opentelemetry error: {0}")]
-    OpenTelemetry(#[from] opentelemetry::trace::TraceError),
+    OpenTelemetry(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
 /// Operational context fields that should be attached to every log record.
