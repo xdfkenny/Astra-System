@@ -28,11 +28,12 @@ export default defineConfig({
     cssCodeSplit: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom"],
-          "vendor-router": ["react-router-dom"],
-          "vendor-data": ["@tanstack/react-query", "@apollo/client", "graphql"],
-          "vendor-d3": ["d3"],
+        manualChunks(id: string) {
+          if (id.includes("node_modules/react-dom") || id.includes("node_modules/react/")) return "vendor-react";
+          if (id.includes("node_modules/react-router-dom")) return "vendor-router";
+          if (id.includes("node_modules/@tanstack") || id.includes("node_modules/@apollo") || id.includes("node_modules/graphql")) return "vendor-data";
+          if (id.includes("node_modules/d3")) return "vendor-d3";
+          return undefined;
         },
       },
     },

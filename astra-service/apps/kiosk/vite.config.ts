@@ -82,10 +82,11 @@ export default defineConfig(({ mode }) => ({
     cssCodeSplit: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom"],
-          "vendor-state": ["valtio", "zustand", "@tanstack/react-query"],
-          "vendor-motion": ["framer-motion"],
+        manualChunks(id: string) {
+          if (id.includes("node_modules/react-dom") || id.includes("node_modules/react/")) return "vendor-react";
+          if (id.includes("node_modules/valtio") || id.includes("node_modules/zustand") || id.includes("node_modules/@tanstack")) return "vendor-state";
+          if (id.includes("node_modules/framer-motion")) return "vendor-motion";
+          return undefined;
         },
       },
     },
