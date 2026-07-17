@@ -42,6 +42,8 @@ jobs:
               - 'services/update-server/**'
               - 'infra/secrets/**'
               - 'proto/**'
+            python:
+              - 'astra-service/services/ml-lane-intel/**'
             rust:
               - 'astra-service/sync-daemon/**'
               - 'astra-service/daemons/**'
@@ -111,6 +113,9 @@ jobs:
           - path: astra-service/services/payment-service
           - path: astra-service/services/sync-service
           - path: astra-service/services/api-gateway
+          - path: astra-service/services/webauthn-service
+          - path: astra-service/services/admin-graphql
+          - path: astra-service/services/legacy-pos-adapter
           - path: astra-service/packages/go-common
           - path: services/update-server
     steps:
@@ -239,12 +244,24 @@ jobs:
       - name: Unit tests (Go)
         if: ${{ matrix.lang == 'go' && matrix.condition == 'true' }}
         run: |
+          rm -f /tmp/go-coverage.out
           for dir in astra-service/services/*/ astra-service/packages/go-common/ services/update-server/; do
             if [ -f "${dir}/go.mod" ]; then
               echo "==> testing ${dir}"
-              (cd "${dir}" && go test -race ./...)
+              (cd "${dir}" && go test -race -covermode=atomic -coverprofile=/tmp/cov.tmp ./... && cat /tmp/cov.tmp >> /tmp/go-coverage.out)
             fi
           done
+          if [ -f /tmp/go-coverage.out ]; then
+            go tool cover -func=/tmp/go-coverage.out | tail -1
+          fi
+
+      - name: Upload Go coverage
+        if: ${{ matrix.lang == 'go' && matrix.condition == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage
+          path: /tmp/go-coverage.out
+          if-no-files-found: ignore
 
       - uses: dtolnay/rust-toolchain@stable
         if: ${{ matrix.lang == 'rust' && matrix.condition == 'true' }}
@@ -351,6 +368,37 @@ jobs:
           for p in 5432 6379 4222; do
             if probe "$p"; then echo "port $p reachable"; else echo "port $p NOT reachable" >&2; exit 1; fi
           done
+
+  test-python:
+    needs: [changes, lint-proto]
+    if: ${{ always() && !failure() && !cancelled() && needs.changes.outputs.python == 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: astra-service/services/ml-lane-intel
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Set up Python
+        run: uv python install 3.12
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Lint (ruff)
+        run: uv run ruff check .
+      - name: Type check (mypy)
+        run: uv run mypy src
+      - name: Unit tests (pytest)
+        run: uv run pytest -q --cov=src --cov-report=xml
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-coverage-ml-lane-intel
+          path: astra-service/services/ml-lane-intel/coverage.xml
+          if-no-files-found: ignore
 
   test-e2e:
     needs: [changes, lint-ts]
@@ -461,9 +509,64 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
 
+  secret-scan:
+    needs: changes
+    if: ${{ always() && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'true'
+
+  iac-validate:
+    needs: changes
+    if: ${{ always() && !failure() && !cancelled() && needs.changes.outputs.ops == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ~> 1.9
+
+      - name: Terraform fmt & validate
+        working-directory: infra/terraform
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+
+      - name: Helm lint & template
+        working-directory: infra/helm/astra-service
+        run: |
+          helm dependency build
+          helm lint .
+          helm template . --dry-run=server > /dev/null
+
+      - name: Validate Kubernetes manifests (kubeconform)
+        run: |
+          curl -sSLo /usr/local/bin/kubeconform https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64 && chmod +x /usr/local/bin/kubeconform
+          kubeconform -strict -summary -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            $(find infra/k8s -name '*.yaml' -o -name '*.yml')
+
   build-docker:
-    needs: [test-unit, test-integration]
-    if: ${{ github.ref == 'refs/heads/main' && always() && !failure() && !cancelled() }}
+    needs: [test-unit, test-integration, secret-scan, iac-validate]
+    if: ${{ always() && !failure() && !cancelled() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/pull/')) }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -478,8 +581,13 @@ jobs:
           - order-service
           - inventory-service
           - payment-orchestrator
+          - payment-service
           - sync-service
           - update-server
+          - webauthn-service
+          - admin-graphql
+          - legacy-pos-adapter
+          - api-gateway
           - ml-lane-intel
           - kiosk
           - syncd
@@ -496,10 +604,20 @@ jobs:
             dockerfile: infra/docker/Dockerfile.inventory-service
           - image: payment-orchestrator
             dockerfile: infra/docker/Dockerfile.payment-orchestrator
+          - image: payment-service
+            dockerfile: astra-service/services/payment-service/Dockerfile
           - image: sync-service
             dockerfile: infra/docker/Dockerfile.sync-service
           - image: update-server
             dockerfile: infra/docker/Dockerfile.update-server
+          - image: webauthn-service
+            dockerfile: infra/docker/Dockerfile.webauthn-service
+          - image: admin-graphql
+            dockerfile: infra/docker/Dockerfile.admin-graphql
+          - image: legacy-pos-adapter
+            dockerfile: astra-service/services/legacy-pos-adapter/Dockerfile
+          - image: api-gateway
+            dockerfile: astra-service/services/api-gateway/Dockerfile
           - image: ml-lane-intel
             dockerfile: infra/docker/Dockerfile.ml-lane-intel
           - image: kiosk
@@ -560,7 +678,13 @@ jobs:
 
       - name: Normalize platform tag
         id: plat
-        run: echo "tag=$(echo '${{ matrix.platform }}' | tr '/' '-')" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "tag=$(echo '${{ matrix.platform }}' | tr '/' '-')" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "ref=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=pr-${{ github.event.pull_request.number || github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Extract metadata
         id: meta
@@ -568,7 +692,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}/${{ matrix.image }}
           tags: |
-            type=raw,value=${{ github.sha }}-${{ steps.plat.outputs.tag }}
+            type=raw,value=${{ steps.plat.outputs.ref }}-${{ steps.plat.outputs.tag }}
             type=raw,value=latest-${{ steps.plat.outputs.tag }},enable={{is_default_branch}}
 
       - name: Build and push image
@@ -585,6 +709,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Sign image with cosign
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: |
           cosign sign --yes \
             ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}/${{ matrix.image }}@${{ steps.build.outputs.digest }}
@@ -606,8 +731,13 @@ jobs:
           - order-service
           - inventory-service
           - payment-orchestrator
+          - payment-service
           - sync-service
           - update-server
+          - webauthn-service
+          - admin-graphql
+          - legacy-pos-adapter
+          - api-gateway
           - ml-lane-intel
           - kiosk
           - syncd
@@ -665,8 +795,13 @@ jobs:
           - order-service
           - inventory-service
           - payment-orchestrator
+          - payment-service
           - sync-service
           - update-server
+          - webauthn-service
+          - admin-graphql
+          - legacy-pos-adapter
+          - api-gateway
           - ml-lane-intel
           - kiosk
           - syncd
@@ -700,12 +835,70 @@ jobs:
             ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}/${{ matrix.image }}:${{ github.sha }}-linux-amd64 \
             ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}/${{ matrix.image }}:${{ github.sha }}-linux-arm64
 
+  scan-images:
+    needs: [merge-manifests]
+    if: ${{ github.ref == 'refs/heads/main' && always() && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+        image:
+          - gateway
+          - menu-service
+          - cart-service
+          - order-service
+          - inventory-service
+          - payment-orchestrator
+          - payment-service
+          - sync-service
+          - update-server
+          - webauthn-service
+          - admin-graphql
+          - legacy-pos-adapter
+          - api-gateway
+          - ml-lane-intel
+          - kiosk
+          - syncd
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+    steps:
+      - name: Normalize platform tag
+        id: plat
+        run: echo "tag=$(echo '${{ matrix.platform }}' | tr '/' '-')" >> "$GITHUB_OUTPUT"
+
+      - name: Run Trivy vulnerability scanner on image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/xdfkenny/astra-system/${{ matrix.image }}:${{ github.sha }}-${{ steps.plat.outputs.tag }}
+          format: sarif
+          output: trivy-${{ matrix.image }}-${{ steps.plat.outputs.tag }}.sarif
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-${{ matrix.image }}-${{ steps.plat.outputs.tag }}.sarif
+          category: trivy-${{ matrix.image }}-${{ steps.plat.outputs.tag }}
+
   release:
-    needs: [build-docker, sbom-generate, merge-manifests]
+    needs: [build-docker, sbom-generate, merge-manifests, scan-images]
     if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v6
         with:
           version: ${{ env.PNPM_VERSION }}
@@ -716,8 +909,32 @@ jobs:
           cache-dependency-path: 'astra-service/pnpm-lock.yaml'
       - run: pnpm install --frozen-lockfile
         working-directory: astra-service
-      - run: pnpm changeset status
+      - name: Check for pending changesets
+        id: changesets
         working-directory: astra-service
+        run: |
+          pnpm changeset status --since=origin/main >/dev/null 2>&1 || true
+          COUNT=$(ls .changeset/*.md 2>/dev/null | grep -v README | wc -l | tr -d ' ')
+          echo "pending=$COUNT" >> "$GITHUB_OUTPUT"
+      - name: Version & tag release
+        if: ${{ steps.changesets.outputs.pending != '0' }}
+        working-directory: astra-service
+        run: |
+          pnpm changeset version
+          VERSION=$(node -p "require('./package.json').version")
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: release v${VERSION}"
+          git tag "v${VERSION}"
+          git push origin HEAD --tags
+      - name: Create GitHub release
+        if: ${{ steps.changesets.outputs.pending != '0' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(node -p "require('./astra-service/package.json').version")
+          gh release create "v${VERSION}" --title "v${VERSION}" --generate-notes
 
   chaos:
     needs: changes
