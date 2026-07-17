@@ -8,6 +8,7 @@ import { useSessionStore } from "@astra/kiosk-state";
 function SessionStarter({ children }: { readonly children: React.ReactNode }): React.JSX.Element {
   const { send } = useKioskMachine();
   useEffect(() => {
+    send({ type: "SET_LANGUAGE", locale: "en" });
     send({ type: "START_SESSION", sessionId: "session-1" });
   }, [send]);
   return <>{children}</>;
