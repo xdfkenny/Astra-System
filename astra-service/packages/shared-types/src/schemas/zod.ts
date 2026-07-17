@@ -5,12 +5,11 @@ import { UuidSchema } from "../ids";
 // Common primitives
 // -----------------------------------------------------------------------------
 
-export const IsoTimestampSchema = z.string().datetime({ offset: true });
+export const IsoTimestampSchema = z.iso.datetime({ offset: true });
 
 export const CurrencySchema = z.string().length(3);
 
 export const EmailSchema = z
-  .string()
   .email()
   .max(255)
   .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Expected a valid email address");
@@ -178,7 +177,7 @@ export const CategorySchema = z.object({
   name: z.string().min(1).max(128),
   description: z.string().nullable(),
   displayOrder: z.number().int(),
-  imageUrl: z.string().url().max(512).nullable(),
+  imageUrl: z.url().max(512).nullable(),
   blurhash: z.string().max(32).nullable(),
   isActive: z.boolean(),
   createdAt: IsoTimestampSchema,
@@ -197,7 +196,7 @@ export const ItemSchema = z.object({
   plu: z.string().max(16).nullable(),
   barcode: z.string().max(32).nullable(),
   sku: z.string().max(64).nullable(),
-  imageUrl: z.string().url().max(512).nullable(),
+  imageUrl: z.url().max(512).nullable(),
   blurhash: z.string().max(32).nullable(),
   taxCategory: ItemTaxCategorySchema,
   isWeightBased: z.boolean(),

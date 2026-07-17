@@ -28,42 +28,42 @@ export const envSchema = z.object({
    * Base URL for the Astra REST API. Required in production; defaults to the
    * local development gateway otherwise.
    */
-  ASTRA_API_URL: z.string().url().default("http://localhost:3000"),
+  ASTRA_API_URL: z.url().default("http://localhost:3000"),
 
   /**
    * Base URL for the Astra WebSocket/sync gateway. Required in production;
    * defaults to the local development gateway otherwise.
    */
-  ASTRA_WEBSOCKET_URL: z.string().url().default("ws://localhost:3001"),
+  ASTRA_WEBSOCKET_URL: z.url().default("ws://localhost:3001"),
 
   /**
    * OpenTelemetry collector endpoint (e.g.
    * "https://otel.astra-service.internal/v1/traces"). Optional; when omitted
    * telemetry is sampled to zero and spans are discarded.
    */
-  ASTRA_OTLP_ENDPOINT: z.string().url().optional(),
+  ASTRA_OTLP_ENDPOINT: z.url().optional(),
 
   /**
    * UUID v7 identifier of the current kiosk. Required in kiosk-edge runtime;
    * optional for cloud services.
    */
-  ASTRA_KIOSK_ID: z.string().uuid().optional(),
+  ASTRA_KIOSK_ID: z.uuid().optional(),
 
   /**
    * UUID v7 identifier of the store the kiosk belongs to.
    */
-  ASTRA_STORE_ID: z.string().uuid().optional(),
+  ASTRA_STORE_ID: z.uuid().optional(),
 
   /**
    * UUID v7 identifier of the lane/queue the kiosk serves.
    */
-  ASTRA_LANE_ID: z.string().uuid().optional(),
+  ASTRA_LANE_ID: z.uuid().optional(),
 
   /**
    * UUID v7 identifier of the tenant. Used for multi-tenant routing and
    * telemetry.
    */
-  ASTRA_TENANT_ID: z.string().uuid().optional(),
+  ASTRA_TENANT_ID: z.uuid().optional(),
 
   /**
    * Offline payment token TTL in hours. Must be between 1 and 72 hours. The

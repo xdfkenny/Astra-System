@@ -89,7 +89,7 @@ export const PaymentResultSchema = z.object({
   method: PaymentMethodSchema,
   status: PaymentStatusSchema,
   authorization: z.custom<PaymentAuthorizationResult>(),
-  receiptUrl: z.string().url().optional(),
+  receiptUrl: z.url().optional(),
 });
 
 export type PaymentResult = z.infer<typeof PaymentResultSchema>;
