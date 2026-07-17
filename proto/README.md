@@ -8,25 +8,29 @@ for the Astra-Service platform.
 ```text
 proto/
 ├── proto/              # .proto source files
+│   ├── auth.proto
+│   ├── cart.proto
 │   ├── common.proto
 │   ├── events.proto
-│   ├── menu.proto
-│   ├── cart.proto
-│   ├── order.proto
 │   ├── inventory.proto
+│   ├── lane.proto
+│   ├── menu.proto
+│   ├── order.proto
 │   ├── payment.proto
 │   ├── sync.proto
-│   └── lane.proto
+│   └── webauthn.proto
 ├── gen/go/             # Generated Go packages (protoc output)
+│   ├── auth/
+│   ├── cart/
 │   ├── common/
 │   ├── events/
-│   ├── menu/
-│   ├── cart/
-│   ├── order/
 │   ├── inventory/
+│   ├── lane/
+│   ├── menu/
+│   ├── order/
 │   ├── payment/
 │   ├── sync/
-│   └── lane/
+│   └── webauthn/
 ├── buf.yaml            # Buf module configuration
 ├── buf.gen.yaml        # Buf code-generation configuration
 ├── generate.go         # go:generate entry point
@@ -38,21 +42,23 @@ proto/
 
 | Domain     | Proto package        | Go import path                                                |
 | ---------- | -------------------- | ------------------------------------------------------------- |
+| auth       | `astra.auth.v1`      | `github.com/astra-systems/astra-service/proto/gen/go/auth`    |
+| cart       | `astra.cart.v1`      | `github.com/astra-systems/astra-service/proto/gen/go/cart`    |
 | common     | `astra.common.v1`    | `github.com/astra-systems/astra-service/proto/gen/go/common`  |
 | events     | `astra.events.v1`    | `github.com/astra-systems/astra-service/proto/gen/go/events`  |
-| menu       | `astra.menu.v1`      | `github.com/astra-systems/astra-service/proto/gen/go/menu`    |
-| cart       | `astra.cart.v1`      | `github.com/astra-systems/astra-service/proto/gen/go/cart`    |
-| order      | `astra.order.v1`     | `github.com/astra-systems/astra-service/proto/gen/go/order`   |
 | inventory  | `astra.inventory.v1` | `github.com/astra-systems/astra-service/proto/gen/go/inventory` |
+| lane       | `astra.lane.v1`      | `github.com/astra-systems/astra-service/proto/gen/go/lane`    |
+| menu       | `astra.menu.v1`      | `github.com/astra-systems/astra-service/proto/gen/go/menu`    |
+| order      | `astra.order.v1`     | `github.com/astra-systems/astra-service/proto/gen/go/order`   |
 | payment    | `astra.payment.v1`   | `github.com/astra-systems/astra-service/proto/gen/go/payment` |
 | sync       | `astra.sync.v1`      | `github.com/astra-systems/astra-service/proto/gen/go/sync`    |
-| lane       | `astra.lane.v1`      | `github.com/astra-systems/astra-service/proto/gen/go/lane`    |
+| webauthn   | `astra.webauthn.v1`  | `github.com/astra-systems/astra-service/proto/gen/go/webauthn` |
 
 ## Regenerating Code
 
 ### Prerequisites
 
-- Go 1.23+
+- Go 1.25+
 - `buf` CLI
 - `protoc-gen-go` and `protoc-gen-go-grpc`:
 
@@ -89,15 +95,17 @@ protoc \
   --proto_path=proto \
   --go_out=gen/go --go_opt=paths=source_relative \
   --go-grpc_out=gen/go --go-grpc_opt=paths=source_relative \
+  proto/auth.proto \
+  proto/cart.proto \
   proto/common.proto \
   proto/events.proto \
-  proto/menu.proto \
-  proto/cart.proto \
-  proto/order.proto \
   proto/inventory.proto \
+  proto/lane.proto \
+  proto/menu.proto \
+  proto/order.proto \
   proto/payment.proto \
   proto/sync.proto \
-  proto/lane.proto
+  proto/webauthn.proto
 ```
 
 ## Go Module

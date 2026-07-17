@@ -40,7 +40,7 @@ YOLOv8n person-detection model with ONNX Runtime and exposes both gRPC
 
 ## Requirements
 
-- Python 3.11+
+- Python 3.13+
 - A YOLOv8n ONNX model at `models/yolov8n.onnx`
 
 ## Installation
@@ -81,7 +81,7 @@ python -m grpc_tools.protoc \
 
 ## Run the service
 
-Start both the gRPC server (port 50051) and the HTTP health server (port 8080):
+Start both the gRPC server (port 50051) and the HTTP health server (port 8088):
 
 ```bash
 python -m src.main
@@ -90,7 +90,7 @@ python -m src.main
 Or with explicit ports:
 
 ```bash
-python -m src.main --port 8080 --grpc-port 50051 --model models/yolov8n.onnx
+python -m src.main --port 8088 --grpc-port 50051 --model models/yolov8n.onnx
 ```
 
 ## HTTP endpoints
@@ -125,7 +125,7 @@ Build and run a multi-stage image:
 
 ```bash
 docker build -t astra-ml-lane-intel .
-docker run -p 8080:8080 -p 50051:50051 astra-ml-lane-intel
+docker run -p 8088:8088 -p 50051:50051 astra-ml-lane-intel
 ```
 
 ## Configuration

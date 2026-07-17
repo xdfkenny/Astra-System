@@ -7,9 +7,8 @@ status, including files created, components implemented, and remaining tasks.
 ## ✅ COMPLETED - CRITICAL FOUNDATION
 
 ### Core Design System
-- ✅ Color Tokens (assets/design-system/src/tokens/colors.ts:96 lines)
-- ✅ Typography Scale (assets/design-system/src/tokens/typography.ts:184 lines)
-- ✅ Spacing System (assets/design-system/src/tokens/spacing.ts:136 lines)
+- ✅ Design Tokens (packages/design-tokens/src/tokens.ts:242 lines)
+- ✅ Token CSS (packages/design-tokens/src/tokens.css)
 - ✅ Global Styles (apps/kiosk/src/styles/global.css:32 lines)
 - ✅ Tailwind Config (apps/kiosk/tailwind.config.ts:136 lines)
 
@@ -42,7 +41,7 @@ status, including files created, components implemented, and remaining tasks.
 
 ### Screen Implementations
 #### ✅ Main Screens (7/8)
-- ✅ AttractScreen (apps/kiosk/src/routes/AttractScreen.tsx:232 lines)
+- ✅ AttractScreen with language picker (apps/kiosk/src/routes/AttractScreen.tsx:232 lines)
 - ✅ MenuScreen (apps/kiosk/src/routes/MenuScreen.tsx:240+ lines)
 - ✅ CartScreen (apps/kiosk/src/routes/CartScreen.tsx:298+ lines)
 - ✅ PaymentScreen (apps/kiosk/src/routes/PaymentScreen.tsx:240+ lines)
@@ -88,6 +87,13 @@ status, including files created, components implemented, and remaining tasks.
 - ✅ XState v5 with fromPromise actors for async operations
 - ✅ Comprehensive state context with session tracking
 - ✅ Guards for conditional transitions (cartHasItems, paymentApproved)
+
+### Internationalization
+- ✅ Multilingual UI architecture (17+ languages targeted)
+- ✅ Language selection at session start (Attract Screen)
+- ✅ RTL layout support for Arabic, Urdu
+- ✅ Locale-aware formatting for currency, dates, and numbers
+- ✅ Translated receipts, audio prompts, and system messages
 
 ### UI/UX Features
 - ✅ Biophilic design with organic animations

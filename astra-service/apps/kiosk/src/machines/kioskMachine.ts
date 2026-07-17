@@ -4,10 +4,12 @@ import type { LaneMode } from "@astra/kiosk-state";
 import { cartProxy } from "@astra/kiosk-state";
 import { apiClient } from "../state/apiClient";
 import { defaultLogger } from "../utils/logger";
+import type { LocaleCode } from "../i18n";
 
 const log = defaultLogger.child("kioskMachine");
 
 export type KioskWorkflowStage =
+  | "LANGUAGE_SELECT"
   | "ATTRACT"
   | "MENU"
   | "ITEM_DETAIL"
@@ -18,6 +20,7 @@ export type KioskWorkflowStage =
   | "ADMIN";
 
 export interface KioskContext {
+  readonly locale: LocaleCode;
   readonly sessionId: string | null;
   readonly laneMode: LaneMode;
   readonly selectedItem: MenuItem | null;
@@ -32,6 +35,7 @@ export interface KioskContext {
 }
 
 export type KioskEvent =
+  | { type: "SET_LANGUAGE"; locale: LocaleCode }
   | { type: "START_SESSION"; sessionId: string; laneMode?: LaneMode }
   | { type: "TAP_START"; sessionId: string; laneMode?: LaneMode }
   | { type: "SELECT_ITEM"; item: MenuItem }
@@ -99,8 +103,9 @@ export const kioskMachine = createMachine(
       context: {} as KioskContext,
       events: {} as KioskEvent,
     },
-    initial: "ATTRACT",
+    initial: "LANGUAGE_SELECT",
       context: {
+        locale: "en",
         sessionId: null,
         laneMode: "full",
         selectedItem: null,
@@ -114,6 +119,20 @@ export const kioskMachine = createMachine(
         cartId: cartProxy.cartId,
       },
     states: {
+       LANGUAGE_SELECT: {
+        on: {
+          SET_LANGUAGE: {
+            target: "ATTRACT",
+            actions: ["assignLanguage"],
+          },
+          NETWORK_OFFLINE: {
+            actions: ["setOfflineMode"],
+          },
+          NETWORK_ONLINE: {
+            actions: ["setOnlineMode"],
+          },
+        },
+      },
        ATTRACT: {
         on: {
           START_SESSION: {
@@ -352,8 +371,14 @@ export const kioskMachine = createMachine(
     },
   },
   {
-    actions: {
-      assignSession: assign(({ event }) => {
+     actions: {
+       assignLanguage: assign(({ event }) => {
+         if (event.type === "SET_LANGUAGE") {
+           return { locale: event.locale };
+         }
+         return {};
+       }),
+       assignSession: assign(({ event }) => {
         if (event.type === "START_SESSION" || event.type === "TAP_START") {
           return {
             sessionId: event.sessionId,
@@ -406,19 +431,20 @@ export const kioskMachine = createMachine(
          cartId: cartProxy.cartId,
        }),
         clearError: assign({ errorMessage: null }),
-       resetContext: assign(() => ({
-        sessionId: null,
-        laneMode: "full",
-        selectedItem: null,
-        cartHasItems: false,
-        returnTo: null,
-        paymentResult: null,
-        order: null,
-        errorMessage: null,
-        cartId: cartProxy.cartId,
-      })),
-    },
-    guards: {
+        resetContext: assign(({ context }) => ({
+         locale: context.locale,
+         sessionId: null,
+         laneMode: "full",
+         selectedItem: null,
+         cartHasItems: false,
+         returnTo: null,
+         paymentResult: null,
+         order: null,
+         errorMessage: null,
+         cartId: cartProxy.cartId,
+       })),
+     },
+     guards: {
       cartHasItems: ({ context }) => context.cartHasItems,
       paymentApproved: ({ event }) =>
         event.type === "PAYMENT_AUTHORIZED" && isApprovedResult(event.result),

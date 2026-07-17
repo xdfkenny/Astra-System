@@ -5,16 +5,31 @@
 </p>
 
 <p align="center">
-  <a href="../README.md">English</a> ·
+  <a href="../../README.md"><b>English</b></a> ·
   <a href="./README.es.md">Español</a> ·
   <a href="./README.zh.md">中文</a> ·
-  <a href="./README.ko.md">한국어</a> ·
+  <a href="./README.fr.md">Français</a>
+  <br>
+  <sub>
   <a href="./README.ja.md">日本語</a> ·
+  <a href="./README.ko.md">한국어</a> ·
+  <a href="./README.hi.md">हिन्दी</a> ·
+  <a href="./README.ar.md">العربية</a> ·
+  <a href="./README.pt.md">Português</a> ·
+  <a href="./README.ru.md">Русский</a> ·
+  <a href="./README.bn.md">বাংলা</a> ·
+  <a href="./README.de.md">Deutsch</a> ·
+  <a href="./README.ur.md">اردو</a> ·
+  <a href="./README.tr.md">Türkçe</a> ·
+  <a href="./README.zh-TW.md">繁體中文</a> ·
+  <a href="./README.vi.md">Tiếng Việt</a> ·
+  <a href="./README.th.md">ไทย</a> ·
   <a href="./README.la.md"><b>Latina</b></a>
+  </sub>
 </p>
 
 [![CI](https://img.shields.io/badge/CI-pass-green.svg)](https://github.com/anomalyco/astra-system/actions)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../../LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8.svg)](https://go.dev)
 [![Rust](https://img.shields.io/badge/Rust-1.82-dea584.svg)](https://www.rust-lang.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org)
@@ -98,7 +113,7 @@ Astra-System in **gradu nubis** et **margine tabernae / grege terminalium** divi
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-Topologiam plenam, exemplar securitatis, fluxum solutionis, observabilitatem, et recuperationem calamitatis vide in [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+Topologiam plenam, exemplar securitatis, fluxum solutionis, observabilitatem, et recuperationem calamitatis vide in [`ARCHITECTURE.md`](../../ARCHITECTURE.md).
 
 ### Index Servitiorum
 
@@ -263,8 +278,8 @@ Ad indicem productivum utere `docker-compose.prod.yml`.
 
 ## Documentatio
 
-- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — designatio systematis, exemplar securitatis, fluxus solutionis, observabilitas, recuperatio calamitatis.
-- [`promt.md`](./promt.md) — norma designi UI terminalis biomimeticae "Living Weave".
+- [`ARCHITECTURE.md`](../../ARCHITECTURE.md) — designatio systematis, exemplar securitatis, fluxus solutionis, observabilitas, recuperatio calamitatis.
+- [`UX_UI_AUDIT_REPORT.md`](../../astra-service/UX_UI_AUDIT_REPORT.md) — norma designi UI terminalis biomimeticae "Living Weave".
 - `proto/README.md`, `astra-service/sync-daemon/README.md`, et `docs/` — subproiecta et manualia operationalia.
 
 ---

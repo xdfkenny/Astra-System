@@ -38,7 +38,7 @@ present; missing required values prevent startup.
 | `GATEWAY_PORT` | no | `8080` | HTTP listen port |
 | `ASTRA_ENV` | no | `development` | runtime environment |
 | `ASTRA_LOG_LEVEL` | no | `info` | debug/info/warn/error |
-| `GATEWAY_ALLOWED_ORIGINS` | no | `http://localhost:5170` | comma-separated CORS whitelist |
+| `GATEWAY_ALLOWED_ORIGINS` | no | `http://localhost:5180` | comma-separated CORS whitelist |
 | `GATEWAY_RATE_LIMIT_RPS` | no | `50` | token-bucket refill rate |
 | `GATEWAY_RATE_LIMIT_BURST` | no | `100` | token-bucket burst size |
 | `GATEWAY_JWT_ISSUER` | no | `astra-service` | expected JWT issuer |

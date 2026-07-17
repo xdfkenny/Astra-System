@@ -1,6 +1,7 @@
 ﻿import { lazy, Suspense, useMemo } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
+import { LanguageSelectScreen } from "./LanguageSelectScreen";
 import { AttractScreen } from "./AttractScreen";
 import { MenuScreen } from "./MenuScreen";
 import { CartReviewScreen } from "./CartReviewScreen";
@@ -20,6 +21,7 @@ export function WorkflowRouter(): React.JSX.Element {
   const useRemote = !DEV_MODE;
 
   const baseScreen = useMemo(() => {
+    if (stage === "LANGUAGE_SELECT") return <LanguageSelectScreen />;
     if (stage === "ATTRACT") return <AttractScreen />;
     if (stage === "ADMIN") return <AdminScreen />;
 

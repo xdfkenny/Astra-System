@@ -6,6 +6,7 @@ import { uuidV7 } from "@astra/shared-types";
 import { resetCart } from "@astra/kiosk-state";
 import { useViewport } from "../components/ViewportLock";
 import { queryClient } from "../state/queryClient";
+import { useTranslation } from "../i18n";
 
 const ENV: Record<string, string | undefined> = import.meta.env;
 const KIOSK_ID = ENV["VITE_KIOSK_ID"] ?? "kiosk-local";
@@ -15,6 +16,7 @@ const REVEAL_DURATION_MS = 500;
 
 export function AttractScreen(): React.JSX.Element {
   const { send } = useKioskMachine();
+  const { t } = useTranslation();
   const { logicalPoint } = useViewport();
   const [idle, setIdle] = useState(false);
   const [reveal, setReveal] = useState(false);
@@ -124,7 +126,7 @@ export function AttractScreen(): React.JSX.Element {
       onTouchStart={handleTouchStart}
       role="button"
       tabIndex={0}
-      aria-label="Touch to begin shopping"
+      aria-label={t("attract.screenReader")}
       onKeyDown={handleKeyDown}
       suppressHydrationWarning
     >
@@ -179,16 +181,16 @@ export function AttractScreen(): React.JSX.Element {
       {/* Center content */}
       <div className="relative z-10 text-center">
         <h1 className="font-heading text-[56px] font-semibold tracking-tight text-charcoal">
-          Astra
+          {t("attract.title")}
         </h1>
         <motion.p
           className="mt-3 font-sans text-[18px] text-stone"
           animate={{ opacity: [1, 0.3, 1] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           role="status"
-          aria-label="Touch to begin"
+          aria-label={t("attract.touchToBegin")}
         >
-          Touch to begin
+          {t("attract.touchToBegin")}
         </motion.p>
       </div>
 
@@ -200,7 +202,7 @@ export function AttractScreen(): React.JSX.Element {
           transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
           aria-hidden="true"
         >
-          {`Self-checkout • Lane ${KIOSK_LANE}`}
+          {t("attract.laneInfo", { lane: KIOSK_LANE })}
         </motion.p>
       </div>
 
@@ -220,7 +222,7 @@ export function AttractScreen(): React.JSX.Element {
 
       {/* Screen-reader live region */}
       <div className="sr-only" aria-live="assertive" role="status">
-        Attract screen. Touch to begin shopping.
+        {t("attract.screenReader")}
       </div>
     </div>
   );

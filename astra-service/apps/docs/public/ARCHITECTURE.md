@@ -521,7 +521,7 @@ A Rust + ONNX Runtime computer vision module uses the kiosk camera to identify p
 
 ### 3. Lane Intelligence
 
-An edge-deployed TensorFlow Lite model estimates queue length from camera feeds and dynamically switches the UI between express mode (fewer options, faster) and full mode.
+An edge-deployed ONNX Runtime model (YOLOv8n) estimates queue length from camera feeds and dynamically switches the UI between express mode (fewer options, faster) and full mode.
 
 ### 4. Silent Assist
 
@@ -592,7 +592,7 @@ The CI pipeline injects random network partitions during integration tests to ve
 
 ### Appendix D: Development Environment
 
-A Nix flake at `flake.nix` provides a reproducible shell with Node 22, Go 1.22, Rust 1.79, PostgreSQL 16, Redis 7, NATS, and Docker. Enter it with:
+A Nix flake at `flake.nix` provides a reproducible shell with Node 22, Go 1.25, Rust 1.75, PostgreSQL 16, Redis 7, NATS, and Docker. Enter it with:
 
 ```bash
 nix develop

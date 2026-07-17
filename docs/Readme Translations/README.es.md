@@ -5,15 +5,31 @@
 </p>
 
 <p align="center">
-  <a href="../README.md">English</a> ·
+  <a href="../../README.md"><b>English</b></a> ·
   <a href="./README.es.md"><b>Español</b></a> ·
   <a href="./README.zh.md">中文</a> ·
+  <a href="./README.fr.md">Français</a>
+  <br>
+  <sub>
+  <a href="./README.ja.md">日本語</a> ·
   <a href="./README.ko.md">한국어</a> ·
-  <a href="./README.ja.md">日本語</a>
+  <a href="./README.hi.md">हिन्दी</a> ·
+  <a href="./README.ar.md">العربية</a> ·
+  <a href="./README.pt.md">Português</a> ·
+  <a href="./README.ru.md">Русский</a> ·
+  <a href="./README.bn.md">বাংলা</a> ·
+  <a href="./README.de.md">Deutsch</a> ·
+  <a href="./README.ur.md">اردو</a> ·
+  <a href="./README.tr.md">Türkçe</a> ·
+  <a href="./README.zh-TW.md">繁體中文</a> ·
+  <a href="./README.vi.md">Tiếng Việt</a> ·
+  <a href="./README.th.md">ไทย</a> ·
+  <a href="./README.la.md">Latina</a>
+  </sub>
 </p>
 
 [![CI](https://img.shields.io/badge/CI-pass-green.svg)](https://github.com/anomalyco/astra-system/actions)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../../LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8.svg)](https://go.dev)
 [![Rust](https://img.shields.io/badge/Rust-1.82-dea584.svg)](https://www.rust-lang.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org)
@@ -97,7 +113,7 @@ Astra-System se divide en una **Capa en la Nube** y un **Clúster de Borde de Ti
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-Para la topología completa, el modelo de seguridad, los flujos de pago, la observabilidad y los detalles de recuperación ante desastres, consulte [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+Para la topología completa, el modelo de seguridad, los flujos de pago, la observabilidad y los detalles de recuperación ante desastres, consulte [`ARCHITECTURE.md`](../../ARCHITECTURE.md).
 
 ### Inventario de Servicios
 
@@ -262,8 +278,8 @@ Para manifiestos de producción, use `docker-compose.prod.yml`.
 
 ## Documentación
 
-- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — diseño del sistema, modelo de seguridad, flujos de pago, observabilidad y DR.
-- [`promt.md`](./promt.md) — la especificación de diseño de UI de quiosco biofílica "Living Weave".
+- [`ARCHITECTURE.md`](../../ARCHITECTURE.md) — diseño del sistema, modelo de seguridad, flujos de pago, observabilidad y DR.
+- [`UX_UI_AUDIT_REPORT.md`](../../astra-service/UX_UI_AUDIT_REPORT.md) — la especificación de diseño de UI de quiosco biofílica "Living Weave".
 - `proto/README.md`, `astra-service/sync-daemon/README.md` y `docs/` — subproyectos y runbooks operativos.
 
 ---

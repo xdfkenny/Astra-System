@@ -16,7 +16,9 @@ All production Dockerfiles are multi-stage builds defined in this directory and 
 | `Dockerfile.payment-orchestrator` | Payment Orchestrator (Go) | `gcr.io/distroless/static-debian12:nonroot` | Port 8086 |
 | `Dockerfile.sync-service` | Sync Service (Go) | `gcr.io/distroless/static-debian12:nonroot` | Port 8087 |
 | `Dockerfile.update-server` | Update Server (Go) | `gcr.io/distroless/static-debian12:nonroot` | Port 8080 |
-| `Dockerfile.ml-lane-intel` | ML Lane Intelligence (Python/FastAPI) | `python:3.13-slim` | Non-root `astra` user, port 8080 |
+| `Dockerfile.admin-graphql` | Admin GraphQL (Go) | `gcr.io/distroless/static-debian12:nonroot` | GraphQL admin API |
+| `Dockerfile.webauthn-service` | WebAuthn Service (Go) | `gcr.io/distroless/static-debian12:nonroot` | FIDO2/WebAuthn authentication |
+| `Dockerfile.ml-lane-intel` | ML Lane Intelligence (Python/FastAPI) | `python:3.13-slim` | Non-root `astra` user, port 8088 |
 | `Dockerfile.kiosk` | Unified Kiosk (React + Vite) | `nginx:1.27-alpine` | Node 22 build stage, nginx serves static bundle |
 | `Dockerfile.syncd` | P2P Sync Daemon (Rust) | `gcr.io/distroless/cc-debian12:nonroot` | Static Rust build, port 4499 |
 

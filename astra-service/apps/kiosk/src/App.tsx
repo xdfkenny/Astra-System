@@ -12,6 +12,7 @@ import { useSilentAssist } from "./hooks/useSilentAssist";
 import { useNetworkMonitor } from "./hooks/useNetworkMonitor";
 import { useApiNetworkMonitor } from "./hooks/useApiNetworkMonitor";
 import { queryClient } from "./state/queryClient";
+import { useLocaleStore } from "./i18n";
 
 import "./styles/global.css";
 import "./styles/touchFixes.css";
@@ -35,8 +36,28 @@ const IDLE_WARNING_BEFORE_MS = 15_000;
 function KioskShell(): React.JSX.Element {
   const { state, send } = useKioskMachine();
   const network = useSessionStore((s) => s.network);
+  const setLocale = useLocaleStore((s) => s.setLocale);
   const [showIdleWarning, setShowIdleWarning] = useState(false);
   const [offlineLong, setOfflineLong] = useState(false);
+
+  // Sync machine locale to zustand store and set HTML dir and lang
+  useEffect(() => {
+    const locale = state.context.locale;
+    setLocale(locale);
+    const lang = locale.replace("_", "-");
+    document.documentElement.lang = lang;
+  }, [state.context.locale, setLocale]);
+
+  // Observe zustand dir changes for RTL support
+  useEffect(() => {
+    const unsub = useLocaleStore.subscribe((s) => {
+      document.documentElement.dir = s.dir;
+    });
+    // Set initial dir
+    const initialDir = useLocaleStore.getState().dir;
+    document.documentElement.dir = initialDir;
+    return unsub;
+  }, []);
 
   useIdleReclaim();
   useSilentAssist();

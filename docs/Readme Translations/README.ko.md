@@ -5,15 +5,31 @@
 </p>
 
 <p align="center">
-  <a href="../README.md">English</a> ·
+  <a href="../../README.md"><b>English</b></a> ·
   <a href="./README.es.md">Español</a> ·
   <a href="./README.zh.md">中文</a> ·
+  <a href="./README.fr.md">Français</a>
+  <br>
+  <sub>
+  <a href="./README.ja.md">日本語</a> ·
   <a href="./README.ko.md"><b>한국어</b></a> ·
-  <a href="./README.ja.md">日本語</a>
+  <a href="./README.hi.md">हिन्दी</a> ·
+  <a href="./README.ar.md">العربية</a> ·
+  <a href="./README.pt.md">Português</a> ·
+  <a href="./README.ru.md">Русский</a> ·
+  <a href="./README.bn.md">বাংলা</a> ·
+  <a href="./README.de.md">Deutsch</a> ·
+  <a href="./README.ur.md">اردو</a> ·
+  <a href="./README.tr.md">Türkçe</a> ·
+  <a href="./README.zh-TW.md">繁體中文</a> ·
+  <a href="./README.vi.md">Tiếng Việt</a> ·
+  <a href="./README.th.md">ไทย</a> ·
+  <a href="./README.la.md">Latina</a>
+  </sub>
 </p>
 
 [![CI](https://img.shields.io/badge/CI-pass-green.svg)](https://github.com/anomalyco/astra-system/actions)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../../LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8.svg)](https://go.dev)
 [![Rust](https://img.shields.io/badge/Rust-1.82-dea584.svg)](https://www.rust-lang.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org)
@@ -97,7 +113,7 @@ Astra-System은 **클라우드 계층**과 **매장 엣지 / 키오스크 클러
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-전체 토폴로지, 보안 모델, 결제 흐름, 관측성, 재해 복구 세부 사항은 [`ARCHITECTURE.md`](./ARCHITECTURE.md)를 참조하세요.
+전체 토폴로지, 보안 모델, 결제 흐름, 관측성, 재해 복구 세부 사항은 [`ARCHITECTURE.md`](../../ARCHITECTURE.md)를 참조하세요.
 
 ### 서비스 목록
 
@@ -262,8 +278,8 @@ pnpm dev            # kiosk-shell hot reload
 
 ## 문서
 
-- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — 시스템 설계, 보안 모델, 결제 흐름, 관측성, DR.
-- [`promt.md`](./promt.md) — "Living Weave" 생체 친화적 키오스크 UI 디자인 명세.
+- [`ARCHITECTURE.md`](../../ARCHITECTURE.md) — 시스템 설계, 보안 모델, 결제 흐름, 관측성, DR.
+- [`UX_UI_AUDIT_REPORT.md`](../../astra-service/UX_UI_AUDIT_REPORT.md) — "Living Weave" 생체 친화적 키오스크 UI 디자인 명세.
 - `proto/README.md`, `astra-service/sync-daemon/README.md`, `docs/` — 하위 프로젝트 및 운영 런북.
 
 ---

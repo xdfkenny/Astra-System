@@ -6,11 +6,26 @@
 
 <p align="center">
   <a href="./README.md"><b>English</b></a> ·
-  <a href="./i18n/README.es.md">Español</a> ·
-  <a href="./i18n/README.zh.md">中文</a> ·
-  <a href="./i18n/README.ko.md">한국어</a> ·
-  <a href="./i18n/README.ja.md">日本語</a> ·
-  <a href="./i18n/README.la.md">Latina</a>
+  <a href="./docs/Readme Translations/README.es.md">Español</a> ·
+  <a href="./docs/Readme Translations/README.zh.md">中文</a> ·
+  <a href="./docs/Readme Translations/README.fr.md">Français</a>
+  <br>
+  <sub>
+   <a href="./docs/Readme Translations/README.ja.md">日本語</a> ·
+  <a href="./docs/Readme Translations/README.ko.md">한국어</a> ·
+  <a href="./docs/Readme Translations/README.hi.md">हिन्दी</a> ·
+  <a href="./docs/Readme Translations/README.ar.md">العربية</a> ·
+  <a href="./docs/Readme Translations/README.pt.md">Português</a> ·
+  <a href="./docs/Readme Translations/README.ru.md">Русский</a> ·
+  <a href="./docs/Readme Translations/README.bn.md">বাংলা</a> ·
+  <a href="./docs/Readme Translations/README.de.md">Deutsch</a> ·
+  <a href="./docs/Readme Translations/README.ur.md">اردو</a> ·
+  <a href="./docs/Readme Translations/README.tr.md">Türkçe</a> ·
+  <a href="./docs/Readme Translations/README.zh-TW.md">繁體中文</a> ·
+  <a href="./docs/Readme Translations/README.vi.md">Tiếng Việt</a> ·
+  <a href="./docs/Readme Translations/README.th.md">ไทย</a> ·
+  <a href="./docs/Readme Translations/README.la.md">Latina</a>
+  </sub>
 </p>
 
 [![CI](https://img.shields.io/badge/CI-pass-green.svg)](https://github.com/anomalyco/astra-system/actions)
@@ -74,6 +89,7 @@ The cloud tier (Go microservices, PostgreSQL 16, Redis 7, NATS JetStream) provid
 - **Biophilic kiosk UI** — a React 19 micro-frontend built with Module Federation, XState v5 workflow machine, and Zustand/TanStack Query state management.
 - **Advanced intelligence** — Ghost Carts, produce recognition (ONNX), lane intelligence (TFLite), WebAuthn/passkeys, and differential-privacy analytics.
 - **Chaos-ready CI** — network partitions are injected during integration tests to verify resilience, CRDT convergence, and payment queueing.
+- **Multilingual kiosk UI** — customers select their preferred language at session start from 17+ supported languages (English, Spanish, Chinese, French, Japanese, Korean, Hindi, Arabic, Portuguese, Russian, Bengali, German, Urdu, Turkish, Traditional Chinese, Vietnamese, Thai, and more). All UI text, receipts, and audio prompts render in the selected locale.
 
 ---
 
@@ -137,6 +153,7 @@ astra-service/          Service and application code
   sync-daemon/          astra-syncd (Rust) P2P daemon
   daemons/              Sidecar daemons (payment-sidecar)
   tools/                Operational tooling (chaos, etc.)
+services/               Standalone services (update-server, …)
 database/               Schema migrations
 proto/                  Protocol Buffer definitions and generated code
 docs/                   Operational runbooks
@@ -264,7 +281,8 @@ For production manifests, use `docker-compose.prod.yml`.
 ## Documentation
 
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — system design, security model, payment flows, observability, and DR.
-- [`promt.md`](./promt.md) — the "Living Weave" biophilic kiosk UI design specification.
+- [`UX_UI_AUDIT_REPORT.md`](./astra-service/UX_UI_AUDIT_REPORT.md) — the "Living Weave" biophilic kiosk UI design specification.
+- [`docs/Readme Translations/`](./docs/Readme Translations/) — community-contributed README translations in 17+ languages.
 - `proto/README.md`, `astra-service/sync-daemon/README.md`, and `docs/` — subproject and operational runbooks.
 
 ---

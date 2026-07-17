@@ -220,4 +220,4 @@ Prometheus metrics are exposed on `daemon.metrics_addr` (default `127.0.0.1:9090
 
 ## License
 
-MIT © Astra Systems
+Apache-2.0 © Astra Systems

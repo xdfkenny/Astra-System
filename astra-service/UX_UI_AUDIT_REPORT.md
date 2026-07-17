@@ -3,7 +3,7 @@
 **Auditor:** Professional UX/UI & Workflow Tester  
 **Date:** 2026-07-14  
 **Scope:** Full codebase analysis across unified kiosk apps, federated micro-frontends, design system packages, state machines, and component libraries  
-**Reference Spec:** `promt.md` — "Living Weave" biophilic kiosk UI specification
+**Reference Spec:** `UX_UI_AUDIT_REPORT.md` — "Living Weave" biophilic kiosk UI specification
 
 ---
 
@@ -30,7 +30,7 @@
 
 1. **Dual Architecture Divergence** — The unified `@astra/kiosk` app and the federated `@astra/kiosk-shell` + remotes follow **different state management patterns** (XState vs. Zustand/SessionStore), use **different workflow stage names**, and are **diverging in implementation detail**. A user interacting with one build vs. the other would have meaningfully different experiences.
 
-2. **Spec Gaps of 40%+** — Critical screen elements specified in `promt.md` are missing: no floating cart pill animation (fly-to-cart), no cart-add micro-animation, no stitched borders on most cards, no search pull-down gesture in the unified build, no dim-to-30% after 2min idle, no `clipPath` reveal on tap, no page transition animations, no stagger on list items, no haptic integration in screens (only in design system components), no silent assist on menu screen, no biometric auth flow validation, no receipt print-failure state handling, no P2P mesh detail bottom sheet, no employee override in kiosk/shell (only in unified).
+2. **Spec Gaps of 40%+** — Critical screen elements specified in the design spec are missing: no floating cart pill animation (fly-to-cart), no cart-add micro-animation, no stitched borders on most cards, no search pull-down gesture in the unified build, no dim-to-30% after 2min idle, no `clipPath` reveal on tap, no page transition animations, no stagger on list items, no haptic integration in screens (only in design system components), no silent assist on menu screen, no biometric auth flow validation, no receipt print-failure state handling, no P2P mesh detail bottom sheet, no employee override in kiosk/shell (only in unified).
 
 3. **Component Duplication** — The `@astra/design-system` package provides Button, Card, Modal, Toast, QuantityStepper, Spinner, IconButton, Badge, Input — but the kiosk screens **mostly inline their own markup** instead of using these shared components. This means variant inconsistencies, duplicated styling, and divergent behavior.
 
@@ -89,6 +89,7 @@ The unified kiosk uses XState as source of truth for cart state (`cartHasItems`,
 | Center: "Astra" Cormorant 56px                  | ⚠️             | Uses `text-hero` which is 56px — correct, but uses Tailwind theme variable rather than direct size                                        |
 | "Touch to begin" Inter 18px pulse               | ⚠️             | Uses `text-body` (18px) — correct size, but `font-sans` resolves to Inter only through CSS variable                                       |
 | No buttons visible, entire screen is tap target | ✅             | `role="button"` on full container                                                                                                         |
+| Multilingual language picker before "Touch to begin" | ⚠️ **Partial** | No language selector exists on the attract screen. Customers must begin the session in a single default locale. |
 | Bottom scrolling text "Self-checkout • Lane 3"  | ✅             | Monospace 12px                                                                                                                            |
 | Dim to 30% brightness after 2min idle           | ⚠️             | Uses `filter: brightness(0.3)` but **also adds a `bg-black/30` overlay** — this is double-dimming (effectively ~0.09 brightness, not 30%) |
 | Tap: clipPath circle reveal 500ms               | ✅             | Framer Motion clipPath from touch point                                                                                                   |
@@ -96,6 +97,8 @@ The unified kiosk uses XState as source of truth for cart state (`cartHasItems`,
 | `will-change: transform` on blobs               | ❌ **Missing** | No `will-change` property on blob motion.divs                                                                                             |
 
 **User Reaction Issues:**
+
+- **No language selector on startup.** The attract screen immediately presents "Touch to begin" in the system's default locale, but a multilingual store will have customers who speak English, Spanish, French, Chinese, Arabic, Hindi, and others. A language picker (flag icons or native-language labels like "Español", "中文") should appear before or alongside the initial prompt so every customer can self-select their preferred language upfront.
 
 - **Double dimming at idle** makes the screen nearly unreadable (30% brightness from filter × 30% black overlay = ~9% effective brightness), far below the spec's 30%. A user returning to a dimmed kiosk won't be able to read "Touch to begin."
 - **No blob expansion on tap** means the reveal animation lacks the spec's intended visual flourish — the organic blobs should "expand outward" as part of the transition, creating a sense of the interface "breathing" into life.
@@ -589,7 +592,7 @@ The shared dependencies (react, react-dom, zustand, valtio) are federated correc
 
 ## Appendix A: File Coverage Map
 
-| promt.md Requirement                        | File(s)                             | Status                                  |
+| UX Specification Requirement                | File(s)                             | Status                                  |
 | ------------------------------------------- | ----------------------------------- | --------------------------------------- |
 | Design tokens (colors, typography, spacing) | Multiple token files                | ✅ Complete                             |
 | Tailwind config                             | `apps/kiosk/tailwind.config.ts`     | ✅ Complete                             |
@@ -629,4 +632,4 @@ The shared dependencies (react, react-dom, zustand, valtio) are federated correc
 
 ---
 
-_Report generated from exhaustive codebase analysis. Each finding references specific file paths and line numbers. All assessments are based on the promt.md specification as the ground truth._
+_Report generated from exhaustive codebase analysis. Each finding references specific file paths and line numbers. All assessments are based on the Living Weave specification as the ground truth._
