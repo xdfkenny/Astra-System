@@ -644,6 +644,7 @@ jobs:
         run: |
           mkdir -p /tmp/sboms
           syft ${{ env.REGISTRY }}/${{ steps.image.outputs.repository }}/${{ matrix.image }}:${{ github.sha }}-${{ steps.plat.outputs.tag }} \
+            --platform ${{ matrix.platform }} \
             -o spdx-json=/tmp/sboms/${{ matrix.image }}-${{ steps.plat.outputs.tag }}.sbom.spdx.json
           cosign attest --yes \
             --predicate /tmp/sboms/${{ matrix.image }}-${{ steps.plat.outputs.tag }}.sbom.spdx.json \
