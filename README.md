@@ -24,7 +24,8 @@
   <a href="./docs/Readme Translations/README.zh-TW.md">繁體中文</a> ·
   <a href="./docs/Readme Translations/README.vi.md">Tiếng Việt</a> ·
   <a href="./docs/Readme Translations/README.th.md">ไทย</a> ·
-  <a href="./docs/Readme Translations/README.la.md">Latina</a>
+  <a href="./docs/Readme Translations/README.la.md">Latina</a> ·
+  <a href="./docs/Readme Translations/README.tlh.md">tlhIngan Hol</a>
   </sub>
 </p>
 
