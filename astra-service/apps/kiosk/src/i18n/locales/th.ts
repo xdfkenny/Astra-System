@@ -91,4 +91,124 @@ export const th: TranslationMap = {
   "general.no": "ไม่ใช่",
   "a11y.closeModal": "ปิดหน้าต่าง",
   "a11y.navigateBack": "นำทางกลับ",
+
+
+  // Menu (new)
+  "menu.noItemsHint": "Try a different search term or check all categories",
+  "menu.categoriesLabel": "Menu categories",
+  "menu.categories.mains": "Mains",
+  "menu.categories.drinks": "Drinks",
+  "menu.clearSearch": "Clear search",
+  "menu.itemsInCart": "{count} items in cart",
+
+  // Item Detail (new)
+  "item.included": "Included",
+  "item.chooseCount": "Choose {count}",
+  "item.chooseRange": "Choose {min}-{max}",
+  "item.closeLabel": "Close item details",
+  "item.decreaseQuantity": "Decrease quantity",
+  "item.increaseQuantity": "Increase quantity",
+  "item.quantityLabel": "Quantity: {count}",
+  "item.addToCartLabel": "Add {name} to cart \u2014 {amount}",
+  "item.priceAddition": "+{amount}",
+  "item.customizeLabel": "Customize {name}",
+
+  // Cart (new)
+  "cart.itemSingular": "{count} item",
+  "cart.tapToEdit": "Tap an item to edit",
+  "cart.itemsLabel": "Cart items",
+  "cart.pay": "Pay {amount}",
+  "cart.editItem": "Edit {name}. Quantity: {quantity}. Price: {amount}",
+  "cart.decreaseQuantity": "Decrease quantity of {name}",
+  "cart.increaseQuantity": "Increase quantity of {name}",
+  "cart.quantityLabel": "Quantity: {count}",
+  "cart.priceLabel": "Price: {amount}",
+
+  // Payment (new)
+  "payment.cardNfc": "Card / NFC",
+  "payment.qrCode": "QR Code",
+  "payment.verifyToComplete": "Verify to complete",
+  "payment.pinPadInstruction": "Please use the PIN pad or present your card to the terminal.",
+  "payment.terminalStatus": "Terminal: {status}",
+  "payment.authorizing": "Authorizing...",
+  "payment.authorize": "Authorize",
+  "payment.authorized": "Authorized",
+  "payment.connected": "Connected",
+  "payment.cartSummary": "Cart summary: {count} items, total {amount}. Tap to {action}.",
+  "payment.expand": "expand",
+  "payment.collapse": "collapse",
+  "payment.employeeOverrideHint": "Employee override. Hold for 3 seconds.",
+  "payment.cancelPayment": "Cancel payment",
+  "payment.confirmPayment": "Pay {amount}",
+
+  // Processing (new)
+  "processing.connecting": "Connecting to terminal...",
+  "processing.waitingForCard": "Waiting for card...",
+  "processing.authorizing": "Authorizing...",
+  "processing.finalizingStage": "Finalizing...",
+  "processing.default": "Processing...",
+  "processing.terminalStatus": "Terminal: {label}",
+  "processing.orderFailed": "Order could not be completed",
+  "processing.orderFailedMessage": "We couldn\u0027t complete your order. Please try again.",
+  "processing.retry": "Try again",
+  "processing.cancelReturn": "Cancel and return to cart",
+
+  // Receipt (new)
+  "receipt.printing": "Printing...",
+  "receipt.emailSending": "Sending...",
+  "receipt.emailSent": "Sent!",
+  "receipt.printerUnavailable": "Printer unavailable. Receipt saved.",
+  "receipt.srComplete": "Order complete. Tap start new order to continue.",
+  "receipt.srReady": "Receipt ready.",
+  "receipt.printLabel": "Print receipt",
+  "receipt.emailLabel": "Email receipt",
+  "receipt.startNewLabel": "Start new order",
+
+  // Status Bar (new)
+  "status.synced": "Synced",
+  "status.syncing": "Syncing",
+  "status.p2pStatus": "P2P sync status: {label}. Tap for mesh details.",
+  "status.kioskStatus": "Kiosk status",
+  "status.p2pTitle": "P2P mesh sync",
+  "status.meshDescription": "This kiosk shares cart and order state with nearby peers over a local mesh so orders survive network drops.",
+  "status.connectedPeers": "Connected peers",
+  "status.syncLag": "Sync lag",
+  "status.role": "Role",
+  "status.leader": "Leader",
+  "status.peer": "Peer",
+  "status.thisKiosk": "This kiosk",
+  "status.apiOnline": "API online",
+  "status.apiDegraded": "API degraded",
+  "status.apiOffline": "API offline",
+  "status.networkConnected": "Connected to network",
+  "status.networkDisconnected": "No network connection",
+
+  // Idle Timeout (new)
+  "idle.message": "Tap below to continue, or this kiosk will reset for the next customer.",
+  "idle.continueLabel": "I am still here",
+  "idle.endSessionLabel": "Start over",
+  "idle.ariaLabel": "Idle timeout warning",
+
+  // Offline (new)
+  "offline.workingOffline": "Working offline. Your cart is secure.",
+  "offline.dismiss": "Dismiss offline notice",
+
+  // Errors (new)
+  "error.helpMessage": "Please ask a staff member for help. We apologise for the inconvenience.",
+
+  // Admin (new)
+  "admin.kioskStatus": "Kiosk Status",
+  "admin.session": "Session",
+  "admin.laneMode": "Lane Mode",
+  "admin.apiStatus": "API Status",
+  "admin.cartHasItems": "Cart Has Items",
+  "admin.actions": "Actions",
+  "admin.simulateOnline": "Simulate Online",
+  "admin.simulateOffline": "Simulate Offline",
+  "admin.errors": "Errors",
+  "admin.closeLabel": "Close admin panel",
+
+
+  "item.modifierSingular": "{count} modifier",
+  "item.modifierPlural": "{count} modifiers",
 };

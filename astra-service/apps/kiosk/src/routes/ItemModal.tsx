@@ -4,6 +4,8 @@ import { motion as motionTokens } from "@astra/design-tokens";
 import type { MenuItem, ModifierOption } from "@astra/shared-types";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 import { cartService } from "../state/cartService";
+import { useTranslation } from "../i18n";
+import { useCurrencyFormat } from "../i18n/useCurrencyFormat";
 
 function initializeSelections(item: MenuItem | null): Record<string, readonly string[]> {
   if (!item) return {};
@@ -58,6 +60,8 @@ function buildModifierSelections(
 }
 
 export function ItemModal(): React.JSX.Element | null {
+  const { t } = useTranslation();
+  const { formatCurrency } = useCurrencyFormat();
   const { state, send } = useKioskMachine();
   const item = state.context.selectedItem;
   const [selections, setSelections] = useState<Record<string, readonly string[]>>(() =>
@@ -187,16 +191,16 @@ export function ItemModal(): React.JSX.Element | null {
             )}
               <p
                 className="mt-2 font-sans text-[28px] font-semibold text-charcoal tabular-nums"
-                aria-label={`Price $${(totalCents / 100).toFixed(2)}`}
+                aria-label={t("item.price") + " " + formatCurrency(totalCents)}
               >
-                ${(item.priceCents / 100).toFixed(2)}
+                {formatCurrency(item.priceCents)}
               </p>
             </div>
             <button
               type="button"
               onClick={handleClose}
               className="flex h-10 w-10 items-center justify-center rounded-full bg-linen border border-taupe"
-              aria-label="Close item details"
+              aria-label={t("item.closeLabel")}
             >
               <svg viewBox="0 0 20 20" className="h-5 w-5 text-charcoal" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
@@ -214,8 +218,8 @@ export function ItemModal(): React.JSX.Element | null {
                   </h3>
                   <span className="font-sans text-caption text-stone">
                     {group.minSelect === group.maxSelect
-                      ? `Choose ${String(group.minSelect)}`
-                      : `Choose ${String(group.minSelect)}-${String(group.maxSelect)}`}
+                      ? t("item.chooseCount", { count: group.minSelect })
+                      : t("item.chooseRange", { min: String(group.minSelect), max: String(group.maxSelect) })}
                   </span>
                 </div>
                 <div className="flex flex-col gap-2">
@@ -242,8 +246,8 @@ export function ItemModal(): React.JSX.Element | null {
                         </span>
                         <span className="font-sans text-[16px] text-stone tabular-nums">
                           {option.priceDeltaCents > 0
-                            ? `+$${(option.priceDeltaCents / 100).toFixed(2)}`
-                            : "Included"}
+                            ? t("item.priceAddition", { amount: formatCurrency(option.priceDeltaCents) })
+                            : t("item.included")}
                         </span>
                       </button>
                     );
@@ -259,7 +263,7 @@ export function ItemModal(): React.JSX.Element | null {
               type="button"
               onClick={() => { setQuantity((q) => Math.max(1, q - 1)); }}
               className="h-12 w-12 rounded-full bg-linen border border-taupe flex items-center justify-center"
-              aria-label="Decrease quantity"
+              aria-label={t("item.decreaseQuantity")}
             >
               <svg
                 viewBox="0 0 20 20"
@@ -274,7 +278,7 @@ export function ItemModal(): React.JSX.Element | null {
             </button>
             <span
               className="font-sans text-[20px] font-semibold text-charcoal tabular-nums text-center min-w-[48px]"
-              aria-label={`Quantity: ${String(quantity)}`}
+              aria-label={t("item.quantityLabel", { count: quantity })}
             >
               {quantity}
             </span>
@@ -282,7 +286,7 @@ export function ItemModal(): React.JSX.Element | null {
               type="button"
               onClick={() => { setQuantity((q) => q + 1); }}
               className="h-12 w-12 rounded-full bg-linen border border-taupe flex items-center justify-center"
-              aria-label="Increase quantity"
+              aria-label={t("item.increaseQuantity")}
             >
               <svg
                 viewBox="0 0 20 20"
@@ -303,9 +307,9 @@ export function ItemModal(): React.JSX.Element | null {
             disabled={!isValid}
             onClick={handleAdd}
             className="mt-2 h-16 w-full rounded-full bg-amber text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(184,126,107,0.3)] disabled:opacity-50 disabled:grayscale-[0.5] transition-all duration-100 active:scale-[0.98] active:translate-y-[1px]"
-            aria-label={`Add ${item.name} to cart — $${(totalCents / 100).toFixed(2)}`}
+            aria-label={t("item.addToCartLabel", { name: item.name, amount: formatCurrency(totalCents) })}
           >
-            Add to cart — ${(totalCents / 100).toFixed(2)}
+            {t("item.addToCart")} — {formatCurrency(totalCents)}
           </button>
         </div>
       </motion.div>

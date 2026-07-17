@@ -8,6 +8,8 @@ import type { MenuItem, ReadonlyCartLineItem } from "@astra/shared-types";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 import { cartService } from "../state/cartService";
 import { defaultLogger } from "../utils/logger";
+import { useTranslation } from "../i18n";
+import { useCurrencyFormat } from "../i18n/useCurrencyFormat";
 
 const log = defaultLogger.child("CartReviewScreen");
 
@@ -15,10 +17,6 @@ const SILENT_ASSIST_DELAY_MS = 40_000;
 const TAX_RATE = Number.parseFloat(
   (import.meta.env as Record<string, string | undefined>)["VITE_TAX_RATE"] ?? "0.08",
 );
-
-function formatCents(cents: number): string {
-  return (cents / 100).toFixed(2);
-}
 
 function lineTotalCents(line: ReadonlyCartLineItem): number {
   return (
@@ -29,6 +27,8 @@ function lineTotalCents(line: ReadonlyCartLineItem): number {
 }
 
 export function CartReviewScreen(): React.JSX.Element {
+  const { t } = useTranslation();
+  const { formatCurrency } = useCurrencyFormat();
   const { send } = useKioskMachine();
   const cart = useSnapshot(cartProxy);
   const [silentAssist, setSilentAssist] = useState(false);
@@ -88,22 +88,20 @@ export function CartReviewScreen(): React.JSX.Element {
 
   const content = (
     <div className="flex flex-1 flex-col">
-      {/* Header */}
       <div className="px-3 pb-2 pt-4">
         <h1 className="font-heading text-[32px] font-semibold text-charcoal">
-          Your cart
+          {t("cart.title")}
         </h1>
       </div>
 
-      {/* Cart items */}
       <div
         className="flex-1 overflow-y-auto px-3"
         role="list"
-        aria-label="Cart items"
+        aria-label={t("cart.itemsLabel")}
       >
         {cart.lines.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16">
-            <p className="font-sans text-[18px] text-stone">Your cart is empty</p>
+            <p className="font-sans text-[18px] text-stone">{t("cart.empty")}</p>
           </div>
         )}
         {cart.lines.map((line, idx) => (
@@ -116,10 +114,13 @@ export function CartReviewScreen(): React.JSX.Element {
               if (e.key === "Enter" || e.key === " ") handleItemTap(line.menuItemId);
             }}
             tabIndex={0}
-            aria-label={`Edit ${line.nameSnapshot}. Quantity: ${String(line.quantity)}. Price: $${formatCents(lineTotalCents(line))}`}
+            aria-label={t("cart.editItem", {
+              name: line.nameSnapshot,
+              quantity: line.quantity,
+              amount: formatCurrency(lineTotalCents(line)),
+            })}
           >
             <div className="flex items-start gap-3 py-3 px-1">
-              {/* Thumbnail */}
               <div className="h-16 w-16 shrink-0 rounded-[12px] bg-stone/10 overflow-hidden">
                 <div
                   className="h-full w-full"
@@ -131,27 +132,24 @@ export function CartReviewScreen(): React.JSX.Element {
                 />
               </div>
 
-              {/* Details */}
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex items-start justify-between gap-2">
                   <span className="font-sans text-[18px] font-medium text-charcoal truncate">
                     {line.nameSnapshot}
                   </span>
                   <span className="font-sans text-[18px] font-semibold text-charcoal tabular-nums shrink-0">
-                    ${formatCents(lineTotalCents(line))}
+                    {formatCurrency(lineTotalCents(line))}
                   </span>
                 </div>
 
-                {/* Modifiers */}
                 {line.modifiers.length > 0 && (
                   <p className="font-sans text-[14px] text-stone truncate">
                     {line.modifiers
-                      .map((m) => `${m.modifierId}: +$${formatCents(m.priceDeltaCents)}`)
+                      .map((m) => `${m.modifierId}: +${formatCurrency(m.priceDeltaCents)}`)
                       .join(", ")}
                   </p>
                 )}
 
-                {/* Quantity stepper */}
                 <div className="mt-1 flex items-center gap-2">
                   <button
                     type="button"
@@ -159,7 +157,7 @@ export function CartReviewScreen(): React.JSX.Element {
                       handleQuantityChange(line.lineId, -1);
                     }}
                     className="h-12 w-12 rounded-full bg-linen border border-taupe flex items-center justify-center active:bg-white/80 transition-colors duration-100"
-                    aria-label={`Decrease quantity of ${line.nameSnapshot}`}
+                    aria-label={t("cart.decreaseQuantity", { name: line.nameSnapshot })}
                   >
                     <svg
                       viewBox="0 0 20 20"
@@ -174,7 +172,7 @@ export function CartReviewScreen(): React.JSX.Element {
                   </button>
                   <span
                     className="font-sans text-[20px] font-semibold text-charcoal tabular-nums text-center min-w-[48px]"
-                    aria-label={`Quantity: ${String(line.quantity)}`}
+                    aria-label={t("cart.quantityLabel", { count: line.quantity })}
                   >
                     {line.quantity}
                   </span>
@@ -184,7 +182,7 @@ export function CartReviewScreen(): React.JSX.Element {
                       handleQuantityChange(line.lineId, 1);
                     }}
                     className="h-12 w-12 rounded-full bg-linen border border-taupe flex items-center justify-center active:bg-white/80 transition-colors duration-100"
-                    aria-label={`Increase quantity of ${line.nameSnapshot}`}
+                    aria-label={t("cart.increaseQuantity", { name: line.nameSnapshot })}
                   >
                     <svg
                       viewBox="0 0 20 20"
@@ -201,60 +199,56 @@ export function CartReviewScreen(): React.JSX.Element {
               </div>
             </div>
 
-            {/* Dashed divider */}
             {idx < cart.lines.length - 1 && (
               <div className="border-t border-dashed border-taupe/40" />
             )}
           </div>
         ))}
 
-        {/* Tap to edit hint */}
         {cart.lines.length > 0 && (
           <p className="mt-4 text-center font-sans text-[14px] text-stone">
-            Tap an item to edit
+            {t("cart.tapToEdit")}
           </p>
         )}
       </div>
 
-      {/* Summary */}
       <div className="px-3 pb-3">
         <div className="flex flex-col gap-2 border-t border-taupe pt-3">
           <div className="flex items-center justify-between">
             <span className="font-sans text-[13px] font-medium uppercase tracking-[0.08em] text-stone">
-              Subtotal
+              {t("cart.subtotal")}
             </span>
             <span className="font-sans text-[18px] text-charcoal tabular-nums">
-              ${formatCents(subtotalCents)}
+              {formatCurrency(subtotalCents)}
             </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="font-sans text-[13px] font-medium uppercase tracking-[0.08em] text-stone">
-              Tax
+              {t("cart.tax")}
             </span>
             <span className="font-sans text-[18px] text-charcoal tabular-nums">
-              ${formatCents(taxCents)}
+              {formatCurrency(taxCents)}
             </span>
           </div>
           <div className="flex items-center justify-between border-t border-taupe pt-2">
             <span className="font-sans text-[18px] font-medium text-charcoal">
-              Total
+              {t("cart.total")}
             </span>
             <span className="font-sans text-[42px] font-semibold text-amber tabular-nums">
-              ${formatCents(totalCents)}
+              {formatCurrency(totalCents)}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Action bar */}
       <div className="flex items-center gap-3 border-t border-taupe bg-linen px-3 py-3">
         <button
           type="button"
           onClick={handleBack}
           className="h-14 flex-1 rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal active:bg-warm-cream/50 transition-colors duration-100"
-          aria-label="Back to menu"
+          aria-label={t("cart.backToMenu")}
         >
-          ← Back to menu
+          ← {t("cart.backToMenu")}
         </button>
         <motion.button
           type="button"
@@ -270,9 +264,9 @@ export function CartReviewScreen(): React.JSX.Element {
                 },
               }
             : {})}
-          aria-label={`Pay $${formatCents(totalCents)}`}
+          aria-label={t("cart.pay", { amount: formatCurrency(totalCents) })}
         >
-          Pay ${formatCents(totalCents)} →
+          {t("cart.pay", { amount: formatCurrency(totalCents) })} →
         </motion.button>
       </div>
     </div>

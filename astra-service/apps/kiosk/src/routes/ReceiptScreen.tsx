@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 import { defaultLogger } from "../utils/logger";
+import { useTranslation } from "../i18n";
 
 const log = defaultLogger.child("ReceiptScreen");
 
@@ -10,6 +11,7 @@ const AUTO_RETURN_TO_ATTRACT_MS = 10_000;
 const PRIMARY_DELAY_MS = 3_000;
 
 export function ReceiptScreen(): React.JSX.Element {
+  const { t } = useTranslation();
   const { send, state } = useKioskMachine();
   const [showPrimary, setShowPrimary] = useState(false);
   const [printerFailed, setPrinterFailed] = useState(false);
@@ -112,26 +114,23 @@ export function ReceiptScreen(): React.JSX.Element {
         </svg>
       </motion.div>
 
-      {/* Thank you heading */}
       <h1 className="mt-4 font-heading text-[36px] font-semibold text-charcoal">
-        Thank you
+        {t("receipt.title")}
       </h1>
 
-      {/* Order number */}
       <p className="mt-2 font-mono text-[24px] text-charcoal tabular-nums">
-        Order #{orderNumber}
+        {t("receipt.orderNumber", { number: orderNumber })}
       </p>
 
-      {/* Action buttons */}
       <div className="mt-8 flex flex-col items-center gap-3 w-full max-w-xs">
         <button
           type="button"
           onClick={handlePrint}
           disabled={printLoading}
           className="h-14 w-full rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal active:bg-warm-cream/50 disabled:opacity-40 transition-colors duration-100"
-          aria-label={printLoading ? "Printing receipt..." : "Print receipt"}
+          aria-label={printLoading ? t("receipt.printing") : t("receipt.printLabel")}
         >
-          {printLoading ? "Printing..." : "Print receipt"}
+          {printLoading ? t("receipt.printing") : t("receipt.print")}
         </button>
 
         <button
@@ -139,9 +138,9 @@ export function ReceiptScreen(): React.JSX.Element {
           onClick={handleEmail}
           disabled={emailLoading}
           className="h-14 w-full rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal active:bg-warm-cream/50 disabled:opacity-40 transition-colors duration-100"
-          aria-label={emailLoading ? "Emailing receipt..." : "Email receipt"}
+          aria-label={emailLoading ? t("receipt.emailSending") : t("receipt.emailLabel")}
         >
-          {emailLoading ? "Sending..." : emailSent ? "Sent!" : "Email receipt"}
+          {emailLoading ? t("receipt.emailSending") : emailSent ? t("receipt.emailSent") : t("receipt.email")}
         </button>
 
         <AnimatePresence>
@@ -154,15 +153,14 @@ export function ReceiptScreen(): React.JSX.Element {
               transition={{ duration: 0.25, ease: motionTokens.easeOutExpo }}
               onClick={handleStartNewOrder}
               className="mt-2 h-16 w-full rounded-full bg-amber text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(184,126,107,0.3)] active:scale-[0.98] active:translate-y-[1px] transition-all duration-100"
-              aria-label="Start new order"
+              aria-label={t("receipt.startNewLabel")}
             >
-              Start new order
+              {t("receipt.startNew")}
             </motion.button>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Printer failure toast */}
       <AnimatePresence>
         {printerFailed && (
           <motion.div
@@ -187,9 +185,8 @@ export function ReceiptScreen(): React.JSX.Element {
                 <path d="M10 6v4" strokeLinecap="round" />
                 <path d="M10 13v.01" strokeLinecap="round" />
               </svg>
-              <span>Printer unavailable. Receipt saved.</span>
+              <span>{t("receipt.printerUnavailable")}</span>
             </div>
-            {/* Auto-dismiss progress bar */}
             <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/20">
               <motion.div
                 className="h-full rounded-full bg-amber"
@@ -202,7 +199,6 @@ export function ReceiptScreen(): React.JSX.Element {
         )}
       </AnimatePresence>
 
-      {/* Confirmation toast — print / email acknowledged */}
       <AnimatePresence>
         {confirmation && (
           <motion.div
@@ -227,11 +223,10 @@ export function ReceiptScreen(): React.JSX.Element {
         )}
       </AnimatePresence>
 
-      {/* Screen-reader live region */}
       <div className="sr-only" aria-live="polite" role="status">
         {showPrimary
-          ? "Order complete. Tap start new order to continue."
-          : "Receipt ready."}
+          ? t("receipt.srComplete")
+          : t("receipt.srReady")}
       </div>
     </div>
   );

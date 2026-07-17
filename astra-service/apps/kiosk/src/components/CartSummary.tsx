@@ -5,10 +5,8 @@ import { cartProxy } from "@astra/kiosk-state";
 import { BottomSheet } from "./BottomSheet";
 import { useState } from "react";
 import { cn } from "@/utils/cn";
-
-function formatCents(cents: number): string {
-  return (cents / 100).toFixed(2);
-}
+import { useTranslation } from "../i18n";
+import { useCurrencyFormat } from "../i18n/useCurrencyFormat";
 
 export interface CartSummaryProps {
   readonly className?: string;
@@ -16,6 +14,8 @@ export interface CartSummaryProps {
 }
 
 export function CartSummary({ className, onCheckout }: CartSummaryProps): React.JSX.Element | null {
+  const { t } = useTranslation();
+  const { formatCurrency } = useCurrencyFormat();
   const cart = useSnapshot(cartProxy);
   const [expanded, setExpanded] = useState(false);
 
@@ -49,20 +49,20 @@ export function CartSummary({ className, onCheckout }: CartSummaryProps): React.
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25, ease: motionTokens.easeOutExpo }}
-        aria-label={`Cart summary: ${String(itemCount)} items, total $${formatCents(totalCents)}. Tap to expand.`}
+        aria-label={t("cart.summary") + `: ${itemCount === 1 ? t("cart.itemSingular", { count: itemCount }) : t("cart.itemCount", { count: itemCount })}, ${t("cart.total")} ${formatCurrency(totalCents)}.`}
         aria-expanded={expanded}
       >
         <span className="font-sans text-[13px] font-medium uppercase tracking-[0.08em] text-stone">
-          {itemCount} {itemCount === 1 ? "item" : "items"}
+          {itemCount === 1 ? t("cart.itemSingular", { count: itemCount }) : t("cart.itemCount", { count: itemCount })}
         </span>
         <span className="font-sans text-[28px] font-semibold text-charcoal tabular-nums">
-          ${formatCents(totalCents)}
+          {formatCurrency(totalCents)}
         </span>
       </motion.button>
 
-      <BottomSheet open={expanded} onClose={() => { setExpanded(false); }} aria-label="Cart summary">
+      <BottomSheet open={expanded} onClose={() => { setExpanded(false); }} aria-label={t("cart.summary")}>
         <h2 className="font-heading text-[32px] font-semibold text-charcoal mb-4">
-          Your cart
+          {t("cart.title")}
         </h2>
         <ul className="flex flex-col gap-3" role="list">
           {cart.lines.map((line) => (
@@ -76,12 +76,14 @@ export function CartSummary({ className, onCheckout }: CartSummaryProps): React.
                 </span>
                 {line.modifiers.length > 0 && (
                   <span className="font-sans text-[14px] text-stone">
-                    {line.modifiers.length} modifier{line.modifiers.length > 1 ? "s" : ""}
+                    {line.modifiers.length > 1
+                      ? t("item.modifierPlural", { count: line.modifiers.length })
+                      : t("item.modifierSingular", { count: line.modifiers.length })}
                   </span>
                 )}
               </div>
               <span className="font-sans text-[18px] font-semibold text-charcoal tabular-nums">
-                ${formatCents(
+                {formatCurrency(
                   line.unitPriceCentsSnapshot +
                     line.modifiers.reduce((m, mod) => m + mod.priceDeltaCents, 0),
                 )}
@@ -91,10 +93,10 @@ export function CartSummary({ className, onCheckout }: CartSummaryProps): React.
         </ul>
         <div className="mt-4 flex items-center justify-between border-t border-taupe pt-3">
           <span className="font-sans text-[13px] font-medium uppercase tracking-[0.08em] text-stone">
-            Total
+            {t("cart.total")}
           </span>
           <span className="font-sans text-[42px] font-semibold text-amber tabular-nums">
-            ${formatCents(totalCents)}
+            {formatCurrency(totalCents)}
           </span>
         </div>
       </BottomSheet>

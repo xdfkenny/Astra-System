@@ -2,13 +2,14 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
-import { MAIN_LANGUAGES, FEATURE_LANGUAGES } from "../i18n";
+import { MAIN_LANGUAGES, FEATURE_LANGUAGES, useTranslation } from "../i18n";
 import type { LocaleCode } from "../i18n";
 
 const VISIBLE_FEATURE_COUNT = 6;
 
 export function LanguageSelectScreen(): React.JSX.Element {
   const { send } = useKioskMachine();
+  const { t } = useTranslation();
   const [showAll, setShowAll] = useState(false);
 
   const handleSelect = useCallback(
@@ -61,16 +62,16 @@ export function LanguageSelectScreen(): React.JSX.Element {
             Astra
           </h1>
           <p className="mt-2 font-sans text-[16px] text-stone">
-            Select your language
+            {t("language.select")}
           </p>
         </div>
 
         {/* Language list */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-2">
+        <div className="flex-1 overflow-y-auto px-2">
           {/* Main languages section */}
           <div className="mb-2">
             <p className="font-sans text-[12px] font-medium uppercase tracking-wider text-stone/60 mb-2 px-1">
-              Main Languages
+              {t("language.mainLanguages")}
             </p>
             <div className="flex flex-col gap-2">
               {MAIN_LANGUAGES.map((lang) => (
@@ -88,7 +89,7 @@ export function LanguageSelectScreen(): React.JSX.Element {
           {/* More languages section */}
           <div className="mt-4 mb-2">
             <p className="font-sans text-[12px] font-medium uppercase tracking-wider text-stone/60 mb-2 px-1">
-              More Languages
+              {t("language.moreLanguages")}
             </p>
             <div className="flex flex-col gap-2">
               {visibleFeatureLanguages.map((lang) => (
@@ -111,7 +112,7 @@ export function LanguageSelectScreen(): React.JSX.Element {
                 onClick={() => { setShowAll(true); }}
                 className="mt-3 mx-auto flex items-center justify-center gap-1.5 h-11 w-full rounded-[14px] border border-taupe/40 bg-white/40 font-sans text-[14px] text-stone active:bg-white/60 transition-colors duration-100"
               >
-                <span>Show all ({FEATURE_LANGUAGES.length})</span>
+                <span>{t("language.showAll", { count: FEATURE_LANGUAGES.length })}</span>
                 <svg
                   viewBox="0 0 20 20"
                   className="h-4 w-4"

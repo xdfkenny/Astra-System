@@ -4,6 +4,8 @@
 import { useState } from "react";
 import { cn } from "@/utils/cn";
 import type { MenuItem } from "@astra/shared-types";
+import { useTranslation } from "../i18n";
+import { useCurrencyFormat } from "../i18n/useCurrencyFormat";
 
 export interface MenuItemCardProps {
   readonly item: MenuItem;
@@ -12,9 +14,11 @@ export interface MenuItemCardProps {
 }
 
 export function MenuItemCard({ item, onClick, className }: MenuItemCardProps): React.JSX.Element {
+  const { t } = useTranslation();
+  const { formatCurrency } = useCurrencyFormat();
   const [isPressed, setIsPressed] = useState(false);
   const hasModifiers = item.modifierGroups.length > 0;
-  const price = `$${(item.priceCents / 100).toFixed(2)}`;
+  const price = formatCurrency(item.priceCents);
   const description = item.description ?? "";
 
   const handleClick = () => {
@@ -70,7 +74,7 @@ export function MenuItemCard({ item, onClick, className }: MenuItemCardProps): R
             </span>
             {hasModifiers && (
               <span className="font-sans text-[13px] font-medium text-denim uppercase">
-                Customize →
+                {t("item.modifiers")} →
               </span>
             )}
           </div>

@@ -6,6 +6,8 @@ import { cartProxy } from "@astra/kiosk-state";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 import { apiClient } from "../state/apiClient";
 import { defaultLogger } from "../utils/logger";
+import { useTranslation } from "../i18n";
+import { useCurrencyFormat } from "../i18n/useCurrencyFormat";
 
 const log = defaultLogger.child("PaymentAuthScreen");
 
@@ -17,19 +19,20 @@ interface PaymentMethodOption {
   readonly icon: string;
 }
 
-const PAYMENT_METHODS: readonly PaymentMethodOption[] = [
-  { id: "card_nfc", label: "Card / NFC", icon: "card" },
-  { id: "cash", label: "Cash", icon: "cash" },
-  { id: "qr_code", label: "QR Code", icon: "qr" },
-];
-
-function formatCents(cents: number): string {
-  return (cents / 100).toFixed(2);
-}
-
 export function PaymentAuthScreen(): React.JSX.Element {
+  const { t } = useTranslation();
+  const { formatCurrency } = useCurrencyFormat();
   const { send } = useKioskMachine();
   const cart = useSnapshot(cartProxy);
+
+  const PAYMENT_METHODS: readonly PaymentMethodOption[] = useMemo(
+    () => [
+      { id: "card_nfc", label: t("payment.cardNfc"), icon: "card" },
+      { id: "cash", label: t("payment.cash"), icon: "cash" },
+      { id: "qr_code", label: t("payment.qrCode"), icon: "qr" },
+    ],
+    [t],
+  );
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [cartExpanded, setCartExpanded] = useState(false);
   const [showBiometric, setShowBiometric] = useState(false);
@@ -165,27 +168,29 @@ export function PaymentAuthScreen(): React.JSX.Element {
 
   return (
     <div className="flex flex-1 flex-col bg-linen">
-      {/* Header */}
       <div className="px-3 pb-2 pt-4">
         <h1 className="font-heading text-[28px] font-semibold text-charcoal">
-          Ready to pay
+          {t("cart.proceedToPayment")}
         </h1>
       </div>
 
-      {/* Collapsible cart summary */}
       <div className="px-3">
         <button
           type="button"
           onClick={() => { setCartExpanded(!cartExpanded); }}
           className="flex w-full items-center justify-between rounded-[12px] bg-warm-cream/90 px-4 py-3 backdrop-blur-[8px]"
           aria-expanded={cartExpanded}
-          aria-label={`Cart summary: ${String(itemCount)} items, total $${formatCents(totalCents)}. Tap to ${cartExpanded ? "collapse" : "expand"}.`}
+          aria-label={t("payment.cartSummary", {
+            count: itemCount,
+            amount: formatCurrency(totalCents),
+            action: cartExpanded ? t("payment.collapse") : t("payment.expand"),
+          })}
         >
           <span className="font-sans text-[13px] font-medium uppercase tracking-[0.08em] text-stone">
-            {itemCount} {itemCount === 1 ? "item" : "items"}
+            {itemCount === 1 ? t("cart.itemSingular", { count: itemCount }) : t("cart.itemCount", { count: itemCount })}
           </span>
           <span className="font-sans text-[28px] font-semibold text-charcoal tabular-nums">
-            ${formatCents(totalCents)}
+            {formatCurrency(totalCents)}
           </span>
         </button>
 
@@ -208,7 +213,7 @@ export function PaymentAuthScreen(): React.JSX.Element {
                       {line.nameSnapshot} × {line.quantity}
                     </span>
                     <span className="font-sans text-[16px] text-stone tabular-nums">
-                      ${formatCents(
+                      {formatCurrency(
                         line.quantity *
                           (line.unitPriceCentsSnapshot +
                             line.modifiers.reduce((m, mod) => m + mod.priceDeltaCents, 0)),
@@ -218,10 +223,10 @@ export function PaymentAuthScreen(): React.JSX.Element {
                 ))}
                 <div className="mt-2 flex items-center justify-between border-t border-taupe pt-2">
                   <span className="font-sans text-[13px] font-medium uppercase tracking-[0.08em] text-stone">
-                    Total
+                    {t("cart.total")}
                   </span>
                   <span className="font-sans text-[28px] font-semibold text-amber tabular-nums">
-                    ${formatCents(totalCents)}
+                    {formatCurrency(totalCents)}
                   </span>
                 </div>
               </div>
@@ -230,10 +235,9 @@ export function PaymentAuthScreen(): React.JSX.Element {
         </AnimatePresence>
       </div>
 
-      {/* Payment methods */}
       <div className="mt-4 px-3">
         <h2 className="font-sans text-[13px] font-medium uppercase tracking-[0.08em] text-stone mb-2">
-          Select payment method
+          {t("payment.selectMethod")}
         </h2>
         <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2">
           {PAYMENT_METHODS.map((method) => {
@@ -286,20 +290,18 @@ export function PaymentAuthScreen(): React.JSX.Element {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Confirm payment button */}
       <div className="px-3 pb-3">
         <button
           type="button"
           disabled={!selectedMethod}
           onClick={handleConfirm}
           className="h-16 w-full rounded-full bg-amber text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(184,126,107,0.3)] disabled:opacity-40 disabled:grayscale-[0.5] transition-all duration-100 active:scale-[0.98] active:translate-y-[1px]"
-          aria-label={`Pay ${formatCents(totalCents)}`}
+          aria-label={t("payment.confirmPayment", { amount: formatCurrency(totalCents) })}
         >
-          {`Pay ${formatCents(totalCents)}`}
+          {t("payment.confirmPayment", { amount: formatCurrency(totalCents) })}
         </button>
       </div>
 
-      {/* Employee override — hidden, long-press corner */}
       <button
         type="button"
         onMouseDown={handleEmployeeHoldStart}
@@ -308,14 +310,13 @@ export function PaymentAuthScreen(): React.JSX.Element {
         onTouchStart={handleEmployeeHoldStart}
         onTouchEnd={handleEmployeeHoldEnd}
         className="absolute bottom-0 right-0 h-16 w-16 opacity-0"
-        aria-label="Employee override. Hold for 3 seconds."
+        aria-label={t("payment.employeeOverrideHint")}
       />
 
-      {/* Employee hold progress indicator */}
       {employeeHoldProgress > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/40">
           <div className="rounded-[24px] bg-white px-6 py-4 text-center shadow-[0_8px_32px_rgba(45,42,38,0.12)]">
-            <p className="font-sans text-[18px] text-charcoal">Employee override</p>
+            <p className="font-sans text-[18px] text-charcoal">{t("payment.employeeOverride")}</p>
             <div className="mt-2 h-2 w-48 overflow-hidden rounded-full bg-taupe">
               <div
                 className="h-full rounded-full bg-moss transition-all duration-200"
@@ -326,7 +327,6 @@ export function PaymentAuthScreen(): React.JSX.Element {
         </div>
       )}
 
-      {/* Biometric auth modal */}
       <AnimatePresence>
         {showBiometric && (
           <motion.div
@@ -344,16 +344,15 @@ export function PaymentAuthScreen(): React.JSX.Element {
               className="mx-4 w-full max-w-sm rounded-[24px] bg-white p-6 text-center shadow-[0_8px_32px_rgba(45,42,38,0.12)]"
               role="dialog"
               aria-modal="true"
-              aria-label="Biometric authentication"
+              aria-label={t("payment.biometric")}
             >
               <h2 className="font-heading text-[28px] font-semibold text-charcoal">
-                Verify to complete
+                {t("payment.verifyToComplete")}
               </h2>
               <p className="mt-2 font-sans text-[16px] text-stone">
-                Please use the PIN pad or present your card to the terminal.
+                {t("payment.pinPadInstruction")}
               </p>
 
-              {/* Animated fingerprint/card icon */}
               <motion.div
                 className="mx-auto mt-4 flex h-24 w-24 items-center justify-center rounded-full bg-pale-mint"
                 animate={{ scale: [1, 1.05, 1] }}
@@ -373,12 +372,12 @@ export function PaymentAuthScreen(): React.JSX.Element {
                 </svg>
               </motion.div>
 
-              {/* Terminal connection status */}
               <p className="mt-3 font-mono text-[14px] text-moss">
-                Terminal: {authorizing ? "AUTHORIZING" : "CONNECTED"}
+                {t("payment.terminalStatus", {
+                  status: authorizing ? t("payment.authorizing") : t("payment.connected"),
+                })}
               </p>
 
-              {/* Auth buttons */}
               <div className="mt-4 flex gap-3">
                 <button
                   type="button"
@@ -386,7 +385,7 @@ export function PaymentAuthScreen(): React.JSX.Element {
                   disabled={authorizing}
                   className="h-14 flex-1 rounded-[16px] bg-white/70 border border-taupe font-sans text-[16px] font-medium text-charcoal disabled:opacity-40 transition-opacity duration-100"
                 >
-                  Cancel
+                  {t("general.cancel")}
                 </button>
                 <button
                   type="button"
@@ -394,7 +393,7 @@ export function PaymentAuthScreen(): React.JSX.Element {
                   disabled={authorizing}
                   className="h-14 flex-1 rounded-full bg-moss text-white font-sans text-[18px] font-medium shadow-[0_4px_16px_rgba(90,122,92,0.3)] disabled:opacity-40 transition-opacity duration-100"
                 >
-                  {authorizing ? "Authorizing..." : "Authorize"}
+                  {authorizing ? t("payment.authorizing") : t("payment.authorize")}
                 </button>
               </div>
             </motion.div>

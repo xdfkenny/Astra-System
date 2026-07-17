@@ -5,10 +5,12 @@ import { useEffect, useState } from "react";
 import { useScroll, useSpring } from "framer-motion";
 import { useSessionStore } from "@astra/kiosk-state";
 import { useApiStatus } from "../hooks/useApiStatus";
+import { useTranslation } from "../i18n";
 import { BottomSheet } from "./BottomSheet";
 import { cn } from "@/utils/cn";
 
 export function StatusBar() {
+  const { t } = useTranslation();
   const network = useSessionStore((s) => s.network);
   const [now, setNow] = useState(() => new Date());
   const [meshOpen, setMeshOpen] = useState(false);
@@ -42,10 +44,10 @@ export function StatusBar() {
 
   const p2pLabel =
     p2pColor === "moss"
-      ? "Synced"
+      ? t("status.synced")
       : p2pColor === "amber"
-        ? "Syncing"
-        : "Offline";
+        ? t("status.syncing")
+        : t("status.offline");
 
   return (
     <header
@@ -55,12 +57,12 @@ export function StatusBar() {
           ? "bg-linen/80 backdrop-blur-[8px]"
           : "bg-transparent"
       )}
-      aria-label="Kiosk status"
+      aria-label={t("status.kioskStatus")}
     >
       <button
         type="button"
         className="flex items-center gap-1.5 touch-target"
-        aria-label={`P2P sync status: ${p2pLabel}. Tap for mesh details.`}
+        aria-label={t("status.p2pStatus", { label: p2pLabel })}
         onClick={() => {
           setMeshOpen(true);
         }}
@@ -108,9 +110,9 @@ export function StatusBar() {
             "text-stone"
           }
           aria-label={
-            apiStatus === "online" ? "API online" :
-            apiStatus === "degraded" ? "API degraded" :
-            "API offline"
+            apiStatus === "online" ? t("status.apiOnline") :
+            apiStatus === "degraded" ? t("status.apiDegraded") :
+            t("status.apiOffline")
           }
           role="img"
         >
@@ -147,7 +149,7 @@ export function StatusBar() {
           strokeLinejoin="round"
           className={network.online ? "text-moss" : "text-stone"}
           aria-label={
-            network.online ? "Connected to network" : "No network connection"
+            network.online ? t("status.networkConnected") : t("status.networkDisconnected")
           }
           role="img"
         >
@@ -169,34 +171,33 @@ export function StatusBar() {
       <BottomSheet open={meshOpen} onClose={() => { setMeshOpen(false); }}>
         <div className="px-4 pb-6 pt-2">
           <h2 className="font-heading text-[20px] font-semibold text-charcoal">
-            P2P mesh sync
+            {t("status.p2pTitle")}
           </h2>
           <p className="mt-1 font-sans text-[14px] text-stone">
-            This kiosk shares cart and order state with nearby peers over a
-            local mesh so orders survive network drops.
+            {t("status.meshDescription")}
           </p>
 
           <dl className="mt-4 space-y-3">
             <div className="flex items-center justify-between">
-              <dt className="font-sans text-[14px] text-stone">Status</dt>
+              <dt className="font-sans text-[14px] text-stone">{t("status.online")}</dt>
               <dd className="font-sans text-[14px] font-medium text-charcoal">{p2pLabel}</dd>
             </div>
             <div className="flex items-center justify-between">
-              <dt className="font-sans text-[14px] text-stone">Connected peers</dt>
+              <dt className="font-sans text-[14px] text-stone">{t("status.connectedPeers")}</dt>
               <dd className="font-sans text-[14px] font-medium text-charcoal tabular-nums">
                 {network.meshPeerCount}
               </dd>
             </div>
             <div className="flex items-center justify-between">
-              <dt className="font-sans text-[14px] text-stone">Sync lag</dt>
+              <dt className="font-sans text-[14px] text-stone">{t("status.syncLag")}</dt>
               <dd className="font-sans text-[14px] font-medium text-charcoal tabular-nums">
                 {network.syncLagMs} ms
               </dd>
             </div>
             <div className="flex items-center justify-between">
-              <dt className="font-sans text-[14px] text-stone">Role</dt>
+              <dt className="font-sans text-[14px] text-stone">{t("status.role")}</dt>
               <dd className="font-sans text-[14px] font-medium text-charcoal">
-                {network.isLeader ? "Leader" : "Peer"}
+                {network.isLeader ? t("status.leader") : t("status.peer")}
               </dd>
             </div>
           </dl>
@@ -206,7 +207,7 @@ export function StatusBar() {
               className="inline-block h-3 w-3 rounded-full"
               style={{ backgroundColor: "var(--color-moss, #5A7A5C)" }}
             />
-            <span className="text-[12px] text-stone">This kiosk</span>
+            <span className="text-[12px] text-stone">{t("status.thisKiosk")}</span>
             {Array.from({ length: network.meshPeerCount }, (_, i) => (
               <span
                 key={i}

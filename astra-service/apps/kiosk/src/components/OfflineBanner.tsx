@@ -5,10 +5,12 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
+import { useTranslation } from "../i18n";
 
 const AUTO_DISMISS_MS = 3_000;
 
 export function OfflineBanner() {
+  const { t } = useTranslation();
   const { state } = useKioskMachine();
   const [dismissed, setDismissed] = useState(false);
 
@@ -55,13 +57,13 @@ export function OfflineBanner() {
               <path d="M10 13v.01" strokeLinecap="round" />
             </svg>
             <span className="font-sans text-[14px] font-medium text-moss">
-              Working offline. Your cart is secure.
+              {t("offline.workingOffline")}
             </span>
             <button
               type="button"
               onClick={() => { setDismissed(true); }}
               className="ml-auto shrink-0 rounded-full p-1 text-moss/60 hover:text-moss touch-target"
-              aria-label="Dismiss offline notice"
+              aria-label={t("offline.dismiss")}
             >
               <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />

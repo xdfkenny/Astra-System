@@ -1,33 +1,35 @@
-﻿import { useState, useEffect, useCallback, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { motion as motionTokens } from "@astra/design-tokens";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
+import { useTranslation } from "../i18n";
 
 interface ProcessingStage {
   readonly label: string;
   readonly durationMs: number;
 }
 
-const STAGES: readonly ProcessingStage[] = [
-  { label: "Connecting to terminal...", durationMs: 1000 },
-  { label: "Waiting for card...", durationMs: 2000 },
-  { label: "Authorizing...", durationMs: 2500 },
-  { label: "Finalizing...", durationMs: 1500 },
-];
-
 export function ProcessingScreen(): React.JSX.Element {
+  const { t } = useTranslation();
   const { send, state } = useKioskMachine();
   const [stageIndex, setStageIndex] = useState(0);
   const [dotsFilled, setDotsFilled] = useState(0);
   const mountedRef = useRef(true);
 
+  const STAGES: readonly ProcessingStage[] = useMemo(
+    () => [
+      { label: t("processing.connecting"), durationMs: 1000 },
+      { label: t("processing.waitingForCard"), durationMs: 2000 },
+      { label: t("processing.authorizing"), durationMs: 2500 },
+      { label: t("processing.finalizingStage"), durationMs: 1500 },
+    ],
+    [t],
+  );
+
   useEffect(() => {
     return () => { mountedRef.current = false; };
   }, []);
 
-  // The XState machine drives the real flow (finalizeOrder actor).
-  // These stages are purely cosmetic feedback. The machine transition
-  // will override this screen when the order is finalized or fails.
   useEffect(() => {
     if (stageIndex >= STAGES.length) return;
     const timer = setTimeout(() => {
@@ -36,11 +38,11 @@ export function ProcessingScreen(): React.JSX.Element {
       setDotsFilled((prev) => Math.min(prev + 1, STAGES.length));
     }, STAGES[stageIndex]?.durationMs ?? 1500);
     return () => { clearTimeout(timer); };
-  }, [stageIndex]);
+  }, [stageIndex, STAGES]);
 
   const currentStage: ProcessingStage =
     STAGES[Math.min(stageIndex, STAGES.length - 1)] ??
-    { label: "Processing...", durationMs: 1000 };
+    { label: t("processing.default"), durationMs: 1000 };
 
   const prevStageLabel = useRef(currentStage.label);
   useEffect(() => {
@@ -60,7 +62,7 @@ export function ProcessingScreen(): React.JSX.Element {
 
   const isError = state.matches("PROCESSING_ERROR");
   const errorMessage =
-    state.context.errorMessage ?? "We couldn't complete your order. Please try again.";
+    state.context.errorMessage ?? t("processing.orderFailedMessage");
 
   if (isError) {
     return (
@@ -68,7 +70,7 @@ export function ProcessingScreen(): React.JSX.Element {
         className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-linen/90 px-8 text-center backdrop-blur-[4px]"
         role="alert"
         aria-live="assertive"
-        aria-label="Order could not be completed"
+        aria-label={t("processing.orderFailed")}
       >
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-soft-rose/15">
           <span className="font-heading text-[40px] font-semibold text-soft-rose" aria-hidden="true">
@@ -76,7 +78,7 @@ export function ProcessingScreen(): React.JSX.Element {
           </span>
         </div>
         <h1 className="mt-5 font-heading text-[28px] font-semibold text-charcoal">
-          Something went wrong
+          {t("error.generic")}
         </h1>
         <p className="mt-2 max-w-[320px] font-sans text-[16px] text-stone">
           {errorMessage}
@@ -88,9 +90,9 @@ export function ProcessingScreen(): React.JSX.Element {
               send({ type: "RETRY" });
             }}
             className="h-16 w-full rounded-full bg-amber font-sans text-[18px] font-medium text-white shadow-[0_4px_16px_rgba(184,126,107,0.3)] transition-all duration-100 active:scale-[0.98] active:translate-y-[1px]"
-            aria-label="Retry order"
+            aria-label={t("processing.retry")}
           >
-            Try again
+            {t("processing.retry")}
           </button>
           <button
             type="button"
@@ -98,9 +100,9 @@ export function ProcessingScreen(): React.JSX.Element {
               send({ type: "CANCEL_PAYMENT" });
             }}
             className="h-14 w-full rounded-[16px] border border-taupe bg-white/70 font-sans text-[16px] font-medium text-charcoal transition-colors duration-100 active:bg-warm-cream/50"
-            aria-label="Cancel and return to cart"
+            aria-label={t("processing.cancelReturn")}
           >
-            Cancel
+            {t("general.cancel")}
           </button>
         </div>
       </div>
@@ -112,9 +114,8 @@ export function ProcessingScreen(): React.JSX.Element {
       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-linen/90 backdrop-blur-[4px]"
       role="status"
       aria-live="polite"
-      aria-label="Processing payment"
+      aria-label={t("payment.processing")}
     >
-      {/* Animated organic blob */}
       <motion.div
         className="h-48 w-48 rounded-full bg-moss opacity-[0.08]"
         animate={{
@@ -134,17 +135,14 @@ export function ProcessingScreen(): React.JSX.Element {
         aria-hidden="true"
       />
 
-      {/* Processing text */}
       <p className="mt-4 font-sans text-[18px] text-stone">
-        Processing payment...
+        {t("payment.processing")}
       </p>
 
-      {/* Terminal status */}
       <p className="mt-2 font-mono text-[14px] text-stone">
-        Terminal: {currentStage.label}
+        {t("processing.terminalStatus", { label: currentStage.label })}
       </p>
 
-      {/* Progress dots — 4 dots that fill sequentially */}
       <div className="mt-6 flex items-center gap-3" aria-hidden="true">
         {Array.from({ length: STAGES.length }, (_, i) => (
           <motion.div
@@ -159,15 +157,14 @@ export function ProcessingScreen(): React.JSX.Element {
         ))}
       </div>
 
-      {/* Cancel button — shown only when the machine allows it */}
       {showCancel && (
         <button
           type="button"
           onClick={handleCancel}
           className="absolute bottom-10 left-1/2 -translate-x-1/2 h-14 rounded-[16px] bg-white/70 border border-taupe px-6 font-sans text-[16px] font-medium text-charcoal active:bg-warm-cream/50 transition-colors duration-100"
-          aria-label="Cancel payment"
+          aria-label={t("payment.cancelPayment")}
         >
-          Cancel
+          {t("general.cancel")}
         </button>
       )}
     </div>

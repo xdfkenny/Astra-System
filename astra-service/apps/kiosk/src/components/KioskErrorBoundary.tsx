@@ -1,5 +1,6 @@
 ﻿import { Component, type ErrorInfo, type ReactNode } from "react";
 import { defaultLogger } from "../utils/logger";
+import { en } from "../i18n/locales/en";
 
 const log = defaultLogger.child("KioskErrorBoundary");
 
@@ -42,10 +43,10 @@ export class KioskErrorBoundary extends Component<
             aria-live="assertive"
           >
             <h1 className="font-heading text-[36px] font-semibold text-charcoal">
-              Something went wrong
+              {en["error.generic"]}
             </h1>
             <p className="mt-3 font-sans text-[18px] text-stone max-w-sm">
-              Please ask a staff member for help. We apologise for the inconvenience.
+              {en["error.helpMessage"]}
             </p>
             {import.meta.env.DEV && this.state.error && (
               <pre
@@ -70,9 +71,9 @@ export class KioskErrorBoundary extends Component<
                 window.location.reload();
               }}
               className="mt-6 h-14 min-w-[56px] rounded-full bg-amber px-8 font-sans text-[18px] font-medium text-white shadow-[0_4px_16px_rgba(184,126,107,0.3)] active:scale-[0.98] active:translate-y-[1px] transition-all duration-100"
-              aria-label="Restart kiosk"
+              aria-label={en["error.restart"]}
             >
-              Restart kiosk
+              {en["error.restart"]}
             </button>
           </div>
         )

@@ -9,13 +9,14 @@ import { MenuItemCard } from "../components/MenuItemCard";
 import { CartSummary } from "../components/CartSummary";
 import { CategoryTabs } from "../components/CategoryTabs";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
+import { useTranslation } from "../i18n";
 
 const ITEMS_PER_PAGE = 20;
 
-const MENU_CATEGORIES: readonly { readonly id: string; readonly label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "mains", label: "Mains" },
-  { id: "drinks", label: "Drinks" },
+const MENU_CATEGORY_IDS: readonly { readonly id: string }[] = [
+  { id: "all" },
+  { id: "mains" },
+  { id: "drinks" },
 ];
 
 const DEMO_STORE_ID = "store-demo";
@@ -54,6 +55,7 @@ const ALL_ITEMS: MenuItem[] = [
 ];
 
 export function MenuScreen(): React.JSX.Element {
+  const { t } = useTranslation();
   const { state, send } = useKioskMachine();
   const reduceMotion = useReducedMotion();
   const [displayedItems, setDisplayedItems] = useState<MenuItem[]>([]);
@@ -148,6 +150,20 @@ export function MenuScreen(): React.JSX.Element {
     }
   }
 
+  const translatedCategories = useMemo(
+    () =>
+      MENU_CATEGORY_IDS.map((cat) => ({
+        id: cat.id,
+        label:
+          cat.id === "all"
+            ? t("menu.categories.all")
+            : cat.id === "mains"
+              ? t("menu.categories.mains")
+              : t("menu.categories.drinks"),
+      })),
+    [t],
+  );
+
   const handleGoToCart = () => {
     send({ type: "GO_TO_CART" });
   };
@@ -156,10 +172,10 @@ export function MenuScreen(): React.JSX.Element {
     <div className="flex flex-1 flex-col overflow-hidden bg-linen safe-top safe-bottom">
       <div className="flex-shrink-0 p-3">
         <CategoryTabs
-          categories={MENU_CATEGORIES}
+          categories={translatedCategories}
           activeCategory={activeCategory}
           onSelectCategory={handleCategoryChange}
-          aria-label="Menu categories"
+          aria-label={t("menu.categoriesLabel")}
         />
 
         <div className="mt-3 relative">
@@ -174,7 +190,7 @@ export function MenuScreen(): React.JSX.Element {
               >
                 <input
                   type="search"
-                  placeholder="Search menu..."
+                  placeholder={t("menu.search")}
                   className="w-full px-4 py-3 rounded-full border border-taupe bg-white/80 font-sans text-[16px] focus:outline-none focus:ring-2 focus:ring-moss focus:border-transparent"
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); }}
@@ -187,7 +203,7 @@ export function MenuScreen(): React.JSX.Element {
                     type="button"
                     className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-stone hover:text-charcoal"
                     onClick={() => { setSearchQuery(""); }}
-                    aria-label="Clear search"
+                    aria-label={t("menu.clearSearch")}
                   >
                     ×
                   </button>
@@ -226,10 +242,10 @@ export function MenuScreen(): React.JSX.Element {
               <span className="text-2xl">🍽️</span>
             </div>
             <h3 className="font-heading text-[24px] font-medium text-charcoal mb-2">
-              No items found
+              {t("menu.noItems")}
             </h3>
             <p className="font-sans text-[16px] text-stone text-center">
-              Try a different search term or check all categories
+              {t("menu.noItemsHint")}
             </p>
           </div>
         )}
@@ -248,7 +264,7 @@ export function MenuScreen(): React.JSX.Element {
           >
             <div className="rounded-[12px] bg-moss/10 border border-moss/20 px-4 py-3 backdrop-blur-[8px]">
               <p className="font-sans text-[14px] text-moss text-center">
-                💼 {state.context.cartHasItems} items in cart
+                💼 {t("menu.itemsInCart", { count: Number(state.context.cartHasItems) })}
               </p>
             </div>
           </motion.div>

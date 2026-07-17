@@ -76,7 +76,7 @@ const mockOrder = {
 } as Order;
 
 function createTestActor() {
-  return createActor(
+  const actor = createActor(
     kioskMachine.provide({
       actors: {
         finalizeOrder: fromPromise<
@@ -88,11 +88,14 @@ function createTestActor() {
       },
     }),
   );
+  actor.start();
+  actor.send({ type: "SET_LANGUAGE", locale: "en" });
+  return actor;
 }
 
 describe("kioskMachine", () => {
   it("starts in ATTRACT and transitions to MENU on START_SESSION", () => {
-    const actor = createActor(kioskMachine);
+    const actor = createTestActor();
     actor.start();
     expect(actor.getSnapshot().value).toBe("ATTRACT");
 
@@ -103,7 +106,7 @@ describe("kioskMachine", () => {
   });
 
   it("opens the item detail on SELECT_ITEM", () => {
-    const actor = createActor(kioskMachine);
+    const actor = createTestActor();
     actor.start();
     actor.send({ type: "START_SESSION", sessionId: "session-1" });
     actor.send({ type: "SELECT_ITEM", item: mockItem });
@@ -114,7 +117,7 @@ describe("kioskMachine", () => {
   });
 
   it("returns to MENU and marks cart as having items on ADD_TO_CART", () => {
-    const actor = createActor(kioskMachine);
+    const actor = createTestActor();
     actor.start();
     actor.send({ type: "START_SESSION", sessionId: "session-1" });
     actor.send({ type: "SELECT_ITEM", item: mockItem });
@@ -126,7 +129,7 @@ describe("kioskMachine", () => {
   });
 
   it("transitions from MENU to CART on GO_TO_CART when cart has items", () => {
-    const actor = createActor(kioskMachine);
+    const actor = createTestActor();
     actor.start();
     actor.send({ type: "START_SESSION", sessionId: "session-1" });
     actor.send({ type: "CART_UPDATED", cartHasItems: true });
@@ -136,7 +139,7 @@ describe("kioskMachine", () => {
   });
 
   it("blocks GO_TO_CART when the cart is empty", () => {
-    const actor = createActor(kioskMachine);
+    const actor = createTestActor();
     actor.start();
     actor.send({ type: "START_SESSION", sessionId: "session-1" });
     actor.send({ type: "GO_TO_CART" });
@@ -166,7 +169,7 @@ describe("kioskMachine", () => {
   });
 
   it("returns to CART on PAYMENT_DECLINED", () => {
-    const actor = createActor(kioskMachine);
+    const actor = createTestActor();
     actor.start();
     actor.send({ type: "START_SESSION", sessionId: "session-1" });
     actor.send({ type: "CART_UPDATED", cartHasItems: true });
@@ -213,7 +216,7 @@ describe("kioskMachine", () => {
   });
 
   it("transitions to ADMIN on OPEN_ADMIN and back on CLOSE_ADMIN", () => {
-    const actor = createActor(kioskMachine);
+    const actor = createTestActor();
     actor.start();
     actor.send({ type: "OPEN_ADMIN" });
 
@@ -228,7 +231,7 @@ describe("kioskMachine", () => {
       input: { sessionId: string; paymentResult: PaymentAuthorizationResult | null; cartId: string };
     }) => Promise<Order>,
   ) {
-    return createActor(
+    const actor = createActor(
       kioskMachine.provide({
         actors: {
           finalizeOrder: fromPromise<
@@ -238,6 +241,9 @@ describe("kioskMachine", () => {
         },
       }),
     );
+    actor.start();
+    actor.send({ type: "SET_LANGUAGE", locale: "en" });
+    return actor;
   }
 
   it("moves to PROCESSING_ERROR on finalize failure and retries to RECEIPT", async () => {
@@ -249,7 +255,6 @@ describe("kioskMachine", () => {
       }
       return Promise.resolve(mockOrder);
     });
-    actor.start();
     actor.send({ type: "START_SESSION", sessionId: "session-1" });
     actor.send({ type: "CART_UPDATED", cartHasItems: true });
     actor.send({ type: "GO_TO_CART" });
@@ -275,7 +280,6 @@ describe("kioskMachine", () => {
     const actor = createActorWithFinalize(() => {
       return Promise.reject(new Error("network down"));
     });
-    actor.start();
     actor.send({ type: "START_SESSION", sessionId: "session-1" });
     actor.send({ type: "CART_UPDATED", cartHasItems: true });
     actor.send({ type: "GO_TO_CART" });
@@ -291,6 +295,35 @@ describe("kioskMachine", () => {
 
     actor.send({ type: "CANCEL_PAYMENT" });
     expect(actor.getSnapshot().value).toBe("CART");
+  });
+
+  it("starts in LANGUAGE_SELECT and transitions to ATTRACT on SET_LANGUAGE", () => {
+    const actor = createActor(kioskMachine);
+    actor.start();
+    expect(actor.getSnapshot().value).toBe("LANGUAGE_SELECT");
+
+    actor.send({ type: "SET_LANGUAGE", locale: "es" });
+    expect(actor.getSnapshot().value).toBe("ATTRACT");
+    expect(actor.getSnapshot().context.locale).toBe("es");
+  });
+
+  it("preserves locale through resetContext", () => {
+    const actor = createActor(kioskMachine);
+    actor.start();
+
+    actor.send({ type: "SET_LANGUAGE", locale: "fr" });
+    expect(actor.getSnapshot().value).toBe("ATTRACT");
+
+    actor.send({ type: "START_SESSION", sessionId: "session-1" });
+    actor.send({ type: "RETURN_TO_ATTRACT" });
+    expect(actor.getSnapshot().value).toBe("ATTRACT");
+    expect(actor.getSnapshot().context.locale).toBe("fr");
+  });
+
+  it("defaults locale to en", () => {
+    const actor = createActor(kioskMachine);
+    actor.start();
+    expect(actor.getSnapshot().context.locale).toBe("en");
   });
 });
 

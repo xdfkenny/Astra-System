@@ -1,8 +1,10 @@
 ﻿import { useCallback } from "react";
 import { motion } from "framer-motion";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
+import { useTranslation } from "../i18n";
 
 export function AdminScreen(): React.JSX.Element {
+  const { t } = useTranslation();
   const { state, send } = useKioskMachine();
 
   const handleClose = useCallback(() => {
@@ -23,40 +25,40 @@ export function AdminScreen(): React.JSX.Element {
     >
       <div className="flex items-center justify-between border-b border-stone/20 px-6 py-4">
         <h1 className="font-mono text-[24px] font-semibold tracking-tight">
-          Admin Panel
+          {t("admin.title")}
         </h1>
         <button
           type="button"
           onClick={handleClose}
           className="h-14 rounded-[16px] border border-stone/30 bg-white/10 px-5 font-sans text-[16px] font-medium text-linen"
-          aria-label="Close admin panel"
+          aria-label={t("admin.closeLabel")}
         >
-          Close
+          {t("admin.close")}
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
         <section className="mb-8">
           <h2 className="mb-3 font-mono text-[14px] uppercase tracking-[0.08em] text-stone">
-            Kiosk Status
+            {t("admin.kioskStatus")}
           </h2>
           <div className="space-y-2 font-mono text-[14px]">
             <div className="flex justify-between">
-              <span className="text-stone">Session</span>
+              <span className="text-stone">{t("admin.session")}</span>
               <span className="text-linen">{sessionId}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-stone">Lane Mode</span>
+              <span className="text-stone">{t("admin.laneMode")}</span>
               <span className="text-linen">{laneMode}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-stone">API Status</span>
+              <span className="text-stone">{t("admin.apiStatus")}</span>
               <span className="text-linen">{apiStatus}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-stone">Cart Has Items</span>
+              <span className="text-stone">{t("admin.cartHasItems")}</span>
               <span className="text-linen">
-                {state.context.cartHasItems ? "Yes" : "No"}
+                {state.context.cartHasItems ? t("general.yes") : t("general.no")}
               </span>
             </div>
           </div>
@@ -64,7 +66,7 @@ export function AdminScreen(): React.JSX.Element {
 
         <section className="mb-8">
           <h2 className="mb-3 font-mono text-[14px] uppercase tracking-[0.08em] text-stone">
-            Actions
+            {t("admin.actions")}
           </h2>
           <div className="flex flex-col gap-3">
             <button
@@ -72,14 +74,14 @@ export function AdminScreen(): React.JSX.Element {
               onClick={() => { send({ type: "NETWORK_ONLINE" }); }}
               className="h-12 rounded-[8px] border border-moss/40 bg-moss/10 font-mono text-[14px] text-moss"
             >
-              Simulate Online
+              {t("admin.simulateOnline")}
             </button>
             <button
               type="button"
               onClick={() => { send({ type: "NETWORK_OFFLINE" }); }}
               className="h-12 rounded-[8px] border border-soft-rose/40 bg-soft-rose/10 font-mono text-[14px] text-soft-rose"
             >
-              Simulate Offline
+              {t("admin.simulateOffline")}
             </button>
           </div>
         </section>
@@ -87,7 +89,7 @@ export function AdminScreen(): React.JSX.Element {
         {state.context.errorMessage && (
           <section className="mb-8">
             <h2 className="mb-3 font-mono text-[14px] uppercase tracking-[0.08em] text-soft-rose">
-              Errors
+              {t("admin.errors")}
             </h2>
             <p className="font-mono text-[14px] text-soft-rose">
               {state.context.errorMessage}
