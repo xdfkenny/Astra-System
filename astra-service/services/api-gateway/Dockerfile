@@ -4,8 +4,8 @@
 # Production-grade Go/Fiber gateway with distroless base image
 # Multi-stage build with BuildKit cache mounts
 
-ARG GO_VERSION=1.23
-ARG ALPINE_VERSION=3.20
+ARG GO_VERSION=1.25
+ARG ALPINE_VERSION=3.21
 
 # ───────────────────────────────────────────────
 # Stage 1: Build

@@ -14,6 +14,7 @@ WORKDIR /build
 
 ENV GOWORK=off
 
+COPY astra-service/packages/go-common/go.mod astra-service/packages/go-common/go.sum ./astra-service/packages/go-common/
 COPY astra-service/services/legacy-pos-adapter/go.mod astra-service/services/legacy-pos-adapter/go.sum ./astra-service/services/legacy-pos-adapter/
 
 RUN --mount=type=cache,target=/go/pkg/mod \

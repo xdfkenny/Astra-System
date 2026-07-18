@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.7
 
 # Astra-Service Payment Service
-ARG GO_VERSION=1.23
-ARG ALPINE_VERSION=3.20
+ARG GO_VERSION=1.25
+ARG ALPINE_VERSION=3.21
 
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine${ALPINE_VERSION} AS builder
 
