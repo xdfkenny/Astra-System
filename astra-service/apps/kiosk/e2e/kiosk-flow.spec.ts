@@ -11,11 +11,15 @@ import { test, expect } from "@playwright/test";
 test("kiosk attract screen loads and reveals the menu", async ({ page }) => {
   await page.goto("/");
 
+  // The kiosk boots into the language selector; pick English to advance.
+  await expect(page.getByText("Select your language")).toBeVisible();
+  await page.getByRole("button", { name: "English" }).click();
+
   // Attract screen heading
   await expect(page.getByRole("heading", { name: "Astra" })).toBeVisible();
 
-  // Start shopping
-  await page.getByLabel("Touch to begin shopping").click();
+  // Start shopping (the attract screen is a single tappable region)
+  await page.getByLabel("Attract screen. Touch to begin shopping.").click();
 
   // Menu catalog becomes available (or the empty-state copy)
   await expect(

@@ -9,12 +9,14 @@ FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine${ALPINE_VERSION} AS b
 RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /build
-COPY astra-service/go.work astra-service/go.work.sum* ./astra-service/
+
+ENV GOWORK=off
+
 COPY astra-service/packages/go-common/go.mod astra-service/packages/go-common/go.sum ./astra-service/packages/go-common/
 COPY astra-service/services/payment-service/go.mod astra-service/services/payment-service/go.sum ./astra-service/services/payment-service/
 
 RUN --mount=type=cache,target=/go/pkg/mod \
-    cd astra-service && go mod download -x
+    cd astra-service/services/payment-service && go mod download
 
 COPY astra-service/packages/go-common/ ./astra-service/packages/go-common/
 COPY astra-service/services/payment-service/ ./astra-service/services/payment-service/

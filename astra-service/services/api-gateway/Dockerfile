@@ -16,17 +16,16 @@ RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /build
 
-# Copy go workspace first for better layer caching
-COPY astra-service/go.work astra-service/go.work.sum* ./astra-service/
+ENV GOWORK=off
+
+# Copy the module's own go.mod/go.sum plus the local go-common dependency
+# (referenced via a replace directive). Building with GOWORK=off avoids pulling
+# the entire monorepo workspace into the build context.
 COPY astra-service/packages/go-common/go.mod astra-service/packages/go-common/go.sum ./astra-service/packages/go-common/
 COPY astra-service/services/api-gateway/go.mod astra-service/services/api-gateway/go.sum ./astra-service/services/api-gateway/
-COPY astra-service/services/cart-service/go.mod astra-service/services/cart-service/go.sum* ./astra-service/services/cart-service/
-COPY astra-service/services/inventory-service/go.mod astra-service/services/inventory-service/go.sum* ./astra-service/services/inventory-service/
-COPY astra-service/services/order-service/go.mod astra-service/services/order-service/go.sum* ./astra-service/services/order-service/
-COPY astra-service/services/payment-service/go.mod astra-service/services/payment-service/go.sum* ./astra-service/services/payment-service/
 
 RUN --mount=type=cache,target=/go/pkg/mod \
-    cd astra-service && go mod download -x
+    cd astra-service/services/api-gateway && go mod download
 
 COPY astra-service/packages/go-common/ ./astra-service/packages/go-common/
 COPY astra-service/services/api-gateway/ ./astra-service/services/api-gateway/
