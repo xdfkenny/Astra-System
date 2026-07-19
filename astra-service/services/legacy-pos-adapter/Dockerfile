@@ -15,11 +15,14 @@ WORKDIR /build
 ENV GOWORK=off
 
 COPY astra-service/packages/go-common/go.mod astra-service/packages/go-common/go.sum ./astra-service/packages/go-common/
+COPY proto/go.mod proto/go.sum ./proto/
 COPY astra-service/services/legacy-pos-adapter/go.mod astra-service/services/legacy-pos-adapter/go.sum ./astra-service/services/legacy-pos-adapter/
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     cd astra-service/services/legacy-pos-adapter && go mod download
 
+COPY astra-service/packages/go-common/ ./astra-service/packages/go-common/
+COPY proto/ ./proto/
 COPY astra-service/services/legacy-pos-adapter/ ./astra-service/services/legacy-pos-adapter/
 
 ARG TARGETOS
@@ -27,9 +30,10 @@ ARG TARGETARCH
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    cd astra-service/services/legacy-pos-adapter && \
     go build -ldflags="-s -w -extldflags=-static" \
     -o /legacy-pos-adapter \
-    ./astra-service/services/legacy-pos-adapter/cmd/legacy-pos-adapter
+    ./cmd/legacy-pos-adapter
 
 FROM gcr.io/distroless/static-debian12:nonroot
 

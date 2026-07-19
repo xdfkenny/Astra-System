@@ -26,9 +26,10 @@ ARG TARGETARCH
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    cd astra-service/services/payment-service && \
     go build -ldflags="-s -w -extldflags=-static" \
     -o /tmp/payment-service \
-    ./astra-service/services/payment-service/cmd
+    ./cmd
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/

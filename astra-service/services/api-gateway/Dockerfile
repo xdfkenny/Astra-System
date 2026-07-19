@@ -35,9 +35,10 @@ ARG TARGETARCH
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    cd astra-service/services/api-gateway && \
     go build -ldflags="-s -w -extldflags=-static" \
     -o /tmp/api-gateway \
-    ./astra-service/services/api-gateway/cmd/gateway
+    ./cmd/gateway
 
 # ───────────────────────────────────────────────
 # Stage 2: Distroless runtime
