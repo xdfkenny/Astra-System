@@ -19,7 +19,7 @@
     "@astra/shared-types": "workspace:*",
     "@tanstack/react-query": "^5.59.16",
     "d3": "^7.9.0",
-    "graphql": "^16.9.0",
+    "graphql": "^17.0.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^6.28.0"
