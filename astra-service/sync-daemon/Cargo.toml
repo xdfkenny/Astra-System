@@ -94,7 +94,7 @@ rand_distr = "0.4"
 # Metrics (optional but production-ready)
 prometheus = { version = "0.14", features = ["process"] }
 metrics = "0.22"
-metrics-exporter-prometheus = "0.13"
+metrics-exporter-prometheus = "0.18"
 
 # Serialization (bincode for P2P protocol frames)
 bincode = "1.3"
