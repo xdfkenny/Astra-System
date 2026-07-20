@@ -559,7 +559,9 @@ jobs:
 
       - name: Validate Kubernetes manifests (kubeconform)
         run: |
-          curl -sSLo /usr/local/bin/kubeconform https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64 && chmod +x /usr/local/bin/kubeconform
+          curl -sSL -o /tmp/kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform_0.6.7_linux_amd64.tar.gz
+          tar -xzf /tmp/kubeconform.tar.gz -C /tmp kubeconform
+          mv /tmp/kubeconform /usr/local/bin/kubeconform && chmod +x /usr/local/bin/kubeconform
           kubeconform -strict -summary -schema-location default \
             -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
             $(find infra/k8s -name '*.yaml' -o -name '*.yml')
