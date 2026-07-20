@@ -30,7 +30,7 @@ libp2p = { version = "0.56", features = [
 tonic = "0.14"
 tonic-prost = "0.14"
 prost = "0.14"
-tower = "0.4"
+tower = "0.5"
 
 # NATS JetStream
 async-nats = "0.49"
