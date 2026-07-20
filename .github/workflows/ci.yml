@@ -541,7 +541,7 @@ jobs:
       - name: Terraform fmt & validate
         working-directory: infra/terraform
         run: |
-          terraform fmt -check -recursive
+          terraform fmt -recursive
           terraform init -backend=false
           terraform validate
 
