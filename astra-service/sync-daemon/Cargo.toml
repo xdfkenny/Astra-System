@@ -97,7 +97,7 @@ metrics = "0.22"
 metrics-exporter-prometheus = "0.13"
 
 # Serialization (bincode for P2P protocol frames)
-bincode = "1.3"
+bincode = "3.0"
 
 # Password hashing (for key derivation)
 argon2 = "0.5"
