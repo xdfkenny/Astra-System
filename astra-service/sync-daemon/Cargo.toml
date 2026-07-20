@@ -80,7 +80,7 @@ opentelemetry-semantic-conventions = "0.32"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.6", features = ["v4", "serde"] }
 indexmap = "2.1"
-dashmap = "5.5"
+dashmap = "6.2"
 parking_lot = "0.12"
 crossbeam = "0.8"
 async-trait = "0.1"
