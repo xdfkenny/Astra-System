@@ -51,6 +51,7 @@ func buildCompose(cfg Config) string {
       - "5432:5432"
     volumes:
       - astra_postgres_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U astra -d astra_service"]
       interval: 10s

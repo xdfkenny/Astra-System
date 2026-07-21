@@ -51,6 +51,10 @@ Source: "..\infra\nginx\kiosk.conf"; DestDir: "{app}\compose\nginx"; Flags: igno
 Source: "resources\astra.conf.template"; DestDir: "{app}\config"; Flags: ignoreversion
 Source: "resources\.env.template"; DestDir: "{app}"; DestName: ".env"; Flags: ignoreversion
 
+; Database initialization scripts
+Source: "astra-installer\internal\deploy\initdata\001_schema.sql"; DestDir: "{app}\resources\init"; Flags: ignoreversion
+Source: "astra-installer\internal\deploy\initdata\002_schema_enhancements.sql"; DestDir: "{app}\resources\init"; Flags: ignoreversion
+
 ; Documentation
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 

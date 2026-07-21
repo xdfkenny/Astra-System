@@ -62,6 +62,13 @@ func Run(cfg Config) error {
 	}
 
 	if !cfg.Silent {
+		fmt.Println("→ Preparing database initialization scripts...")
+	}
+	if err := writeInitSQL(composeDir); err != nil {
+		return fmt.Errorf("init sql: %w", err)
+	}
+
+	if !cfg.Silent {
 		fmt.Println("→ Pulling Docker images...")
 	}
 	if err := dockerComposePull(composeDir); err != nil {
