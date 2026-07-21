@@ -223,7 +223,7 @@ volumes:
 		pImg("inventory-service"), cfg.PostgresPW,
 		pImg("sync-service"), cfg.PostgresPW,
 		pImg("payment-orchestrator"), cfg.PostgresPW,
-		pImg("kiosk"), cfg.KioskPort)
+		pImg("kiosk-unified"), cfg.KioskPort)
 }
 
 func sanitizeImageName(name string) string {

@@ -624,6 +624,8 @@ jobs:
             dockerfile: infra/docker/Dockerfile.ml-lane-intel
           - image: kiosk
             dockerfile: infra/docker/Dockerfile.kiosk
+          - image: kiosk-unified
+            dockerfile: infra/docker/Dockerfile.kiosk-unified
           - image: syncd
             dockerfile: infra/docker/Dockerfile.syncd
     permissions:
