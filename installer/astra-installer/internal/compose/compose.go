@@ -136,6 +136,7 @@ func buildCompose(cfg Config) string {
       REDIS_ADDR: redis:6379
       NATS_URL: nats://nats:4222
       GATEWAY_JWT_EDDSA_PUBLIC_KEY: %[10]s
+      GATEWAY_ALLOWED_ORIGINS: "http://localhost,http://localhost:80,http://localhost:3000"
     depends_on:
       postgres:
         condition: service_healthy

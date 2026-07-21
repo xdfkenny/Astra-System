@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
-import type { MenuItem } from "@astra/shared-types";
+import type { Category, MenuItem } from "@astra/shared-types";
 import { MenuItemCard } from "../components/MenuItemCard";
 import { CartSummary } from "../components/CartSummary";
 import { CategoryTabs } from "../components/CategoryTabs";
@@ -12,66 +12,49 @@ import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 import { useTranslation } from "../i18n";
 
 const ITEMS_PER_PAGE = 20;
-
-const MENU_CATEGORY_IDS: readonly { readonly id: string }[] = [
-  { id: "all" },
-  { id: "mains" },
-  { id: "drinks" },
-];
-
-const DEMO_STORE_ID = "store-demo";
-
-function makeMenuItem(
-  overrides: Pick<MenuItem, "itemId" | "name" | "priceCents" | "imageUrl" | "categoryId"> &
-    Partial<Omit<MenuItem, "itemId" | "name" | "priceCents" | "imageUrl" | "categoryId">>,
-): MenuItem {
-  return {
-    storeId: DEMO_STORE_ID,
-    description: null,
-    costCents: null,
-    plu: null,
-    barcode: null,
-    sku: null,
-    blurhash: null,
-    taxCategory: "standard",
-    isWeightBased: false,
-    weightUnit: null,
-    isActive: true,
-    metadata: null,
-    createdAt: "2024-01-01T00:00:00.000Z",
-    updatedAt: "2024-01-01T00:00:00.000Z",
-    deletedAt: null,
-    modifierGroups: [],
-    ...overrides,
-  };
-}
-
-const ALL_ITEMS: MenuItem[] = [
-  makeMenuItem({ itemId: "item-1", categoryId: "mains", name: "Artisan Burrito", priceCents: 1299, imageUrl: "https://picsum.photos/seed/burrito/200/200" }),
-  makeMenuItem({ itemId: "item-2", categoryId: "mains", name: "Farm Fresh Salad", priceCents: 999, imageUrl: "https://picsum.photos/seed/salad/200/200" }),
-  makeMenuItem({ itemId: "item-3", categoryId: "mains", name: "House Special Taco", priceCents: 399, imageUrl: "https://picsum.photos/seed/taco/200/200" }),
-  makeMenuItem({ itemId: "item-4", categoryId: "drinks", name: "Craft Beer", priceCents: 599, imageUrl: "https://picsum.photos/seed/beer/200/200" }),
-  makeMenuItem({ itemId: "item-5", categoryId: "drinks", name: "Organic Coffee", priceCents: 299, imageUrl: "https://picsum.photos/seed/coffee/200/200" }),
-];
+const ANDINO_PROXY_URL = "http://localhost:3001/v1/menu";
 
 export function MenuScreen(): React.JSX.Element {
   const { t } = useTranslation();
   const { state, send } = useKioskMachine();
   const reduceMotion = useReducedMotion();
+  const [allItems, setAllItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [displayedItems, setDisplayedItems] = useState<MenuItem[]>([]);
   const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isApiError, setIsApiError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>("all");
 
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchMenu() {
+      try {
+        const res = await fetch(ANDINO_PROXY_URL);
+        if (!res.ok) throw new Error("Menu fetch failed");
+        const data = await res.json();
+        if (cancelled) return;
+        setAllItems(data.items as MenuItem[]);
+        setCategories(data.categories as Category[]);
+      } catch {
+        if (!cancelled) setIsApiError(true);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    fetchMenu();
+    return () => { cancelled = true; };
+  }, []);
+
   const filteredMenuItems = useMemo<MenuItem[]>(
     () =>
       activeCategory === "all"
-        ? ALL_ITEMS
-        : ALL_ITEMS.filter((item) => item.categoryId === activeCategory),
-    [activeCategory],
+        ? allItems
+        : allItems.filter((item) => item.categoryId === activeCategory),
+    [activeCategory, allItems],
   );
 
   const handleCategoryChange = (categoryId: string): void => {
@@ -151,18 +134,36 @@ export function MenuScreen(): React.JSX.Element {
   }
 
   const translatedCategories = useMemo(
-    () =>
-      MENU_CATEGORY_IDS.map((cat) => ({
-        id: cat.id,
-        label:
-          cat.id === "all"
-            ? t("menu.categories.all")
-            : cat.id === "mains"
-              ? t("menu.categories.mains")
-              : t("menu.categories.drinks"),
-      })),
-    [t],
+    () => {
+      const cats = [{ id: "all", label: t("menu.categories.all") }];
+      for (const c of categories) {
+        cats.push({ id: c.categoryId, label: c.name });
+      }
+      return cats;
+    },
+    [t, categories],
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center bg-linen">
+        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-moss" />
+      </div>
+    );
+  }
+
+  if (isApiError) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-linen p-8">
+        <p className="font-heading text-[24px] font-medium text-charcoal">
+          {t("menu.noItems")}
+        </p>
+        <p className="font-sans text-[16px] text-stone text-center">
+          {t("menu.noItemsHint")}
+        </p>
+      </div>
+    );
+  }
 
   const handleGoToCart = () => {
     send({ type: "GO_TO_CART" });

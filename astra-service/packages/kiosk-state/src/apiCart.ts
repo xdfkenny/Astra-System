@@ -216,14 +216,25 @@ export class ApiCart {
   }
 
   /**
-   * Update cart items via API. Self-heals on a missing/conflicted cart.
+   * Sync cart lines to the server. Uses AddItem for each line since the
+   * cart-service API is item-level (no bulk PUT).
    */
   async updateCart(lines: CartLineInput[]): Promise<CartState> {
     return this.execute(
-      async () =>
-        this.responseToCartState(
-          await this.requireClient().updateCart(this.cartId, { lines }),
-        ),
+      async () => {
+        const client = this.requireClient();
+        for (const line of lines) {
+          await client.addItemToCart(
+            this.cartId,
+            line.menuItemId,
+            line.nameSnapshot,
+            line.unitPriceCentsSnapshot,
+            line.quantity,
+            line.modifiers,
+          );
+        }
+        return this.responseToCartState(await client.getCart(this.cartId));
+      },
       { timeoutMs: MUTATE_TIMEOUT_MS, label: "updateCart", recreateOnMissing: true },
     );
   }

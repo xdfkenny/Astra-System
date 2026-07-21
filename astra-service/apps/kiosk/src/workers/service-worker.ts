@@ -25,7 +25,7 @@ registerRoute(
 );
 
 registerRoute(
-  ({ url }) => url.pathname.startsWith("/v1/menu"),
+  ({ url }) => url.pathname.startsWith("/v1/menu") && url.origin === self.location.origin,
   new StaleWhileRevalidate({ cacheName: "astra-menu-data" }),
 );
 

@@ -97,7 +97,7 @@ export class AstraApiClient {
   constructor() {
     const env = import.meta.env as Record<string, string | undefined>;
     this.baseUrl = env["VITE_API_GATEWAY_URL"] ?? "http://localhost:8080";
-    this.authToken = null;
+    this.authToken = env["VITE_ASTRA_JWT"] ?? null;
   }
 
   setAuthToken(token: string): void {
@@ -241,27 +241,28 @@ export class AstraApiClient {
   async addItemToCart(
     cartId: string,
     menuItemId: string,
-    nameSnapshot: string,
-    unitPriceCentsSnapshot: number,
+    _nameSnapshot: string,
+    _unitPriceCentsSnapshot: number,
     quantity: number,
     modifiers: {
       modifierId: string;
       optionId: string;
       priceDeltaCents: number;
     }[] = [],
-    notes?: string,
-    weightGrams?: number,
+    _notes?: string,
+    _weightGrams?: number,
   ): Promise<CartResponse> {
+    const protoModifiers = modifiers.map((m) => ({
+      modifierOptionId: m.modifierId,
+      optionId: m.optionId,
+      priceDeltaCentsSnapshot: m.priceDeltaCents,
+    }));
     return this.request<CartResponse>(`/v1/carts/${cartId}/items`, {
       method: "POST",
       body: JSON.stringify({
         menuItemId,
-        nameSnapshot,
-        unitPriceCentsSnapshot,
         quantity,
-        modifiers,
-        notes,
-        weightGrams,
+        modifiers: protoModifiers,
       }),
     }, MUTATE_CONFIG);
   }

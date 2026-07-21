@@ -100,8 +100,16 @@ export function CartReviewScreen(): React.JSX.Element {
         aria-label={t("cart.itemsLabel")}
       >
         {cart.lines.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16">
-            <p className="font-sans text-[18px] text-stone">{t("cart.empty")}</p>
+          <div className="flex flex-col items-center justify-center py-24">
+            <div className="h-16 w-16 rounded-full bg-moss/10 flex items-center justify-center mb-4">
+              <span className="text-2xl" aria-hidden="true">🛒</span>
+            </div>
+            <h3 className="font-heading text-[24px] font-medium text-charcoal mb-2">
+              {t("cart.empty")}
+            </h3>
+            <p className="font-sans text-[16px] text-stone text-center">
+              {t("menu.noItemsHint")}
+            </p>
           </div>
         )}
         {cart.lines.map((line, idx) => (
@@ -287,14 +295,10 @@ export function CartReviewScreen(): React.JSX.Element {
 
   return (
     <motion.div
-      initial={{ y: "100%" }}
-      animate={{ y: 0 }}
-      exit={{ y: "100%" }}
-      transition={{
-        duration: 0.3,
-        ease: motionTokens.easeOutExpo,
-      }}
-      className="fixed inset-0 z-30 flex flex-col bg-white/95 backdrop-blur-[12px] rounded-t-[24px] shadow-[0_8px_32px_rgba(45,42,38,0.12)]"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.15 }}
+      className="fixed inset-0 z-30 flex flex-col bg-white"
     >
       {/* Handle */}
       <div className="mx-auto mt-3 h-1 w-10 rounded bg-taupe" aria-hidden="true" />

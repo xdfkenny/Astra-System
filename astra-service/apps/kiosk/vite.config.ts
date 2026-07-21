@@ -14,6 +14,10 @@ import { VitePWA } from "vite-plugin-pwa";
  * restart means a lane goes dark for ~90s. The shell also exposes `./Shell`
  * so it can be embedded by an outer orchestrator (e.g. a drive-thru preview).
  */
+const isLocalDev =
+  typeof process !== "undefined"
+  && process.env["VITE_ASTRA_DEV_MODE"] === "true";
+
 export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
@@ -31,17 +35,17 @@ export default defineConfig(({ mode }) => ({
       },
       remotes: {
         astra_menu:
-          mode === "production"
-            ? "https://cdn.astra-service.internal/menu/remoteEntry.js"
-            : "http://localhost:5171/assets/remoteEntry.js",
+          mode !== "production" || isLocalDev
+            ? "http://localhost:5171/assets/remoteEntry.js"
+            : "https://cdn.astra-service.internal/menu/remoteEntry.js",
         astra_cart:
-          mode === "production"
-            ? "https://cdn.astra-service.internal/cart/remoteEntry.js"
-            : "http://localhost:5172/assets/remoteEntry.js",
+          mode !== "production" || isLocalDev
+            ? "http://localhost:5172/assets/remoteEntry.js"
+            : "https://cdn.astra-service.internal/cart/remoteEntry.js",
         astra_payment:
-          mode === "production"
-            ? "https://cdn.astra-service.internal/payment/remoteEntry.js"
-            : "http://localhost:5173/assets/remoteEntry.js",
+          mode !== "production" || isLocalDev
+            ? "http://localhost:5173/assets/remoteEntry.js"
+            : "https://cdn.astra-service.internal/payment/remoteEntry.js",
       },
       shared: [
         "react",

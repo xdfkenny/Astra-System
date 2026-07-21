@@ -397,6 +397,11 @@ services:
     build:
       context: .
       dockerfile: infra/docker/Dockerfile.kiosk
+      args:
+        ASTRA_DEV_MODE: "true"
+        ASTRA_JWT: ""
+        ASTRA_STORE_ID: "550e8400-e29b-41d4-a716-446655440000"
+        ASTRA_KIOSK_ID: "019f85bb-6d96-7000-8da3-89809eb9d93a"
     image: astra/kiosk:latest
     restart: unless-stopped
     read_only: true

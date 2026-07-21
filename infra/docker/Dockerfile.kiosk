@@ -4,9 +4,22 @@
 # Multi-stage build producing a static production bundle served by nginx.
 
 ARG NODE_VERSION=22
+ARG ASTRA_DEV_MODE=false
+ARG ASTRA_JWT=
+ARG ASTRA_STORE_ID=store-default
+ARG ASTRA_KIOSK_ID=kiosk-local
 
 # ── Build stage ─────────────────────────────────────────────────────────────
 FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-alpine AS builder
+
+ARG ASTRA_DEV_MODE
+ARG ASTRA_JWT
+ARG ASTRA_STORE_ID
+ARG ASTRA_KIOSK_ID
+ENV VITE_ASTRA_DEV_MODE=${ASTRA_DEV_MODE}
+ENV VITE_ASTRA_JWT=${ASTRA_JWT}
+ENV VITE_STORE_ID=${ASTRA_STORE_ID}
+ENV VITE_KIOSK_ID=${ASTRA_KIOSK_ID}
 
 RUN apk add --no-cache git ca-certificates
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
