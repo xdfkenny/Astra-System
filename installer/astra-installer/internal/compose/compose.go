@@ -1,10 +1,13 @@
 package compose
 
 import (
-	_ "embed"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Config struct {
@@ -14,9 +17,17 @@ type Config struct {
 	DataDir    string
 	KioskPort  string
 	PostgresPW string
+	JWTKey     string
 }
 
 func Generate(cfg Config, outputDir string) (string, error) {
+	if cfg.JWTKey == "" {
+		_, priv, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			return "", fmt.Errorf("generate jwt key: %w", err)
+		}
+		cfg.JWTKey = hex.EncodeToString(priv)
+	}
 	content := buildCompose(cfg)
 	outPath := filepath.Join(outputDir, "docker-compose.yml")
 	if err := os.WriteFile(outPath, []byte(content), 0644); err != nil {
@@ -34,7 +45,11 @@ func buildCompose(cfg Config) string {
 	if tag == "" {
 		tag = "latest"
 	}
-	pImg := func(name string) string {
+	kimg := cfg.KioskImage
+	if kimg == "" {
+		kimg = "kiosk"
+	}
+	img := func(name string) string {
 		return fmt.Sprintf("%s/%s:%s", registry, name, tag)
 	}
 
@@ -45,7 +60,7 @@ func buildCompose(cfg Config) string {
     restart: unless-stopped
     environment:
       POSTGRES_USER: astra
-      POSTGRES_PASSWORD: %s
+      POSTGRES_PASSWORD: %[1]s
       POSTGRES_DB: astra_service
     ports:
       - "5432:5432"
@@ -74,156 +89,149 @@ func buildCompose(cfg Config) string {
     image: nats:2-alpine
     container_name: astra-nats
     restart: unless-stopped
+    command: -js -m 8222
     ports:
       - "4222:4222"
       - "8222:8222"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8222/healthz || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8222/healthz || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   gateway:
-    image: %s
+    image: %[2]s
     container_name: astra-gateway
     restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
-      DB_HOST: postgres
-      DB_PORT: "5432"
-      DB_USER: astra
-      DB_PASSWORD: %s
-      DB_NAME: astra_service
+      DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
+      REDIS_URL: redis:6379
       REDIS_ADDR: redis:6379
       NATS_URL: nats:4222
+      GATEWAY_JWT_EDDSA_PUBLIC_KEY: %[10]s
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
       nats: { condition: service_healthy }
 
   menu-service:
-    image: %s
+    image: %[3]s
     container_name: astra-menu
     restart: unless-stopped
     ports:
       - "8085:8085"
     environment:
-      DB_HOST: postgres
-      DB_PORT: "5432"
-      DB_USER: astra
-      DB_PASSWORD: %s
-      DB_NAME: astra_service
+      DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
+      REDIS_URL: redis:6379
+      REDIS_ADDR: redis:6379
       NATS_URL: nats:4222
     depends_on:
       postgres: { condition: service_healthy }
       nats: { condition: service_healthy }
 
   cart-service:
-    image: %s
+    image: %[4]s
     container_name: astra-cart
     restart: unless-stopped
     ports:
       - "8081:8081"
     environment:
-      DB_HOST: postgres
-      DB_PORT: "5432"
-      DB_USER: astra
-      DB_PASSWORD: %s
-      DB_NAME: astra_service
+      DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
+      REDIS_URL: redis:6379
+      REDIS_ADDR: redis:6379
       NATS_URL: nats:4222
     depends_on:
       postgres: { condition: service_healthy }
       nats: { condition: service_healthy }
 
   order-service:
-    image: %s
+    image: %[5]s
     container_name: astra-order
     restart: unless-stopped
     ports:
       - "8083:8083"
     environment:
-      DB_HOST: postgres
-      DB_PORT: "5432"
-      DB_USER: astra
-      DB_PASSWORD: %s
-      DB_NAME: astra_service
+      DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
+      REDIS_URL: redis:6379
+      REDIS_ADDR: redis:6379
       NATS_URL: nats:4222
     depends_on:
       postgres: { condition: service_healthy }
       nats: { condition: service_healthy }
 
   inventory-service:
-    image: %s
+    image: %[6]s
     container_name: astra-inventory
     restart: unless-stopped
     ports:
       - "8082:8082"
     environment:
-      DB_HOST: postgres
-      DB_PORT: "5432"
-      DB_USER: astra
-      DB_PASSWORD: %s
-      DB_NAME: astra_service
+      DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
+      REDIS_URL: redis:6379
+      REDIS_ADDR: redis:6379
       NATS_URL: nats:4222
     depends_on:
       postgres: { condition: service_healthy }
       nats: { condition: service_healthy }
 
   sync-service:
-    image: %s
+    image: %[7]s
     container_name: astra-sync
     restart: unless-stopped
     ports:
       - "8087:8087"
     environment:
-      DB_HOST: postgres
-      DB_PORT: "5432"
-      DB_USER: astra
-      DB_PASSWORD: %s
-      DB_NAME: astra_service
+      DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
+      REDIS_URL: redis:6379
+      REDIS_ADDR: redis:6379
       NATS_URL: nats:4222
     depends_on:
       postgres: { condition: service_healthy }
       nats: { condition: service_healthy }
 
   payment-orchestrator:
-    image: %s
+    image: %[8]s
     container_name: astra-payment
     restart: unless-stopped
     ports:
       - "8086:8086"
     environment:
-      DB_HOST: postgres
-      DB_PORT: "5432"
-      DB_USER: astra
-      DB_PASSWORD: %s
-      DB_NAME: astra_service
+      DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
+      REDIS_URL: redis:6379
+      REDIS_ADDR: redis:6379
       NATS_URL: nats:4222
     depends_on:
       postgres: { condition: service_healthy }
       nats: { condition: service_healthy }
 
   kiosk:
-    image: %s
+    image: %[9]s
     container_name: astra-kiosk
     restart: unless-stopped
     ports:
-      - "%s:80"
+      - "80:80"
+    tmpfs:
+      - /var/cache/nginx:noexec,nosuid,size=50m
+      - /var/run:noexec,nosuid,size=1m
     depends_on:
       - gateway
 
 volumes:
   astra_postgres_data:
 `, cfg.PostgresPW,
-		pImg("gateway"), cfg.PostgresPW,
-		pImg("menu-service"), cfg.PostgresPW,
-		pImg("cart-service"), cfg.PostgresPW,
-		pImg("order-service"), cfg.PostgresPW,
-		pImg("inventory-service"), cfg.PostgresPW,
-		pImg("sync-service"), cfg.PostgresPW,
-		pImg("payment-orchestrator"), cfg.PostgresPW,
-		pImg(cfg.KioskImage), cfg.KioskPort)
+		img("gateway"),
+		img("menu-service"),
+		img("cart-service"),
+		img("order-service"),
+		img("inventory-service"),
+		img("sync-service"),
+		img("payment-orchestrator"),
+		img(kimg),
+		cfg.JWTKey)
 }
 
-
+func sanitizeImageName(name string) string {
+	return strings.ReplaceAll(strings.TrimSpace(name), " ", "-")
+}
