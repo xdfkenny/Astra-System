@@ -18,6 +18,20 @@ func CheckWSL() bool {
 }
 
 func InstallWSL() error {
+	distros, _ := exec.Command("wsl", "--list", "--quiet").Output()
+	if len(strings.TrimSpace(string(distros))) > 0 {
+		fmt.Println("  WSL has existing distributions.")
+		fmt.Println("  Updating WSL and setting version 2 as default...")
+
+		_ = exec.Command("wsl", "--update").Run()
+		if err := exec.Command("wsl", "--set-default-version", "2").Run(); err != nil {
+			fmt.Printf("  ! Could not set WSL2 as default: %v\n", err)
+			fmt.Println("  ! Run this in admin PowerShell: wsl --set-default-version 2")
+		}
+		fmt.Println("  ✓ WSL configured. Check Docker Desktop now supports WSL2 backend.")
+		return nil
+	}
+
 	fmt.Println("  Running: wsl --install")
 	fmt.Println("  A Windows Features dialog may appear — follow the prompts.")
 	fmt.Println()
@@ -27,7 +41,7 @@ func InstallWSL() error {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("wsl --install: %w", err)
+		return fmt.Errorf("wsl --install failed: %w (try running it manually in admin PowerShell)", err)
 	}
 
 	fmt.Println()

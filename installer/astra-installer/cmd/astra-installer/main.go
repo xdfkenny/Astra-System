@@ -60,23 +60,28 @@ func handleWSL(s *state.State) {
 	}
 
 	fmt.Println("  ! WSL2 is required for Docker Desktop.")
-	fmt.Println("  ! The installer will run: wsl --install")
-	fmt.Println("  ! This may take several minutes and requires a system restart.")
+	fmt.Println("  ! The installer will configure WSL2 now.")
 	fmt.Println()
-	answer := prompt("  Install WSL2 now? (Y/n): ")
+	answer := prompt("  Continue? (Y/n): ")
 	if answer == "n" || answer == "N" {
-		fmt.Println("\n  ✗ WSL2 is required. Please install it manually and re-run.")
+		fmt.Println("\n  ✗ WSL2 is required. Install it manually and re-run.")
 		os.Exit(1)
 	}
 
 	if err := prereq.InstallWSL(); err != nil {
-		fmt.Printf("\n  ✗ WSL installation failed: %v\n", err)
-		fmt.Println("  Try running 'wsl --install' manually in an admin PowerShell.")
+		fmt.Printf("\n  ✗ WSL setup failed: %v\n", err)
 		os.Exit(1)
 	}
 
 	s.Step = state.StepDocker
 	s.Save()
+
+	// If WSL2 is now working, continue to Docker without reboot
+	if prereq.CheckWSL() {
+		fmt.Println()
+		handleDocker(s)
+		return
+	}
 
 	fmt.Println()
 	fmt.Println("  ═══════════════════════════════════════════")
