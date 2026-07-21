@@ -71,7 +71,7 @@ Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\bin\{#MyAppExeName}"; Par
 ; Run the installer CLI to complete setup
 Filename: "{app}\bin\astra-installer.exe"; Parameters: "--install-dir ""{app}"" --data-dir ""{commonappdata}\Astra-System"" --channel stable --silent"; Flags: runhidden runascurrentuser; StatusMsg: "Configuring Astra-System..."
 ; Open the dashboard
-Filename: "http://localhost"; Flags: shellexec; Description: "Open Astra-System dashboard"; PostInstall: yes
+Filename: "http://localhost"; Flags: shellexec postinstall; Description: "Open Astra-System dashboard"
 
 [UninstallRun]
 ; Stop and remove the update agent service
