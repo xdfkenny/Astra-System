@@ -197,6 +197,28 @@ Ante servitia currenda, copia `.env.example` in `.env` et secundum opus adapta.
 
 ---
 
+### Installator
+
+Binaria pretemptata pro macOS, Linux, et Windows praeconstructa in [pagina Releases](https://github.com/xdfkenny/Astra-System/releases) reperiuntur.
+
+| Suggestus        | Binarium                        |
+| ---------------- | ------------------------------- |
+| macOS (Intel)    | `astra-installer-darwin-amd64`  |
+| macOS (Apple Silicon) | `astra-installer-darwin-arm64` |
+| Linux (x86_64)   | `astra-installer-linux-amd64`   |
+| Linux (ARM64)    | `astra-installer-linux-arm64`   |
+| Windows (x86_64) | `astra-installer-windows-amd64.exe` |
+
+```bash
+# macOS / Linux — scriptum deduc et curre
+curl -sL https://raw.githubusercontent.com/xdfkenny/Astra-System/main/installer/scripts/install.sh | bash
+
+# Aut binarium de Release prehende, exsecrabile fac, et curre:
+./astra-installer-<platform>
+```
+
+---
+
 ## Ratio Evolutionis
 
 ```bash

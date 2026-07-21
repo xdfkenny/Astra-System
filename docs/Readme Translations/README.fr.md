@@ -199,6 +199,28 @@ Copiez `.env.example` vers `.env` et ajustez les valeurs si nécessaire avant d'
 
 ---
 
+### Installateur
+
+Les binaires de test précompilés pour macOS, Linux et Windows sont disponibles sur la [page des Releases](https://github.com/xdfkenny/Astra-System/releases).
+
+| Plateforme       | Binaire                          |
+| ---------------- | -------------------------------- |
+| macOS (Intel)    | `astra-installer-darwin-amd64`   |
+| macOS (Apple Silicon) | `astra-installer-darwin-arm64` |
+| Linux (x86_64)   | `astra-installer-linux-amd64`    |
+| Linux (ARM64)    | `astra-installer-linux-arm64`    |
+| Windows (x86_64) | `astra-installer-windows-amd64.exe` |
+
+```bash
+# macOS / Linux — télécharger et exécuter le script d'amorçage
+curl -sL https://raw.githubusercontent.com/xdfkenny/Astra-System/main/installer/scripts/install.sh | bash
+
+# Ou télécharger un binaire directement depuis Releases, le rendre exécutable et l'exécuter :
+./astra-installer-<platform>
+```
+
+---
+
 ## Flux de Travail de Développement
 
 ```bash

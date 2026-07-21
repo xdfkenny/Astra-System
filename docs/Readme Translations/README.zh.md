@@ -198,6 +198,28 @@ cd astra-service/sync-daemon && cargo build --release
 
 ---
 
+### 安装程序
+
+适用于 macOS、Linux 和 Windows 的预构建测试二进制文件可在 [Releases 页面](https://github.com/xdfkenny/Astra-System/releases) 获取。
+
+| 平台              | 二进制文件                       |
+| ----------------- | -------------------------------- |
+| macOS (Intel)     | `astra-installer-darwin-amd64`   |
+| macOS (Apple Silicon) | `astra-installer-darwin-arm64` |
+| Linux (x86_64)    | `astra-installer-linux-amd64`    |
+| Linux (ARM64)     | `astra-installer-linux-arm64`    |
+| Windows (x86_64)  | `astra-installer-windows-amd64.exe` |
+
+```bash
+# macOS / Linux — 下载并运行引导脚本
+curl -sL https://raw.githubusercontent.com/xdfkenny/Astra-System/main/installer/scripts/install.sh | bash
+
+# 或直接从 Releases 下载二进制文件，赋予执行权限并运行：
+./astra-installer-<platform>
+```
+
+---
+
 ## 开发工作流
 
 ```bash

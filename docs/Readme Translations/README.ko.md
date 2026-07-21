@@ -198,6 +198,28 @@ cd astra-service/sync-daemon && cargo build --release
 
 ---
 
+### 설치 프로그램
+
+macOS, Linux, Windows용 사전 빌드된 테스트 바이너리는 [Releases 페이지](https://github.com/xdfkenny/Astra-System/releases)에서 확인할 수 있습니다.
+
+| 플랫폼            | 바이너리                         |
+| ----------------- | -------------------------------- |
+| macOS (Intel)     | `astra-installer-darwin-amd64`   |
+| macOS (Apple Silicon) | `astra-installer-darwin-arm64` |
+| Linux (x86_64)    | `astra-installer-linux-amd64`    |
+| Linux (ARM64)     | `astra-installer-linux-arm64`    |
+| Windows (x86_64)  | `astra-installer-windows-amd64.exe` |
+
+```bash
+# macOS / Linux — 부트스트랩 스크립트 다운로드 및 실행
+curl -sL https://raw.githubusercontent.com/xdfkenny/Astra-System/main/installer/scripts/install.sh | bash
+
+# 또는 Releases에서 바이너리를 직접 다운로드하고 실행 권한을 부여한 후 실행:
+./astra-installer-<platform>
+```
+
+---
+
 ## 개발 워크플로
 
 ```bash

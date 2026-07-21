@@ -50,3 +50,25 @@ Diese Übersetzung befindet sich in Arbeit. Bitte lesen Sie die englische README
 <p align="center">
   <sub>🌍 <a href="../../README.md">Read the full README in English</a></sub>
 </p>
+
+---
+
+### Installer
+
+Pre-built test binaries for macOS, Linux, and Windows are available on the [Releases page](https://github.com/xdfkenny/Astra-System/releases).
+
+| Platform        | Binary                          |
+| --------------- | ------------------------------- |
+| macOS (Intel)   | `astra-installer-darwin-amd64`  |
+| macOS (Apple Silicon) | `astra-installer-darwin-arm64` |
+| Linux (x86_64)  | `astra-installer-linux-amd64`   |
+| Linux (ARM64)   | `astra-installer-linux-arm64`   |
+| Windows (x86_64)| `astra-installer-windows-amd64.exe` |
+
+```bash
+# macOS / Linux — download and run the bootstrap script
+curl -sL https://raw.githubusercontent.com/xdfkenny/Astra-System/main/installer/scripts/install.sh | bash
+
+# Or download a binary directly from Releases, make it executable, and run:
+./astra-installer-<platform>
+```

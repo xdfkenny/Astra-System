@@ -199,6 +199,28 @@ cd astra-service/sync-daemon && cargo build --release
 
 ---
 
+### Installer
+
+macOS, Linux, je Windows vaD binary test pre-built 'oH [Releases page](https://github.com/xdfkenny/Astra-System/releases) 'e' tu'laH.
+
+| platform        | binary                          |
+| --------------- | ------------------------------- |
+| macOS (Intel)   | `astra-installer-darwin-amd64`  |
+| macOS (Apple Silicon) | `astra-installer-darwin-arm64` |
+| Linux (x86_64)  | `astra-installer-linux-amd64`   |
+| Linux (ARM64)   | `astra-installer-linux-arm64`   |
+| Windows (x86_64)| `astra-installer-windows-amd64.exe` |
+
+```bash
+# macOS / Linux — bootstrap script chu'wI' DachenmoH
+curl -sL https://raw.githubusercontent.com/xdfkenny/Astra-System/main/installer/scripts/install.sh | bash
+
+# Releasevo' binary DachenmoH, runmoHmeH chen, vaj run
+./astra-installer-<platform>
+```
+
+---
+
 ## chenmoh
 
 ```bash

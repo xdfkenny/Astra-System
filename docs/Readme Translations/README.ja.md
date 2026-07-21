@@ -198,6 +198,28 @@ cd astra-service/sync-daemon && cargo build --release
 
 ---
 
+### インストーラー
+
+macOS、Linux、Windows 用のプレビルドテストバイナリは [Releases ページ](https://github.com/xdfkenny/Astra-System/releases) から入手できます。
+
+| プラットフォーム | バイナリ                         |
+| ---------------- | -------------------------------- |
+| macOS (Intel)    | `astra-installer-darwin-amd64`   |
+| macOS (Apple Silicon) | `astra-installer-darwin-arm64` |
+| Linux (x86_64)   | `astra-installer-linux-amd64`    |
+| Linux (ARM64)    | `astra-installer-linux-arm64`    |
+| Windows (x86_64) | `astra-installer-windows-amd64.exe` |
+
+```bash
+# macOS / Linux — ブートストラップスクリプトをダウンロードして実行
+curl -sL https://raw.githubusercontent.com/xdfkenny/Astra-System/main/installer/scripts/install.sh | bash
+
+# または Releases からバイナリを直接ダウンロードし、実行権限を付与して実行：
+./astra-installer-<platform>
+```
+
+---
+
 ## 開発ワークフロー
 
 ```bash
