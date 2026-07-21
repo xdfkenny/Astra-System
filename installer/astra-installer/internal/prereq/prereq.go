@@ -9,17 +9,33 @@ import (
 )
 
 func CheckWSL() bool {
-	out, err := exec.Command("wsl", "--status").CombinedOutput()
+	out, err := exec.Command("powershell", "-Command", "wsl --status").Output()
 	if err != nil {
 		return false
 	}
-	output := string(out)
-	return strings.Contains(output, "WSL 2") || strings.Contains(output, "Default Version: 2")
+	output := strings.ToLower(string(out))
+	return strings.Contains(output, "default version: 2") || strings.Contains(output, "wsl 2")
+}
+
+func wslDistros() []string {
+	out, err := exec.Command("powershell", "-Command", "wsl --list --quiet").Output()
+	if err != nil {
+		return nil
+	}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	var result []string
+	for _, l := range lines {
+		l = strings.TrimSpace(l)
+		if l != "" {
+			result = append(result, l)
+		}
+	}
+	return result
 }
 
 func InstallWSL() error {
-	distros, _ := exec.Command("wsl", "--list", "--quiet").Output()
-	if len(strings.TrimSpace(string(distros))) > 0 {
+	distros := wslDistros()
+	if len(distros) > 0 {
 		fmt.Println("  WSL has existing distributions.")
 		fmt.Println("  Updating WSL and setting version 2 as default...")
 

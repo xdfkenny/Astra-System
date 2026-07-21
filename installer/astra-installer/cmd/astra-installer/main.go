@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/astra-service/astra-installer/internal/deploy"
 	"github.com/astra-service/astra-installer/internal/prereq"
@@ -16,7 +18,7 @@ var Version = "0.2.0"
 func main() {
 	fmt.Println()
 	fmt.Println("  ╔══════════════════════════════════════════╗")
-	fmt.Printf("  ║     Astra-System Installer v%s        ║\n", Version)
+	fmt.Printf("  ║     Astra-System Installer v%s       ║\n", strings.TrimPrefix(Version, "v"))
 	fmt.Println("  ║  Production-grade Self-Checkout Platform ║")
 	fmt.Println("  ╚══════════════════════════════════════════╝")
 	fmt.Println()
@@ -132,7 +134,21 @@ func handleDocker(s *state.State) {
 	}
 
 	fmt.Printf("  ! Docker is installed but the daemon is not running.\n")
-	fmt.Println("  ! Start Docker Desktop and re-run this installer.")
+	fmt.Println("  ! Waiting 30 seconds for Docker to start...")
+	for i := 0; i < 30; i++ {
+		time.Sleep(1 * time.Second)
+		if prereq.CheckDocker() {
+			fmt.Println()
+			fmt.Println("  ✓ Docker is now running.")
+			fmt.Println()
+			s.Step = state.StepDeploy
+			s.Save()
+			handleDeploy(s, defaultInstallDir(), defaultDataDir())
+			return
+		}
+	}
+	fmt.Println("  ! Docker still not running.")
+	fmt.Println("  ! Start Docker Desktop, then re-run this installer.")
 	os.Exit(1)
 }
 
@@ -154,7 +170,9 @@ func handleDeploy(s *state.State, installDir, dataDir string) {
 	}
 
 	s.Step = state.StepDone
-	s.Save()
+	if err := s.Save(); err != nil {
+		log.Printf("warning: state save: %v", err)
+	}
 
 	fmt.Println()
 	fmt.Println("  ╔══════════════════════════════════════════╗")
@@ -169,11 +187,11 @@ func handleDeploy(s *state.State, installDir, dataDir string) {
 }
 
 func defaultDataDir() string {
-	programData := os.Getenv("PROGRAMDATA")
-	if programData == "" {
-		programData = filepath.Join(os.Getenv("SYSTEMDRIVE")+"\\", "ProgramData")
+	appdata := os.Getenv("APPDATA")
+	if appdata == "" {
+		appdata = filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Roaming")
 	}
-	return filepath.Join(programData, "Astra-System")
+	return filepath.Join(appdata, "Astra-System")
 }
 
 func defaultInstallDir() string {

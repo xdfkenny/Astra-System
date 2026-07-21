@@ -52,7 +52,16 @@ func (s *State) Save() error {
 	s.UpdatedAt = time.Now()
 	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal state: %w", err)
 	}
-	return os.WriteFile(s.path, data, 0644)
+	if err := os.WriteFile(s.path, data, 0644); err != nil {
+		dir := filepath.Dir(s.path)
+		if os.MkdirAll(dir, 0755) == nil {
+			err = os.WriteFile(s.path, data, 0644)
+		}
+		if err != nil {
+			return fmt.Errorf("write state: %w", err)
+		}
+	}
+	return nil
 }
