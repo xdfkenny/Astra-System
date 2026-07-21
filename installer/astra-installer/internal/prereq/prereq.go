@@ -28,10 +28,15 @@ func CheckDocker() error {
 func CheckWSL() error {
 	cmd := exec.Command("wsl", "--status")
 	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("WSL is not installed")
-	}
 	output := string(out)
+
+	if err != nil {
+		if strings.Contains(output, "not installed") || strings.Contains(output, "not found") {
+			return fmt.Errorf("WSL is not installed")
+		}
+		return fmt.Errorf("WSL check failed: %s", strings.TrimSpace(output))
+	}
+
 	if strings.Contains(output, "WSL 2") || strings.Contains(output, "Default Version: 2") {
 		fmt.Println("  ✓ WSL2 is installed and configured")
 		return nil
@@ -40,24 +45,35 @@ func CheckWSL() error {
 		fmt.Println("  ! WSL1 detected, upgrading to WSL2...")
 		return upgradeToWSL2()
 	}
-	return fmt.Errorf("WSL2 not configured")
+	if strings.Contains(output, "No installed") || strings.Contains(output, "no distribution") {
+		return fmt.Errorf("WSL is installed but no Linux distribution is set up. Run 'wsl --install' manually or let the installer do it")
+	}
+	return fmt.Errorf("WSL is not properly configured: %s", strings.TrimSpace(output))
 }
 
 func InstallWSL() error {
 	fmt.Println("  → Installing Windows Subsystem for Linux (WSL2)...")
 	fmt.Println("    Running: wsl --install (this may take several minutes)")
+	fmt.Println("    A Windows feature installation dialog may appear — follow the prompts.")
 
-	cmd := exec.Command("wsl", "--install", "--no-distribution")
+	cmd := exec.Command("wsl", "--install")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("wsl install: %w", err)
+		return fmt.Errorf("wsl --install failed: %w", err)
 	}
 
-	fmt.Println("  → Setting WSL2 as default...")
-	_ = exec.Command("wsl", "--set-default-version", "2").Run()
+	fmt.Println("  → Setting WSL2 as default version...")
+	setVer := exec.Command("wsl", "--set-default-version", "2")
+	setVer.Stdout = os.Stdout
+	setVer.Stderr = os.Stderr
+	if err := setVer.Run(); err != nil {
+		fmt.Printf("  ! Note: could not set WSL2 as default: %v\n", err)
+		fmt.Println("  ! You can run 'wsl --set-default-version 2' manually after restart.")
+	}
 
-	fmt.Println("  ✓ WSL2 installed. Restart required before Docker Desktop installation.")
+	fmt.Println("  ✓ WSL2 installed. A system restart is required.")
+	fmt.Println("  ! After restart, run the Astra-System installer again.")
 	return nil
 }
 
