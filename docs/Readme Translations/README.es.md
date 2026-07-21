@@ -29,11 +29,11 @@
   </sub>
 </p>
 
-[![CI](https://img.shields.io/badge/CI-pass-green.svg)](https://github.com/anomalyco/astra-system/actions)
+[![CI](https://img.shields.io/badge/CI-passing-green.svg)](https://github.com/xdfkenny/Astra-System/actions)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../../LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.25-00ADD8.svg)](https://go.dev)
-[![Rust](https://img.shields.io/badge/Rust-1.82-dea584.svg)](https://www.rust-lang.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org)
+[![Go](https://img.shields.io/badge/Go-1.25-00ADD8.svg)](https://go.dev/dl/)
+[![Rust](https://img.shields.io/badge/Rust-1.82-dea584.svg)](https://www.rust-lang.org/tools/install)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg)](https://www.typescriptlang.org/download)
 
 > Plataforma de autopago automatizado, de grado producción y con prioridad en el modo sin conexión, diseñada para entornos comerciales 24/7.
 
@@ -301,9 +301,23 @@ Para manifiestos de producción, use `docker-compose.prod.yml`.
 
 ## Documentación
 
+Puede encontrar la documentación completa en [`docs/`](../../docs/):
+
+| Sección | Contenido |
+|---------|-----------|
+| **Arquitectura** | [Visión General](../../docs/architecture/overview.md), [Diseño del Sistema](../../docs/architecture/system-design.md), [Estrategia Sin Conexión](../../docs/architecture/offline-first.md), [Modelo de Seguridad](../../docs/architecture/security-model.md) |
+| **Backend** | [Microservicios](../../docs/backend/microservices.md), [API Gateway](../../docs/backend/api-gateway.md), [API REST](../../docs/backend/rest-api.md), [API gRPC](../../docs/backend/grpc-api.md), [Orquestador de Pagos](../../docs/backend/payment-orchestrator.md) |
+| **Frontend** | [Micro-Frontends](../../docs/frontend/micro-frontends.md), [Apps de Quiosco](../../docs/frontend/kiosk-apps.md), [Gestión de Estado](../../docs/frontend/state-management.md) |
+| **Base de Datos** | [Esquema](../../docs/database/schema.md), [Migraciones](../../docs/database/migrations.md), [Entidades](../../docs/database/entities.md) |
+| **Infraestructura** | [Docker](../../docs/infrastructure/docker.md), [Kubernetes](../../docs/infrastructure/kubernetes.md), [Observabilidad](../../docs/infrastructure/monitoring.md), [CI/CD](../../docs/infrastructure/ci-cd.md) |
+| **Redes** | [Malla P2P](../../docs/networking/p2p-mesh.md), [Protocolos](../../docs/networking/protocols.md) |
+| **Seguridad** | [Visión General](../../docs/security/overview.md), [Autenticación](../../docs/security/authentication.md), [Cifrado](../../docs/security/encryption.md) |
+
+Referencias clave:
 - [`ARCHITECTURE.md`](../../ARCHITECTURE.md) — diseño del sistema, modelo de seguridad, flujos de pago, observabilidad y DR.
 - [`UX_UI_AUDIT_REPORT.md`](../../astra-service/UX_UI_AUDIT_REPORT.md) — la especificación de diseño de UI de quiosco biofílica "Living Weave".
-- `proto/README.md`, `astra-service/sync-daemon/README.md` y `docs/` — subproyectos y runbooks operativos.
+- [`docs/API-BACKEND-ASTRA.md`](../../docs/API-BACKEND-ASTRA.md) — inventario completo de endpoints de API.
+- [`docs/runbooks/`](../../docs/runbooks/) — runbooks operativos (respuesta a incidentes, modo sin conexión, recuperación P2P, fallos de pago).
 
 ---
 

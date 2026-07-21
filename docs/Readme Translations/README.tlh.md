@@ -30,11 +30,11 @@
   </sub>
 </p>
 
-[![CI](https://img.shields.io/badge/CI-pass-green.svg)](https://github.com/anomalyco/astra-system/actions)
+[![CI](https://img.shields.io/badge/CI-passing-green.svg)](https://github.com/xdfkenny/Astra-System/actions)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../../LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.25-00ADD8.svg)](https://go.dev)
-[![Rust](https://img.shields.io/badge/Rust-1.82-dea584.svg)](https://www.rust-lang.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org)
+[![Go](https://img.shields.io/badge/Go-1.25-00ADD8.svg)](https://go.dev/dl/)
+[![Rust](https://img.shields.io/badge/Rust-1.82-dea584.svg)](https://www.rust-lang.org/tools/install)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg)](https://www.typescriptlang.org/download)
 
 > SuvwI' po' pat. QaD law' tlhIngan maH. 24/7 yInHa' qem.
 
@@ -300,12 +300,25 @@ pnpm dev            # kiosk-shell hot reload
 
 ---
 
-## ghItlhwI'
+## Documentation
 
-- [`ARCHITECTURE.md`](../../ARCHITECTURE.md) — pat design, ghobmey QIHHa', Huch mIv, janHut, je DR.
-- [`UX_UI_AUDIT_REPORT.md`](../../astra-service/UX_UI_AUDIT_REPORT.md) — "Living Weave" biophilic Duj UI design.
-- [`docs/Readme Translations/`](./) — README translations in 17+ Hol.
-- `proto/README.md`, `astra-service/sync-daemon/README.md`, je `docs/` — subprojects je operational runbooks.
+Full documentation is available in [`docs/`](../../docs/):
+
+| Section | Contents |
+|---------|----------|
+| **Architecture** | [Overview](../../docs/architecture/overview.md), [System Design](../../docs/architecture/system-design.md), [Offline-First Strategy](../../docs/architecture/offline-first.md), [Security Model](../../docs/architecture/security-model.md) |
+| **Backend** | [Microservices](../../docs/backend/microservices.md), [API Gateway](../../docs/backend/api-gateway.md), [REST API](../../docs/backend/rest-api.md), [gRPC API](../../docs/backend/grpc-api.md), [Payment Orchestrator](../../docs/backend/payment-orchestrator.md) |
+| **Frontend** | [Micro-Frontends](../../docs/frontend/micro-frontends.md), [Kiosk Apps](../../docs/frontend/kiosk-apps.md), [State Management](../../docs/frontend/state-management.md) |
+| **Database** | [Schema](../../docs/database/schema.md), [Migrations](../../docs/database/migrations.md), [Entities](../../docs/database/entities.md) |
+| **Infrastructure** | [Docker](../../docs/infrastructure/docker.md), [Kubernetes](../../docs/infrastructure/kubernetes.md), [Observability](../../docs/infrastructure/monitoring.md), [CI/CD](../../docs/infrastructure/ci-cd.md) |
+| **Networking** | [P2P Mesh](../../docs/networking/p2p-mesh.md), [Protocols](../../docs/networking/protocols.md) |
+| **Security** | [Overview](../../docs/security/overview.md), [Authentication](../../docs/security/authentication.md), [Encryption](../../docs/security/encryption.md) |
+
+Key references:
+- [`ARCHITECTURE.md`](../../ARCHITECTURE.md) — system design, security model, payment flows, observability, and DR.
+- [`UX_UI_AUDIT_REPORT.md`](../../astra-service/UX_UI_AUDIT_REPORT.md) — the "Living Weave" biophilic kiosk UI design specification.
+- [`docs/API-BACKEND-ASTRA.md`](../../docs/API-BACKEND-ASTRA.md) — complete API endpoint inventory.
+- [`docs/runbooks/`](../../docs/runbooks/) — operational runbooks (incident response, offline mode, P2P recovery, payment failure).
 
 ---
 
