@@ -1,20 +1,39 @@
-# Andino Kiosk — extends the Astra-System compose stack
-# Usage: docker compose -f docker-compose.yml -f packages/andino-kiosk/docker-compose.andino.yml up -d
+# Andino Kiosk + Proxy — extends Astra-System compose
+# The proxy caches Andino API calls in Redis. The kiosk talks to the proxy.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f packages/andino-kiosk/docker-compose.andino.yml up -d
 
 services:
-  andino-kiosk:
+  andino-proxy:
     build:
-      context: ../../
-      dockerfile: packages/andino-kiosk/Dockerfile
+      context: ./proxy
+      dockerfile: Dockerfile
+    image: ghcr.io/xdfkenny/astra-system/andino-proxy:latest
+    container_name: astra-andino-proxy
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      ANDINO_BASE_URL: ${ANDINO_BASE_URL:-https://andinoapp.com}
+      ANDINO_ACCESS_TOKEN: ${ANDINO_ACCESS_TOKEN:-}
+      ANDINO_SCHOOL_ID: ${ANDINO_SCHOOL_ID:-9}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CACHE_TTL: ${ANDINO_CACHE_TTL:-300}
+      PORT: "3000"
+    networks:
+      - astra-net
+
+  andino-kiosk:
     image: ghcr.io/xdfkenny/astra-system/andino-kiosk:latest
     container_name: astra-andino-kiosk
     restart: unless-stopped
     ports:
       - "3000:3000"
-      - "3001:3001"
     environment:
       NUXT_PUBLIC_PRODUCT_SERVICE_MODE: ${ANDINO_PRODUCT_MODE:-api}
-      ANDINO_BASE_URL: ${ANDINO_BASE_URL:-https://andinoapp.com}
+      ANDINO_BASE_URL: http://andino-proxy:3000
       ANDINO_ACCESS_TOKEN: ${ANDINO_ACCESS_TOKEN:-}
       ANDINO_SCHOOL_ID: ${ANDINO_SCHOOL_ID:-9}
       ANDINO_PROTOTYPE_USER_ID: ${ANDINO_PROTOTYPE_USER_ID:-}
@@ -32,6 +51,8 @@ services:
       - andino_kiosk_data:/app/data
     networks:
       - astra-net
+    depends_on:
+      - andino-proxy
 
 volumes:
   andino_kiosk_data:
