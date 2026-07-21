@@ -29,7 +29,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  GO_VERSION: "1.25.2"
+  GO_VERSION: "1.26.0"
 
 jobs:
   build-binaries:

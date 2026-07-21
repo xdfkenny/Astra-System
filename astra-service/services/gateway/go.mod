@@ -1,6 +1,6 @@
 module github.com/astra-systems/astra-service/services/gateway
 
-go 1.25.2
+go 1.26.0
 
 require (
 	github.com/alicebob/miniredis/v2 v2.34.0

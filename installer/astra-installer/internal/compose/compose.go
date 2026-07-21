@@ -128,6 +128,7 @@ func buildCompose(cfg Config) string {
       - "8085:8085"
     environment:
       DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
+      REDIS_URL: redis:6379
       NATS_URL: nats://nats:4222
       NATS_STREAM_REPLICAS: "1"
     depends_on:
@@ -171,6 +172,7 @@ func buildCompose(cfg Config) string {
       - "8082:8082"
     environment:
       DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
+      REDIS_URL: redis:6379
       NATS_URL: nats://nats:4222
       NATS_STREAM_REPLICAS: "1"
     depends_on:
@@ -185,6 +187,7 @@ func buildCompose(cfg Config) string {
       - "8087:8087"
     environment:
       DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
+      REDIS_URL: redis:6379
       NATS_URL: nats://nats:4222
       NATS_STREAM_REPLICAS: "1"
     depends_on:
@@ -210,6 +213,7 @@ func buildCompose(cfg Config) string {
     image: %[9]s
     container_name: astra-kiosk
     restart: unless-stopped
+    user: root
     ports:
       - "80:80"
     tmpfs:

@@ -289,7 +289,7 @@ services:
         condition: service_healthy
 
   update-server:
-  image: golang:1.25.2-alpine
+  image: golang:1.26.0-alpine
     container_name: astra-update-server
     restart: unless-stopped
     working_dir: /build/services/update-server

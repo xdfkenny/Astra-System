@@ -1,3 +1,3 @@
 module github.com/astra-service/update-server
 
-go 1.25.2
+go 1.26.0
