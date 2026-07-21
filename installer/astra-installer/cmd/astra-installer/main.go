@@ -99,12 +99,29 @@ func printBanner() {
 func run(cfg Config) error {
 	if !cfg.NoDocker {
 		if !cfg.Silent {
-			fmt.Println("→ Checking Docker Desktop...")
+			fmt.Println("→ Checking prerequisites...")
+		}
+
+		if err := prereq.CheckWSL(); err != nil {
+			fmt.Printf("\n  ! %v\n", err)
+			answer := "y"
+			if !cfg.Silent {
+				answer = deploy.ReadLine("  Install WSL2 now? (Y/n): ")
+			}
+			if answer != "n" && answer != "N" {
+				if err := prereq.InstallWSL(); err != nil {
+					return fmt.Errorf("install WSL: %w", err)
+				}
+				fmt.Println("\n  ✓ WSL2 installed")
+				fmt.Println("  ! Please restart your computer and run the installer again")
+				fmt.Println("  ! to continue with Docker Desktop setup.")
+				os.Exit(0)
+			}
+			return fmt.Errorf("WSL2 is required for Docker Desktop")
 		}
 
 		if err := prereq.CheckDocker(); err != nil {
 			fmt.Printf("\n  ! %v\n", err)
-			fmt.Println()
 			answer := "y"
 			if !cfg.Silent {
 				answer = deploy.ReadLine("  Install Docker Desktop now? (Y/n): ")
@@ -113,14 +130,12 @@ func run(cfg Config) error {
 				if err := prereq.InstallDockerDesktop(cfg.Silent); err != nil {
 					return fmt.Errorf("install Docker Desktop: %w", err)
 				}
-				fmt.Println("  ✓ Docker Desktop installed")
 				fmt.Println("  ! Please restart your computer and run the installer again")
 				fmt.Println("  ! to complete the Astra-System setup.")
 				os.Exit(0)
 			}
-			return fmt.Errorf("Docker Desktop is required. Install it from https://docs.docker.com/desktop/setup/install/windows-install/")
+			return fmt.Errorf("Docker Desktop is required")
 		}
-		fmt.Println("  ✓ Docker is running")
 	}
 
 	if !cfg.Silent {

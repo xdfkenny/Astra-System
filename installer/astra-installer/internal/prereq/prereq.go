@@ -21,8 +21,51 @@ func CheckDocker() error {
 	if err != nil {
 		return fmt.Errorf("Docker daemon not running: %w", err)
 	}
-	fmt.Printf("  ✓ Docker Engine %s", strings.TrimSpace(string(out)))
+	fmt.Printf("  ✓ Docker Engine %s\n", strings.TrimSpace(string(out)))
 	return nil
+}
+
+func CheckWSL() error {
+	cmd := exec.Command("wsl", "--status")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("WSL is not installed")
+	}
+	output := string(out)
+	if strings.Contains(output, "WSL 2") || strings.Contains(output, "Default Version: 2") {
+		fmt.Println("  ✓ WSL2 is installed and configured")
+		return nil
+	}
+	if strings.Contains(output, "WSL 1") {
+		fmt.Println("  ! WSL1 detected, upgrading to WSL2...")
+		return upgradeToWSL2()
+	}
+	return fmt.Errorf("WSL2 not configured")
+}
+
+func InstallWSL() error {
+	fmt.Println("  → Installing Windows Subsystem for Linux (WSL2)...")
+	fmt.Println("    Running: wsl --install (this may take several minutes)")
+
+	cmd := exec.Command("wsl", "--install", "--no-distribution")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("wsl install: %w", err)
+	}
+
+	fmt.Println("  → Setting WSL2 as default...")
+	_ = exec.Command("wsl", "--set-default-version", "2").Run()
+
+	fmt.Println("  ✓ WSL2 installed. Restart required before Docker Desktop installation.")
+	return nil
+}
+
+func upgradeToWSL2() error {
+	cmd := exec.Command("wsl", "--set-default-version", "2")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 func InstallDockerDesktop(silent bool) error {
@@ -40,7 +83,6 @@ func InstallDockerDesktop(silent bool) error {
 
 	if !silent {
 		fmt.Println("  → Installing Docker Desktop (this may take several minutes)...")
-		fmt.Println("  ! A system restart may be required after installation")
 	}
 
 	cmd := exec.Command(installerPath, "install", "--quiet", "--accept-license")
@@ -50,6 +92,8 @@ func InstallDockerDesktop(silent bool) error {
 		return fmt.Errorf("install Docker Desktop: %w", err)
 	}
 
+	fmt.Println("  ✓ Docker Desktop installed")
+	fmt.Println("  ! A system restart may be required before Astra-System can start.")
 	return nil
 }
 
