@@ -1,6 +1,6 @@
 module github.com/astra-systems/astra-service/services/admin-graphql
 
-go 1.25.1
+go 1.25.2
 
 replace github.com/astra-service/go-common => ../../packages/go-common
 

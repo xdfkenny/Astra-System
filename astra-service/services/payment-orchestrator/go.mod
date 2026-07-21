@@ -1,6 +1,6 @@
 module github.com/astra-systems/astra-service/services/payment-orchestrator
 
-go 1.25.1
+go 1.25.2
 
 require (
 	github.com/astra-service/go-common v0.0.0

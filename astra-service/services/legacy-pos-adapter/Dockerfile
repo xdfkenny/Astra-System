@@ -3,7 +3,7 @@
 # Astra-Service Legacy POS Adapter
 # Multi-stage distroless build. Build context is the repository root.
 
-ARG GO_VERSION=1.25
+ARG GO_VERSION=1.25.2
 ARG ALPINE_VERSION=3.21
 
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine${ALPINE_VERSION} AS builder
