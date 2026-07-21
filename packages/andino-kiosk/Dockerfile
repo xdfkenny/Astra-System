@@ -7,17 +7,17 @@ ARG NODE_VERSION=22
 # ── Build stage ───────────────────────────────────────────────────────────
 FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-alpine AS builder
 
-RUN apk add --no-cache git python3 py3-pip build-base
+RUN apk add --no-cache git
 RUN corepack enable && corepack prepare pnpm@11.4.0 --activate
+ENV CI=true
 
 WORKDIR /build
 
-# Copy the kiosk source from the host
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --node-linker=hoisted
-
+# Copy everything first, then install (avoid COPY overwriting node_modules)
 COPY frontend/ ./
-COPY shared/ ../shared/
+COPY shared/ /shared/
+
+RUN pnpm install --frozen-lockfile --node-linker=hoisted --ignore-scripts
 
 RUN pnpm build
 
@@ -33,7 +33,6 @@ COPY --from=builder /build/scripts/start-production.mjs /app/scripts/
 COPY --from=builder /build/node_modules /app/node_modules
 COPY --from=builder /build/package.json /app/
 
-# Data directory for persistent JSON storage
 RUN mkdir -p /app/data && chmod 777 /app/data
 
 EXPOSE 3000 3001
