@@ -11,6 +11,7 @@ import (
 type Config struct {
 	Registry   string
 	Tag        string
+	KioskImage string
 	DataDir    string
 	KioskPort  string
 	PostgresPW string
@@ -223,7 +224,7 @@ volumes:
 		pImg("inventory-service"), cfg.PostgresPW,
 		pImg("sync-service"), cfg.PostgresPW,
 		pImg("payment-orchestrator"), cfg.PostgresPW,
-		pImg("kiosk-unified"), cfg.KioskPort)
+		pImg(cfg.KioskImage), cfg.KioskPort)
 }
 
 func sanitizeImageName(name string) string {

@@ -38,9 +38,18 @@ func Run(cfg Config) error {
 		return err
 	}
 
+	kioskImage := "kiosk-unified"
+	if !imageExists(cfg.Registry, kioskImage, cfg.Tag) {
+		kioskImage = "kiosk"
+		if cfg.Silent {
+			fmt.Println("  ! kiosk-unified not available, falling back to kiosk")
+		}
+	}
+
 	_, err := compose.Generate(compose.Config{
 		Registry:   cfg.Registry,
 		Tag:        cfg.Tag,
+		KioskImage: kioskImage,
 		DataDir:    cfg.DataDir,
 		KioskPort:  cfg.KioskPort,
 		PostgresPW: cfg.PostgresPW,
@@ -207,4 +216,10 @@ func ReadLine(prompt string) string {
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	return strings.TrimSpace(scanner.Text())
+}
+
+func imageExists(registry, image, tag string) bool {
+	fullImage := fmt.Sprintf("%s/%s:%s", registry, image, tag)
+	cmd := exec.Command("docker", "manifest", "inspect", fullImage)
+	return cmd.Run() == nil
 }
