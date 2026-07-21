@@ -29,6 +29,9 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: write
+
 env:
   REGISTRY: ghcr.io
   GO_VERSION: "1.25"
