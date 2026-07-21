@@ -1,9 +1,11 @@
-package compose
+﻿package compose
 
 import (
 	"crypto/ed25519"
 	"crypto/rand"
-	"encoding/hex"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,11 +24,19 @@ type Config struct {
 
 func Generate(cfg Config, outputDir string) (string, error) {
 	if cfg.JWTKey == "" {
-		_, priv, err := ed25519.GenerateKey(rand.Reader)
+		pub, _, err := ed25519.GenerateKey(rand.Reader)
 		if err != nil {
-			return "", fmt.Errorf("generate jwt key: %w", err)
+			return "", fmt.Errorf("generate jwt key pair: %w", err)
 		}
-		cfg.JWTKey = hex.EncodeToString(priv)
+		pubBytes, err := x509.MarshalPKIXPublicKey(pub)
+		if err != nil {
+			return "", fmt.Errorf("marshal public key: %w", err)
+		}
+		pemText := pem.EncodeToMemory(&pem.Block{
+			Type:  "PUBLIC KEY",
+			Bytes: pubBytes,
+		})
+		cfg.JWTKey = base64.StdEncoding.EncodeToString(pemText)
 	}
 	content := buildCompose(cfg)
 	outPath := filepath.Join(outputDir, "docker-compose.yml")
@@ -37,21 +47,19 @@ func Generate(cfg Config, outputDir string) (string, error) {
 }
 
 func buildCompose(cfg Config) string {
-	registry := cfg.Registry
-	if registry == "" {
-		registry = "ghcr.io/xdfkenny/astra-system"
+	reg := cfg.Registry
+	if reg == "" {
+		reg = "ghcr.io/xdfkenny/astra-system"
 	}
 	tag := cfg.Tag
 	if tag == "" {
 		tag = "latest"
 	}
-	kimg := cfg.KioskImage
-	if kimg == "" {
-		kimg = "kiosk"
+	ki := cfg.KioskImage
+	if ki == "" {
+		ki = "kiosk"
 	}
-	img := func(name string) string {
-		return fmt.Sprintf("%s/%s:%s", registry, name, tag)
-	}
+	img := func(n string) string { return fmt.Sprintf("%s/%s:%s", reg, n, tag) }
 
 	return fmt.Sprintf(`services:
   postgres:
@@ -89,15 +97,10 @@ func buildCompose(cfg Config) string {
     image: nats:2-alpine
     container_name: astra-nats
     restart: unless-stopped
-    command: -js -m 8222
+    command: -js -m 8222 -cluster_name astra -server_name n1
     ports:
       - "4222:4222"
       - "8222:8222"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8222/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   gateway:
     image: %[2]s
@@ -109,12 +112,13 @@ func buildCompose(cfg Config) string {
       DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
       REDIS_URL: redis:6379
       REDIS_ADDR: redis:6379
-      NATS_URL: nats:4222
+      NATS_URL: nats://nats:4222
       GATEWAY_JWT_EDDSA_PUBLIC_KEY: %[10]s
     depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-      nats: { condition: service_healthy }
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   menu-service:
     image: %[3]s
@@ -124,12 +128,11 @@ func buildCompose(cfg Config) string {
       - "8085:8085"
     environment:
       DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
-      REDIS_URL: redis:6379
-      REDIS_ADDR: redis:6379
-      NATS_URL: nats:4222
+      NATS_URL: nats://nats:4222
+      NATS_STREAM_REPLICAS: "1"
     depends_on:
-      postgres: { condition: service_healthy }
-      nats: { condition: service_healthy }
+      postgres:
+        condition: service_healthy
 
   cart-service:
     image: %[4]s
@@ -139,12 +142,12 @@ func buildCompose(cfg Config) string {
       - "8081:8081"
     environment:
       DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
-      REDIS_URL: redis:6379
-      REDIS_ADDR: redis:6379
-      NATS_URL: nats:4222
+      CART_REDIS_ADDR: redis:6379
+      NATS_URL: nats://nats:4222
+      NATS_STREAM_REPLICAS: "1"
     depends_on:
-      postgres: { condition: service_healthy }
-      nats: { condition: service_healthy }
+      postgres:
+        condition: service_healthy
 
   order-service:
     image: %[5]s
@@ -154,12 +157,11 @@ func buildCompose(cfg Config) string {
       - "8083:8083"
     environment:
       DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
-      REDIS_URL: redis:6379
-      REDIS_ADDR: redis:6379
-      NATS_URL: nats:4222
+      NATS_URL: nats://nats:4222
+      NATS_STREAM_REPLICAS: "1"
     depends_on:
-      postgres: { condition: service_healthy }
-      nats: { condition: service_healthy }
+      postgres:
+        condition: service_healthy
 
   inventory-service:
     image: %[6]s
@@ -169,12 +171,11 @@ func buildCompose(cfg Config) string {
       - "8082:8082"
     environment:
       DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
-      REDIS_URL: redis:6379
-      REDIS_ADDR: redis:6379
-      NATS_URL: nats:4222
+      NATS_URL: nats://nats:4222
+      NATS_STREAM_REPLICAS: "1"
     depends_on:
-      postgres: { condition: service_healthy }
-      nats: { condition: service_healthy }
+      postgres:
+        condition: service_healthy
 
   sync-service:
     image: %[7]s
@@ -184,12 +185,11 @@ func buildCompose(cfg Config) string {
       - "8087:8087"
     environment:
       DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
-      REDIS_URL: redis:6379
-      REDIS_ADDR: redis:6379
-      NATS_URL: nats:4222
+      NATS_URL: nats://nats:4222
+      NATS_STREAM_REPLICAS: "1"
     depends_on:
-      postgres: { condition: service_healthy }
-      nats: { condition: service_healthy }
+      postgres:
+        condition: service_healthy
 
   payment-orchestrator:
     image: %[8]s
@@ -199,12 +199,12 @@ func buildCompose(cfg Config) string {
       - "8086:8086"
     environment:
       DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
-      REDIS_URL: redis:6379
-      REDIS_ADDR: redis:6379
-      NATS_URL: nats:4222
+      REDIS_URL: redis://redis:6379/0
+      NATS_URL: nats://nats:4222
+      NATS_STREAM_REPLICAS: "1"
     depends_on:
-      postgres: { condition: service_healthy }
-      nats: { condition: service_healthy }
+      postgres:
+        condition: service_healthy
 
   kiosk:
     image: %[9]s
@@ -216,7 +216,8 @@ func buildCompose(cfg Config) string {
       - /var/cache/nginx:noexec,nosuid,size=50m
       - /var/run:noexec,nosuid,size=1m
     depends_on:
-      - gateway
+      gateway:
+        condition: service_started
 
 volumes:
   astra_postgres_data:
@@ -228,7 +229,7 @@ volumes:
 		img("inventory-service"),
 		img("sync-service"),
 		img("payment-orchestrator"),
-		img(kimg),
+		img(ki),
 		cfg.JWTKey)
 }
 

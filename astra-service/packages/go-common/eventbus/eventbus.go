@@ -10,16 +10,24 @@ package eventbus
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 )
 
-// StreamConfig defines the durable JetStream streams Astra-Service depends
-// on. Each domain gets its own stream so retention/replay policy can differ
-// (e.g. payment events retained 7 years for compliance; analytics events
-// retained 30 days).
+func streamReplicas() int {
+	if v := os.Getenv("NATS_STREAM_REPLICAS"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 3
+}
+
+// StreamConfig defines the durable JetStream streams Astra-Service depends on.
 var StreamConfig = []jetstream.StreamConfig{
 	{
 		Name:      "ASTRA_CART",
@@ -27,7 +35,7 @@ var StreamConfig = []jetstream.StreamConfig{
 		Storage:   jetstream.FileStorage,
 		Retention: jetstream.LimitsPolicy,
 		MaxAge:    30 * 24 * time.Hour,
-		Replicas:  3,
+		Replicas: streamReplicas(),
 	},
 	{
 		Name:      "ASTRA_INVENTORY",
@@ -35,7 +43,7 @@ var StreamConfig = []jetstream.StreamConfig{
 		Storage:   jetstream.FileStorage,
 		Retention: jetstream.LimitsPolicy,
 		MaxAge:    90 * 24 * time.Hour,
-		Replicas:  3,
+		Replicas: streamReplicas(),
 	},
 	{
 		Name:      "ASTRA_PAYMENT",
@@ -43,7 +51,7 @@ var StreamConfig = []jetstream.StreamConfig{
 		Storage:   jetstream.FileStorage,
 		Retention: jetstream.LimitsPolicy,
 		MaxAge:    7 * 365 * 24 * time.Hour, // PCI/financial audit retention
-		Replicas:  3,
+		Replicas: streamReplicas(),
 	},
 	{
 		Name:      "ASTRA_ORDER",
@@ -51,7 +59,7 @@ var StreamConfig = []jetstream.StreamConfig{
 		Storage:   jetstream.FileStorage,
 		Retention: jetstream.LimitsPolicy,
 		MaxAge:    7 * 365 * 24 * time.Hour,
-		Replicas:  3,
+		Replicas: streamReplicas(),
 	},
 	{
 		Name:      "ASTRA_MENU",
@@ -59,7 +67,7 @@ var StreamConfig = []jetstream.StreamConfig{
 		Storage:   jetstream.FileStorage,
 		Retention: jetstream.LimitsPolicy,
 		MaxAge:    90 * 24 * time.Hour,
-		Replicas:  3,
+		Replicas: streamReplicas(),
 	},
 	{
 		Name:      "ASTRA_SYSTEM",
@@ -67,7 +75,7 @@ var StreamConfig = []jetstream.StreamConfig{
 		Storage:   jetstream.FileStorage,
 		Retention: jetstream.LimitsPolicy,
 		MaxAge:    7 * 24 * time.Hour,
-		Replicas:  3,
+		Replicas: streamReplicas(),
 	},
 }
 
