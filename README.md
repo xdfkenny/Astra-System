@@ -342,3 +342,7 @@ Licensed under the [Apache License, Version 2.0](LICENSE).
 <p align="center">
   <sub>Astra-System · Built for resilient, offline-first retail.</sub>
 </p>
+
+<p align="center">
+  <img src="https://count.getloli.com/get/@xdfkenny-Astra-System?theme=miku" alt="Contador de visitas de Hatsune Miku" />
+</p>
