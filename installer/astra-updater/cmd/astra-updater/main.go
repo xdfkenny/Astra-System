@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -18,7 +17,6 @@ import (
 
 	"github.com/astra-service/astra-updater/internal/apply"
 	"github.com/astra-service/astra-updater/internal/check"
-	"github.com/astra-service/astra-updater/internal/download"
 )
 
 const ServiceName = "AstraUpdateAgent"
@@ -33,10 +31,8 @@ var (
 )
 
 type Config struct {
-	InstallDir string `json:"install_dir"`
 	DataDir    string `json:"data_dir"`
 	Channel    string `json:"channel"`
-	Interval   string `json:"interval"`
 	CurrentVer string `json:"current_version"`
 }
 
@@ -207,11 +203,9 @@ func runForeground() {
 }
 
 func checkAndUpdate() {
-	log.Println("Checking for updates...")
+	log.Println("Checking for Docker image updates...")
 
-	cfg := loadConfig()
-
-	release, err := check.LatestRelease(channel, cfg.CurrentVer)
+	release, err := check.LatestRelease(channel, "0.0.0")
 	if err != nil {
 		log.Printf("check update: %v", err)
 		return
@@ -221,58 +215,32 @@ func checkAndUpdate() {
 		return
 	}
 
-	log.Printf("Update available: %s", release.TagName)
+	log.Printf("Update available: %s (pulling new images)", release.TagName)
 
-	assetPath, checksum, err := download.Asset(release, dataDir)
-	if err != nil {
-		log.Printf("download: %v", err)
+	if err := apply.UpdateDockerStack(dataDir, release.TagName); err != nil {
+		log.Printf("apply update: %v", err)
 		return
 	}
 
-	if err := apply.Update(assetPath, checksum, installDir, dataDir); err != nil {
-		log.Printf("apply: %v", err)
-		return
-	}
-
-	saveConfig(release.TagName)
 	log.Printf("Update to %s applied successfully", release.TagName)
 }
 
 func loadConfig() Config {
-	cfgPath := filepath.Join(dataDir, "config", "astra.conf")
-	cfg := Config{
-		Channel:    channel,
-		Interval:   interval.String(),
-		CurrentVer: "0.0.0",
-	}
-
-	data, err := os.ReadFile(cfgPath)
-	if err != nil {
-		return cfg
-	}
-	_ = json.Unmarshal(data, &cfg)
-
-	lines := strings.Split(string(data), "\n")
-	for _, line := range lines {
+	data := readConfigFile()
+	cfg := Config{CurrentVer: "0.0.0", Channel: channel}
+	for _, line := range strings.Split(string(data), "\n") {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "ASTRA_UPDATE_CHANNEL=") {
 			cfg.Channel = strings.TrimPrefix(line, "ASTRA_UPDATE_CHANNEL=")
 		}
-		if strings.HasPrefix(line, "ASTRA_INSTALL_DIR=") {
-			cfg.InstallDir = strings.TrimPrefix(line, "ASTRA_INSTALL_DIR=")
-		}
-		if strings.HasPrefix(line, "ASTRA_DATA_DIR=") {
-			cfg.DataDir = strings.TrimPrefix(line, "ASTRA_DATA_DIR=")
-		}
 	}
-
 	return cfg
 }
 
-func saveConfig(version string) {
+func readConfigFile() []byte {
 	cfgPath := filepath.Join(dataDir, "config", "astra.conf")
-	content := fmt.Sprintf(`{"current_version":"%s","last_update":"%s"}`, version, time.Now().UTC().Format(time.RFC3339))
-	_ = os.WriteFile(cfgPath, []byte(content), 0644)
+	data, _ := os.ReadFile(cfgPath)
+	return data
 }
 
 type handler struct{}

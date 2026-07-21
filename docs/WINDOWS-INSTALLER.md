@@ -4,16 +4,39 @@
 
 The Astra-System Windows Installer provides a production-grade installation and
 automatic update mechanism for deploying the Astra-System self-checkout platform
-on Windows kiosk machines. The system is built from three layers:
+on Windows kiosk machines. The system deploys the full microservice stack via
+Docker Compose — everything runs in containers.
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| **astra-installer** | Go CLI | Prerequisite checking, directory setup, service registration |
-| **astra-updater** | Go Windows Service | Background update polling, download, and apply |
+| **astra-installer** | Go CLI | Docker Desktop install, compose generation, image pull, stack deploy |
+| **astra-updater** | Go Windows Service | Periodic image pull + stack restart on new release |
 | **Inno Setup** | setup.iss | Windows installer shell (EXE, shortcuts, uninstall) |
 
 All source code lives under `installer/`. The installer is built by CI on tag
 push and published as a GitHub Release asset.
+
+---
+
+## What Gets Installed
+
+The installer deploys the complete Astra-System stack on your machine:
+
+| Service | Container | Port | Purpose |
+|---|---|---|---|
+| **Kiosk** | `astra-kiosk` | **80** | React 19 SPA (nginx-served) |
+| **Gateway** | `astra-gateway` | 8080 | API gateway |
+| **Menu** | `astra-menu` | 8085 | Menu catalog |
+| **Cart** | `astra-cart` | 8081 | Shopping cart |
+| **Order** | `astra-order` | 8083 | Order lifecycle |
+| **Inventory** | `astra-inventory` | 8082 | Stock management |
+| **Payment** | `astra-payment` | 8086 | Payment orchestration |
+| **Sync** | `astra-sync` | 8087 | Cloud sync gateway |
+| **PostgreSQL** | `astra-postgres` | 5432 | Database |
+| **Redis** | `astra-redis` | 6379 | Cache / state |
+| **NATS** | `astra-nats` | 4222 | Message broker |
+
+All images are pulled from **ghcr.io** — no local building required.
 
 ---
 
@@ -53,21 +76,32 @@ installer/
 Astra-System-Setup.exe
         │
         ▼
-  ┌─────────────┐
-  │  Inno Setup │  Copies files → Program Files\Astra-System
-  │  (setup.iss)│  Creates shortcuts, runs astra-installer --silent
-  └──────┬──────┘
+  ┌──────────────────────┐
+  │  Inno Setup          │  Copies files → Program Files\Astra-System
+  │  (setup.iss)         │  Runs astra-installer --silent
+  └──────┬───────────────┘
          │
          ▼
-  ┌────────────────┐
-  │ astra-installer │  Checks Docker Desktop
-  │  (Go CLI)      │  Creates %PROGRAMDATA%\Astra-System\
-  └──────┬─────────┘  Writes runtime config
-         │            Registers AstraUpdateAgent service
+  ┌──────────────────────────────┐
+  │  astra-installer             │  Checks Docker Desktop
+  │  (Go CLI)                    │  If missing → downloads & installs it
+  │                              │  If just installed → exits, prompts reboot
+  └──────┬───────────────────────┘
+         │ (Docker is running)
          ▼
-  ┌────────────────┐
-  │   System Ready │   Kiosk available at http://localhost
-  └────────────────┘
+  ┌──────────────────────────────┐
+  │  1. Generate docker-compose  │  Writes compose file with ghcr.io images
+  │  2. docker compose pull      │  Downloads all service images
+  │  3. docker compose up -d     │  Starts PostgreSQL, Redis, NATS, all services
+  │  4. Wait for healthy         │  Polls container health status
+  │  5. Register update agent    │  Installs AstraUpdateAgent Windows service
+  └──────────────────────────────┘
+         │
+         ▼
+  ┌──────────────────────┐
+  │   System Ready       │   Kiosk:  http://localhost
+  │                      │   API:    http://localhost:8080
+  └──────────────────────┘
 ```
 
 ### Update Flow
@@ -79,26 +113,19 @@ Astra-System-Setup.exe
   └──────────┬───────────┘
              │
              ▼
-  ┌────────────────────┐
-  │  check.LatestRelease│  GET api.github.com/repos/.../releases
-  │                    │  Filter by channel (stable/beta/canary)
-  │                    │  Compare semver against current version
-  └──────────┬─────────┘
+  ┌──────────────────────┐
+  │  check.LatestRelease │  GET api.github.com/repos/.../releases
+  │                      │  Filter by channel (stable/beta/canary)
+  │                      │  Compare semver against current
+  └──────────┬───────────┘
              │ (new version found)
              ▼
-  ┌────────────────────┐
-  │  download.Asset    │  Download installer EXE → %DATA%\staging\
-  │                    │  Verify SHA-256 checksum
-  └──────────┬─────────┘
-             │
-             ▼
-  ┌────────────────────┐
-  │  apply.Update      │  1. docker compose down
-  │                    │  2. Backup %DATA%\config\
-  │                    │  3. Run new installer --silent
-  │                    │  4. docker compose up -d --pull always
-  │                    │  5. Record applied update
-  └────────────────────┘
+  ┌──────────────────────┐
+  │  apply.UpdateDocker  │  1. Backup current docker-compose.yml
+  │                      │  2. docker compose pull (new images)
+  │                      │  3. docker compose up -d --pull always
+  │                      │  4. Record update
+  └──────────────────────┘
 ```
 
 ---
@@ -173,8 +200,14 @@ The `build-installer.yml` workflow (`.github/workflows/build-installer.yml`):
 
 1. Go to https://github.com/astra-service/Astra-System/releases
 2. Download the latest `Astra-System-Setup.exe` for your channel
-3. Run the installer as Administrator
-4. The installer checks for Docker Desktop and sets up the system
+3. Run the installer as **Administrator**
+4. The installer:
+   - Checks for Docker Desktop
+   - If missing, downloads and installs it (you may need to restart after)
+   - Generates a `docker-compose.yml` pointing to ghcr.io images
+   - Runs `docker compose pull` to download all service images
+   - Runs `docker compose up -d` to start all services
+   - Registers the `AstraUpdateAgent` Windows service
 5. Open http://localhost to access the kiosk
 
 ### Method 2: Bootstrap script (one-liner)

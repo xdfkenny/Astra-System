@@ -97,6 +97,9 @@ Write-Host "  Downloaded to: $installerPath" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "Step 4: Running installer..." -ForegroundColor White
+Write-Host "  This will pull ~2GB of Docker images and start all services." -ForegroundColor Yellow
+Write-Host "  The installation may take 5-15 minutes depending on your connection." -ForegroundColor Yellow
+Write-Host ""
 $params = @("/SILENT", "/DIR=""$InstallDir""", "/DATADIR=""$DataDir""")
 Write-Host "  $installerPath $params" -ForegroundColor Gray
 Start-Process -FilePath $installerPath -ArgumentList $params -Wait
@@ -104,5 +107,7 @@ Start-Process -FilePath $installerPath -ArgumentList $params -Wait
 Write-Host ""
 Write-Host "✓ Astra-System installation complete!" -ForegroundColor Cyan
 Write-Host "  Open http://localhost to access the kiosk." -ForegroundColor Cyan
+Write-Host "  Open http://localhost:8080 for the API gateway." -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  The update agent will automatically keep your system up to date." -ForegroundColor Gray
+Write-Host "  The AstraUpdateAgent service will automatically keep" -ForegroundColor Gray
+Write-Host "  your system up to date by pulling new Docker images." -ForegroundColor Gray
