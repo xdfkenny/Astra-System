@@ -11,7 +11,7 @@ import (
 	"github.com/astra-service/astra-installer/internal/setup"
 )
 
-const Version = "0.2.0"
+var Version = "0.2.0"
 
 type Config struct {
 	InstallDir string

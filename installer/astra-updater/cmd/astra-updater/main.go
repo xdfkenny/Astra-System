@@ -21,10 +21,9 @@ import (
 	"github.com/astra-service/astra-updater/internal/download"
 )
 
-const (
-	ServiceName = "AstraUpdateAgent"
-	Version     = "0.2.0"
-)
+const ServiceName = "AstraUpdateAgent"
+
+var Version = "0.2.0" // overridden by -ldflags -X at build time
 
 var (
 	installDir string
