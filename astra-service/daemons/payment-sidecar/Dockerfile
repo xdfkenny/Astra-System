@@ -4,8 +4,8 @@
 # Local Verifone bridge. Runs as a loopback-only sidecar on the kiosk.
 # Multi-stage build with distroless base.
 
-ARG RUST_VERSION=1.82
-ARG ALPINE_VERSION=3.20
+ARG RUST_VERSION=1.86
+ARG ALPINE_VERSION=3.21
 
 # ───────────────────────────────────────────────
 # Stage 1: Build
