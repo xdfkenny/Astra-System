@@ -1,179 +1,187 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/astra-service/astra-installer/internal/deploy"
 	"github.com/astra-service/astra-installer/internal/prereq"
+	"github.com/astra-service/astra-installer/internal/state"
 )
 
 var Version = "0.2.0"
 
-type Config struct {
-	InstallDir string
-	DataDir    string
-	Registry   string
-	Tag        string
-	KioskPort  string
-	PostgresPW string
-	Silent     bool
-	NoDocker   bool
-	Version    bool
-	LogFile    string
-}
-
 func main() {
-	cfg := parseFlags()
+	fmt.Println()
+	fmt.Println("  ╔══════════════════════════════════════════╗")
+	fmt.Printf("  ║     Astra-System Installer v%s        ║\n", Version)
+	fmt.Println("  ║  Production-grade Self-Checkout Platform ║")
+	fmt.Println("  ╚══════════════════════════════════════════╝")
+	fmt.Println()
 
-	if cfg.Version {
-		fmt.Printf("Astra-System Installer v%s\n", Version)
-		os.Exit(0)
+	dataDir := defaultDataDir()
+	installDir := defaultInstallDir()
+
+	s, err := state.Load(dataDir)
+	if err != nil {
+		log.Fatalf("state: %v", err)
 	}
 
-	log.SetPrefix("[astra-install] ")
-	log.SetFlags(log.Ldate | log.Ltime | log.Lmsgprefix)
+	fmt.Printf("  Install: %s\n", installDir)
+	fmt.Printf("  Data:    %s\n", dataDir)
+	fmt.Println()
 
-	if !cfg.Silent {
-		printBanner()
+	switch s.Step {
+	case state.StepWSL:
+		handleWSL(s)
+	case state.StepDocker:
+		handleDocker(s)
+	case state.StepDeploy:
+		handleDeploy(s, installDir, dataDir)
+	default:
+		handleDeploy(s, installDir, dataDir)
 	}
-
-	if err := run(cfg); err != nil {
-		log.Fatalf("installation failed: %v", err)
-	}
-
-	fmt.Println()
-	fmt.Println("═══════════════════════════════════════════")
-	fmt.Println("  Astra-System is now running!")
-	fmt.Println()
-	fmt.Printf("  Kiosk:    http://localhost:%s\n", cfg.KioskPort)
-	fmt.Println("  Dashboard: http://localhost:8080")
-	fmt.Println()
-	fmt.Println("  The update agent will keep your system")
-	fmt.Println("  up to date automatically.")
-	fmt.Println("═══════════════════════════════════════════")
 }
 
-func parseFlags() Config {
+func handleWSL(s *state.State) {
+	fmt.Println("  [1/3] Checking WSL2...")
+	fmt.Println()
+
+	if prereq.CheckWSL() {
+		fmt.Println()
+		fmt.Println("  ✓ WSL2 is installed and running.")
+		fmt.Println()
+		s.Step = state.StepDocker
+		s.Save()
+		handleDocker(s)
+		return
+	}
+
+	fmt.Println("  ! WSL2 is required for Docker Desktop.")
+	fmt.Println("  ! The installer will run: wsl --install")
+	fmt.Println("  ! This may take several minutes and requires a system restart.")
+	fmt.Println()
+	answer := prompt("  Install WSL2 now? (Y/n): ")
+	if answer == "n" || answer == "N" {
+		fmt.Println("\n  ✗ WSL2 is required. Please install it manually and re-run.")
+		os.Exit(1)
+	}
+
+	if err := prereq.InstallWSL(); err != nil {
+		fmt.Printf("\n  ✗ WSL installation failed: %v\n", err)
+		fmt.Println("  Try running 'wsl --install' manually in an admin PowerShell.")
+		os.Exit(1)
+	}
+
+	s.Step = state.StepDocker
+	s.Save()
+
+	fmt.Println()
+	fmt.Println("  ═══════════════════════════════════════════")
+	fmt.Println("  ✓ WSL2 installed. RESTART YOUR COMPUTER.")
+	fmt.Println("  Run this installer again after restart.")
+	fmt.Println("  ═══════════════════════════════════════════")
+}
+
+func handleDocker(s *state.State) {
+	fmt.Println("  [2/3] Checking Docker Desktop...")
+	fmt.Println()
+
+	if prereq.CheckWSL() && prereq.CheckDocker() {
+		fmt.Println()
+		fmt.Println("  ✓ Docker Desktop is installed and running.")
+		fmt.Println()
+		s.Step = state.StepDeploy
+		s.Save()
+		handleDeploy(s, defaultInstallDir(), defaultDataDir())
+		return
+	}
+
+	if !prereq.DockerInstalled() {
+		fmt.Println("  ! Docker Desktop is not installed.")
+		fmt.Println("  ! The installer will download and install it.")
+		fmt.Println()
+		answer := prompt("  Install Docker Desktop now? (Y/n): ")
+		if answer == "n" || answer == "N" {
+			fmt.Println("\n  ✗ Docker Desktop is required. Install it manually and re-run.")
+			os.Exit(1)
+		}
+
+		if err := prereq.InstallDockerDesktop(); err != nil {
+			fmt.Printf("\n  ✗ Docker installation failed: %v\n", err)
+			fmt.Println("  Download from: https://docs.docker.com/desktop/setup/install/windows-install/")
+			os.Exit(1)
+		}
+
+		s.Step = state.StepDeploy
+		s.Save()
+
+		fmt.Println()
+		fmt.Println("  ═══════════════════════════════════════════")
+		fmt.Println("  ✓ Docker Desktop installed.")
+		fmt.Println("  Start Docker Desktop, then re-run this installer.")
+		fmt.Println("  ═══════════════════════════════════════════")
+		return
+	}
+
+	fmt.Printf("  ! Docker is installed but the daemon is not running.\n")
+	fmt.Println("  ! Start Docker Desktop and re-run this installer.")
+	os.Exit(1)
+}
+
+func handleDeploy(s *state.State, installDir, dataDir string) {
+	fmt.Println("  [3/3] Deploying Astra-System...")
+	fmt.Println()
+
+	if err := deploy.Run(deploy.Config{
+		InstallDir: installDir,
+		DataDir:    dataDir,
+		Registry:   "ghcr.io/xdfkenny/astra-system",
+		Tag:        "latest",
+		KioskPort:  "80",
+		PostgresPW: "astra-system",
+	}); err != nil {
+		fmt.Printf("\n  ✗ Deployment failed: %v\n", err)
+		fmt.Printf("  Check logs in: %s\n", filepath.Join(dataDir, "logs"))
+		os.Exit(1)
+	}
+
+	s.Step = state.StepDone
+	s.Save()
+
+	fmt.Println()
+	fmt.Println("  ╔══════════════════════════════════════════╗")
+	fmt.Println("  ║     Astra-System is now running!         ║")
+	fmt.Println("  ║                                          ║")
+	fmt.Println("  ║     Kiosk:   http://localhost             ║")
+	fmt.Println("  ║     API:     http://localhost:8080         ║")
+	fmt.Println("  ║                                          ║")
+	fmt.Println("  ║  The update agent will keep your system  ║")
+	fmt.Println("  ║  up to date automatically.               ║")
+	fmt.Println("  ╚══════════════════════════════════════════╝")
+}
+
+func defaultDataDir() string {
 	programData := os.Getenv("PROGRAMDATA")
 	if programData == "" {
 		programData = filepath.Join(os.Getenv("SYSTEMDRIVE")+"\\", "ProgramData")
 	}
-	defaultDataDir := filepath.Join(programData, "Astra-System")
+	return filepath.Join(programData, "Astra-System")
+}
 
+func defaultInstallDir() string {
 	programFiles := os.Getenv("PROGRAMFILES")
 	if programFiles == "" {
 		programFiles = filepath.Join(os.Getenv("SYSTEMDRIVE")+"\\", "Program Files")
 	}
-	defaultInstallDir := filepath.Join(programFiles, "Astra-System")
-
-	cfg := Config{
-		KioskPort:  "80",
-		PostgresPW: fmt.Sprintf("astra_%d", time.Now().Unix()),
-	}
-	flag.StringVar(&cfg.InstallDir, "install-dir", defaultInstallDir, "Application installation directory")
-	flag.StringVar(&cfg.DataDir, "data-dir", defaultDataDir, "Application data directory")
-	flag.StringVar(&cfg.Registry, "registry", "ghcr.io/xdfkenny/astra-system", "Docker image registry")
-	flag.StringVar(&cfg.Tag, "tag", "latest", "Docker image tag")
-	flag.StringVar(&cfg.KioskPort, "kiosk-port", "80", "Host port for the kiosk web UI")
-	flag.StringVar(&cfg.PostgresPW, "db-password", cfg.PostgresPW, "PostgreSQL password (auto-generated)")
-	flag.BoolVar(&cfg.Silent, "silent", false, "Silent installation (no prompts)")
-	flag.BoolVar(&cfg.NoDocker, "no-docker", false, "Skip Docker Desktop check and install")
-	flag.BoolVar(&cfg.Version, "version", false, "Print version and exit")
-	flag.StringVar(&cfg.LogFile, "log-file", "", "Path to write installation log")
-	flag.Parse()
-
-	if cfg.LogFile != "" {
-		logDir := filepath.Dir(cfg.LogFile)
-		os.MkdirAll(logDir, 0755)
-		f, err := os.Create(cfg.LogFile)
-		if err == nil {
-			log.SetOutput(f)
-			defer f.Close()
-		}
-	}
-	return cfg
+	return filepath.Join(programFiles, "Astra-System")
 }
 
-func printBanner() {
-	fmt.Println(`
-  ╔═══════════════════════════════════════════╗
-  ║        Astra-System Installer v` + Version + `        ║
-  ║  Production-grade Self-Checkout Platform  ║
-  ╚═══════════════════════════════════════════╝
-	`)
-}
-
-func run(cfg Config) error {
-	if !cfg.NoDocker {
-		if !cfg.Silent {
-			fmt.Println("→ Checking prerequisites...")
-		}
-
-		if err := prereq.CheckWSL(); err != nil {
-			fmt.Printf("\n  ! %v\n", err)
-			answer := "y"
-			if !cfg.Silent {
-				answer = deploy.ReadLine("  Install WSL2 now? (Y/n): ")
-			}
-			if answer != "n" && answer != "N" {
-				if err := prereq.InstallWSL(); err != nil {
-					return fmt.Errorf("install WSL: %w", err)
-				}
-				fmt.Println("\n  ✓ WSL2 installed")
-				fmt.Println("  ! Please restart your computer and run the installer again")
-				fmt.Println("  ! to continue with Docker Desktop setup.")
-				os.Exit(0)
-			}
-			return fmt.Errorf("WSL2 is required for Docker Desktop")
-		}
-
-		if err := prereq.CheckDocker(); err != nil {
-			fmt.Printf("\n  ! %v\n", err)
-			answer := "y"
-			if !cfg.Silent {
-				answer = deploy.ReadLine("  Install Docker Desktop now? (Y/n): ")
-			}
-			if answer != "n" && answer != "N" {
-				if err := prereq.InstallDockerDesktop(cfg.Silent); err != nil {
-					return fmt.Errorf("install Docker Desktop: %w", err)
-				}
-				fmt.Println("  ! Please restart your computer and run the installer again")
-				fmt.Println("  ! to complete the Astra-System setup.")
-				os.Exit(0)
-			}
-			return fmt.Errorf("Docker Desktop is required")
-		}
-	}
-
-	if !cfg.Silent {
-		fmt.Println()
-		fmt.Println("→ Deploying Astra-System...")
-		fmt.Printf("  Images:  %s/%s:%s\n", cfg.Registry, "{services}", cfg.Tag)
-		fmt.Printf("  Kiosk:   http://localhost:%s\n", cfg.KioskPort)
-		fmt.Printf("  Data:    %s\n", cfg.DataDir)
-		fmt.Println()
-	}
-
-	if err := deploy.Run(deploy.Config{
-		InstallDir: cfg.InstallDir,
-		DataDir:    cfg.DataDir,
-		Registry:   cfg.Registry,
-		Tag:        cfg.Tag,
-		KioskPort:  cfg.KioskPort,
-		PostgresPW: cfg.PostgresPW,
-		Silent:     cfg.Silent,
-	}); err != nil {
-		return err
-	}
-
-	if !cfg.Silent {
-		fmt.Println("\n  ✓ All services deployed successfully!")
-	}
-
-	return nil
+func prompt(msg string) string {
+	fmt.Print(msg)
+	var input string
+	fmt.Scanln(&input)
+	return input
 }
