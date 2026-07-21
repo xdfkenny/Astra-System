@@ -70,39 +70,34 @@ installer/
 
 ## Architecture
 
-### Installation Flow
+### Installation Flow (State Machine)
+
+The installer uses a state-machine wizard that persists its position across reboots:
 
 ```
-Astra-System-Setup.exe
-        │
-        ▼
-  ┌──────────────────────┐
-  │  Inno Setup          │  Copies files → Program Files\Astra-System
-  │  (setup.iss)         │  Runs astra-installer --silent
-  └──────┬───────────────┘
+Run 1: Astra-System-Setup.exe
+  ├── Inno Setup wizard → copies files, creates shortcuts
+  └── Launches astra-installer.exe
          │
-         ▼
-  ┌──────────────────────────────┐
-  │  astra-installer             │  Checks Docker Desktop
-  │  (Go CLI)                    │  If missing → downloads & installs it
-  │                              │  If just installed → exits, prompts reboot
-  └──────┬───────────────────────┘
-         │ (Docker is running)
-         ▼
-  ┌──────────────────────────────┐
-  │  1. Generate docker-compose  │  Writes compose file with ghcr.io images
-  │  2. docker compose pull      │  Downloads all service images
-  │  3. docker compose up -d     │  Starts PostgreSQL, Redis, NATS, all services
-  │  4. Wait for healthy         │  Polls container health status
-  │  5. Register update agent    │  Installs AstraUpdateAgent Windows service
-  └──────────────────────────────┘
+         ├── State: "wsl" → WSL2 missing → install it
+         │   └── "Restart your computer" → user reboots
          │
-         ▼
-  ┌──────────────────────┐
-  │   System Ready       │   Kiosk:  http://localhost
-  │                      │   API:    http://localhost:8080
-  └──────────────────────┘
+Run 2: open shortcut
+         │
+         ├── State: "docker" → Docker missing → install it
+         │   └── "Start Docker Desktop, then re-run"
+         │
+Run 3: open shortcut
+         │
+         ├── State: "deploy" → Docker running → pull images → start stack
+         │
+Run 4: open shortcut
+         │
+         └── State: "done" → everything is running → show status
 ```
+
+State is stored in `%PROGRAMDATA%\Astra-System\state.json` so the installer
+continues exactly where it left off.
 
 ### Update Flow
 
@@ -198,17 +193,16 @@ The `build-installer.yml` workflow (`.github/workflows/build-installer.yml`):
 
 ### Method 1: Download from GitHub Releases
 
-1. Go to https://github.com/astra-service/Astra-System/releases
-2. Download the latest `Astra-System-Setup.exe` for your channel
-3. Run the installer as **Administrator**
-4. The installer:
-   - Checks for Docker Desktop
-   - If missing, downloads and installs it (you may need to restart after)
-   - Generates a `docker-compose.yml` pointing to ghcr.io images
-   - Runs `docker compose pull` to download all service images
-   - Runs `docker compose up -d` to start all services
-   - Registers the `AstraUpdateAgent` Windows service
-5. Open http://localhost to access the kiosk
+1. Go to https://github.com/xdfkenny/Astra-System/releases
+2. Download the latest `Astra-System-Setup.exe`
+3. Run as Administrator — Inno Setup places files in `Program Files\Astra-System`
+4. Check "Launch Astra-System setup wizard" on the finish page
+5. The wizard runs step by step:
+   - **Step 1**: Checks WSL2 → installs if missing (reboot if needed)
+   - **Step 2**: Checks Docker Desktop → installs if missing (restart if needed)
+   - **Step 3**: Generates docker-compose, pulls images, starts services
+6. After each reboot, open the Astra-System shortcut from Start Menu — the wizard resumes
+7. When complete: kiosk at http://localhost, API at http://localhost:8080
 
 ### Method 2: Bootstrap script (one-liner)
 
