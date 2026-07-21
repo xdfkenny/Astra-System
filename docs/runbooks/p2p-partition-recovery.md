@@ -1,5 +1,10 @@
 # P2P Partition Recovery Runbook
 
+> **See also:**
+> - [P2P Mesh Sync](../networking/p2p-mesh.md) — libp2p, QUIC, Raft, CRDT details
+> - [Offline-First Strategy](../architecture/offline-first.md) — CRDT merge and reconciliation
+> - [Observability Stack](../infrastructure/monitoring.md) — mesh health metrics
+
 ## Purpose
 
 Restore convergence and consensus when the kiosk P2P mesh splits into partitions or loses Raft leadership.

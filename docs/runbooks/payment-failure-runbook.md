@@ -1,5 +1,10 @@
 # Payment Failure Runbook
 
+> **See also:**
+> - [Payment Orchestrator](../backend/payment-orchestrator.md) — payment flow, offline tokens
+> - [Security Model](../architecture/security-model.md) — PCI-DSS, Verifone isolation
+> - [Observability Stack](../infrastructure/monitoring.md) — payment metrics and alerts
+
 ## Purpose
 
 Resolve payment failures across Verifone terminals, the offline token queue, and cloud settlement. This runbook covers both online and offline payment paths.

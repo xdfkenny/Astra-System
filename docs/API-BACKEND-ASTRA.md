@@ -1,6 +1,12 @@
 # Backend API Full Inventory — Astra-System
 
-*Document version: 1.0.0 • Last updated: 2026-07-07*
+*Document version: 1.1.0 • Last updated: 2026-07-20*
+
+> **See also:**
+> - [REST API Reference](./backend/rest-api.md) — structured endpoint documentation with request/response examples
+> - [gRPC API Reference](./backend/grpc-api.md) — protobuf service definitions and message types
+> - [API Gateway](./backend/api-gateway.md) — gateway middleware, rate limiting, auth
+> - [Microservices Overview](./backend/microservices.md) — service map, dependencies, ports
 
 ---
 

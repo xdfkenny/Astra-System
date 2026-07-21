@@ -1,8 +1,13 @@
 # Offline Mode Operations Runbook
 
+> **See also:**
+> - [Offline-First Strategy](../architecture/offline-first.md) — 3-tier resilience model, CRDT details
+> - [P2P Mesh Sync](../networking/p2p-mesh.md) — mesh sync during offline periods
+> - [Payment Orchestrator](../backend/payment-orchestrator.md) — offline token system
+
 ## Purpose
 
-Operate Astra-Service kiosks during extended cloud connectivity loss. Offline mode is a designed, first-class state — not a failure condition — but requires monitoring to ensure the 48-hour resilience window is not exceeded.
+Operate Astra-System kiosks during extended cloud connectivity loss. Offline mode is a designed, first-class state — not a failure condition — but requires monitoring to ensure the 48-hour resilience window is not exceeded.
 
 ## When Offline Mode Activates
 

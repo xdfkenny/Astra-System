@@ -1,12 +1,14 @@
-# Astra-Service Architecture
+# Astra-System Architecture
+
+> **Reference:** For expanded sections on specific topics, see the [structured documentation](./docs/README.md).
 
 ## Document Control
 
 | Field        | Value                                     |
 | ------------ | ----------------------------------------- |
-| Version      | 1.1                                       |
-| Last Updated | 2026-07-05                                |
-| Author       | Astra-Service Engineering Team            |
+| Version      | 1.2                                       |
+| Last Updated | 2026-07-20                                |
+| Author       | Astra-System Engineering Team             |
 | Status       | Approved                                  |
 | Related RFCs | RFC-001 Offline-First, RFC-004 Zero-Trust |
 
@@ -23,6 +25,15 @@
 9. [Observability](#observability)
 10. [Deep Improvements Summary](#deep-improvements-summary)
 11. [Appendices](#appendices)
+
+> **See also:**
+> - [System Overview](./docs/architecture/overview.md) — high-level architecture diagram, design tenets, tech stack
+> - [System Design Patterns](./docs/architecture/system-design.md) — patterns: microservices, micro-frontends, event sourcing, CQRS
+> - [Offline-First Strategy](./docs/architecture/offline-first.md) — detailed 3-tier resilience model
+> - [Security Model](./docs/architecture/security-model.md) — zero-trust, WebAuthn, mTLS, PCI-DSS
+> - [REST API Reference](./docs/backend/rest-api.md) — complete REST endpoint inventory
+> - [gRPC API Reference](./docs/backend/grpc-api.md) — protobuf service definitions
+> - [P2P Mesh Sync](./docs/networking/p2p-mesh.md) — libp2p, QUIC, Raft, CRDT replication
 
 ---
 

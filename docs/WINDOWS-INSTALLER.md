@@ -1,5 +1,10 @@
 # Astra-System Windows Installer & Update System
 
+> **See also:**
+> - [CI/CD Pipeline](./infrastructure/ci-cd.md) — build-installer workflow details
+> - [Development Setup](./development/setup.md) — local dev environment
+> - [Deployment Guide](./operations/deployment.md) — production deployment
+
 ## Overview
 
 The Astra-System Windows Installer provides a production-grade installation and

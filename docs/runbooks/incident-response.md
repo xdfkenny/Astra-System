@@ -1,8 +1,13 @@
 # Incident Response Runbook
 
+> **See also:**
+> - [Observability Stack](../infrastructure/monitoring.md) — metrics, alerts, dashboards
+> - [Deployment Guide](../operations/deployment.md) — production topology
+> - [Security Model](../architecture/security-model.md) — security incident context
+
 ## Purpose
 
-This runbook defines the step-by-step response process for production incidents affecting Astra-Service kiosks, cloud services, or the P2P mesh.
+This runbook defines the step-by-step response process for production incidents affecting Astra-System kiosks, cloud services, or the P2P mesh.
 
 ## Severity Definitions
 
