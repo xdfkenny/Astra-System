@@ -1,9 +1,4 @@
-# Builds the Astra-System Windows Installer (.exe)
-# Triggered by:
-#   - Pushing a tag matching v* (e.g., v0.2.0-stable, v0.2.0-beta)
-#   - Manual workflow_dispatch with a version and channel
-
-name: Build Windows Installer
+name: Build Installer
 
 on:
   push:
@@ -35,15 +30,38 @@ permissions:
 env:
   REGISTRY: ghcr.io
   GO_VERSION: "1.25"
-  INSTALLER_VERSION: "0.2.0"
 
 jobs:
-  build-installer:
-    name: Build Windows Installer
-    runs-on: windows-2022
+  build-binaries:
+    name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: windows
+            goarch: amd64
+            exe: .exe
+            artifact_name: astra-installer-windows-amd64
+          - goos: darwin
+            goarch: amd64
+            exe: ""
+            artifact_name: astra-installer-darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            exe: ""
+            artifact_name: astra-installer-darwin-arm64
+          - goos: linux
+            goarch: amd64
+            exe: ""
+            artifact_name: astra-installer-linux-amd64
+          - goos: linux
+            goarch: arm64
+            exe: ""
+            artifact_name: astra-installer-linux-arm64
+    runs-on: ubuntu-latest
     defaults:
       run:
-        shell: pwsh
+        shell: bash
 
     steps:
       - name: Checkout
@@ -58,41 +76,128 @@ jobs:
           cache: true
           cache-dependency-path: |
             installer/astra-installer/go.sum
-            installer/astra-updater/go.sum
+
+      - name: Determine version and channel
+        id: version
+        run: |
+          tag="${{ github.ref_name }}"
+          version="$tag"
+          version="${version#v}"
+          channel="stable"
+          if [[ "$version" =~ -(.+)$ ]]; then
+            channel="${BASH_REMATCH[1]}"
+            version="${version%-$channel}"
+          fi
+          [[ "$channel" =~ ^(stable|beta|canary)$ ]] || channel="stable"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Build astra-installer
         working-directory: installer/astra-installer
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
         run: |
-          go build -ldflags="-s -w -X main.Version=${{ github.ref_name }}" -o ../bin/astra-installer.exe ./cmd/astra-installer
+          go vet ./...
+          go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }}" -o ../../dist/astra-installer${{ matrix.exe }} ./cmd/astra-installer
+
+      - name: Generate checksum
+        working-directory: dist
+        run: |
+          sha256sum astra-installer* > checksums.txt
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            dist/astra-installer${{ matrix.exe }}
+            dist/checksums.txt
+
+  build-windows-installer:
+    name: Build Windows Installer (.exe)
+    needs: build-binaries
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Windows binary
+        uses: actions/download-artifact@v4
+        with:
+          name: astra-installer-windows-amd64
+          path: installer\bin
+
+      - name: Determine version and channel
+        id: version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag
+          if ($version -match '^v(.+)') { $version = $matches[1] }
+          $channel = "stable"
+          if ($version -match '-(\w+)$') {
+            $channel = $matches[1]
+            $version = $version -replace "-${channel}$", ""
+          }
+          if ($channel -notin @('stable','beta','canary')) { $channel = 'stable' }
+          Write-Output "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Output "channel=$channel" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Output "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
 
       - name: Build astra-updater
         working-directory: installer/astra-updater
         run: |
-          go build -ldflags="-s -w -X main.Version=${{ github.ref_name }}" -o ../bin/astra-updater.exe ./cmd/astra-updater
-
-      - name: Install Inno Setup via Chocolatey
-        run: |
-          choco install innosetup --confirm --no-progress 2>&1
-          $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
-          if (Test-Path $iscc) {
-            echo "Installed Inno Setup 6"
-            $iscc | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          } else {
-            # Fallback: try to find it
-            $iscc = Get-ChildItem -Path ${env:ProgramFiles(x86)} -Recurse -Filter "ISCC.exe" | Select-Object -First 1 -ExpandProperty FullName
-            if ($iscc) {
-              $parent = Split-Path $iscc -Parent
-              $parent | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-            } else {
-              Write-Error "Inno Setup not found after installation"
-              exit 1
-            }
-          }
+          go vet ./...
+          go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }}" -o ..\bin\astra-updater.exe .\cmd\astra-updater
 
       - name: Update version in setup.iss
         run: |
           $issPath = "installer\setup.iss"
-          (Get-Content $issPath) -replace '#define MyAppVersion ".*"', '#define MyAppVersion "${{ github.ref_name }}"' | Set-Content $issPath
+          (Get-Content $issPath) -replace '#define AppVersion ".*"', '#define AppVersion "${{ steps.version.outputs.version }}"' | Set-Content $issPath
+          (Get-Content $issPath) -replace '#define AppURL ".*"', '#define AppURL "https://github.com/${{ github.repository }}"' | Set-Content $issPath
+
+      - name: Install Inno Setup
+        run: |
+          $isccFound = $false
+          $iscc = Get-Command "ISCC.exe" -ErrorAction SilentlyContinue
+          if ($iscc) { $isccFound = $true }
+          if (-not $isccFound) {
+            try {
+              choco install innosetup --confirm --no-progress 2>&1
+              $iscc = Get-Command "ISCC.exe" -ErrorAction SilentlyContinue
+              if ($iscc) { $isccFound = $true }
+            } catch {
+              Write-Host "Chocolatey install failed: $_"
+            }
+          }
+          if (-not $isccFound) {
+            $url = "https://jrsoftware.org/download.php/innosetup.exe"
+            $out = "$env:TEMP\innosetup.exe"
+            Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing
+            Start-Process -FilePath $out -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/DIR=${env:ProgramFiles}\Inno Setup 6" -Wait
+            ${env:ProgramFiles}\Inno Setup 6 | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            $iscc = Get-Command "ISCC.exe" -ErrorAction SilentlyContinue
+            if ($iscc) { $isccFound = $true }
+          }
+          if (-not $isccFound) {
+            Write-Error "Inno Setup installation failed"
+            exit 1
+          }
+          Write-Host "Inno Setup installed at: $(Split-Path $iscc.Source -Parent)"
 
       - name: Compile Inno Setup installer
         run: |
@@ -100,14 +205,13 @@ jobs:
         env:
           SOURCE_DIR: ${{ github.workspace }}
 
-      - name: Determine channel from tag
-        id: channel
+      - name: Verify installer exists
         run: |
-          $tag = "${{ github.ref_name }}"
-          $channel = "stable"
-          if ($tag -match '-(\w+)$') { $channel = $matches[1] }
-          if ($channel -notin @('stable','beta','canary')) { $channel = 'stable' }
-          Write-Output "channel=$channel" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          if (-not (Test-Path "dist\Astra-System-Setup.exe")) {
+            Write-Error "Installer not found at dist\Astra-System-Setup.exe"
+            exit 1
+          }
+          Write-Host "Installer size: $((Get-Item "dist\Astra-System-Setup.exe").Length / 1MB) MB"
 
       - name: Generate checksums and manifest
         working-directory: dist
@@ -115,16 +219,16 @@ jobs:
           $hash = (Get-Item "Astra-System-Setup.exe" | Get-FileHash -Algorithm SHA256).Hash.ToLower()
           "$hash  Astra-System-Setup.exe" | Out-File -FilePath "Astra-System-Setup.exe.sha256" -Encoding ascii
 
-          $channel = "${{ steps.channel.outputs.channel }}"
+          $channel = "${{ steps.version.outputs.channel }}"
           $releasedAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 
           $manifest = @{
-            version = "${{ github.ref_name }}"
+            version = "${{ steps.version.outputs.version }}"
             channel = $channel
             releasedAt = $releasedAt
             artifacts = @{
-              "astra-installer" = @{
-                url = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Astra-System-Setup.exe"
+              "astra-installer-windows" = @{
+                url = "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/Astra-System-Setup.exe"
                 checksum = "sha256:$hash"
                 platforms = @("windows/amd64")
               }
@@ -138,33 +242,87 @@ jobs:
           $manifest | ConvertTo-Json -Depth 10 | Out-File -FilePath "update-manifest.json" -Encoding utf8
           Get-Content "update-manifest.json"
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          body: |
-            ## Astra-System ${{ github.ref_name }}
-
-            ### ${{ steps.channel.outputs.channel }} Channel Release
-
-            ### Assets
-            - `Astra-System-Setup.exe` — Windows installer
-            - `Astra-System-Setup.exe.sha256` — SHA-256 checksum
-            - `update-manifest.json` — Update manifest for auto-updater
-          prerelease: ${{ steps.channel.outputs.channel != 'stable' }}
-          files: |
-            dist/Astra-System-Setup.exe
-            dist/Astra-System-Setup.exe.sha256
-            dist/update-manifest.json
-          generate_release_notes: true
-
-      - name: Upload installer as workflow artifact
+      - name: Upload Windows installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Astra-System-Setup-${{ github.ref_name }}
+          name: Astra-System-Setup
           path: |
             dist/Astra-System-Setup.exe
             dist/Astra-System-Setup.exe.sha256
             dist/update-manifest.json
+
+  release:
+    name: Create GitHub Release
+    needs: [build-binaries, build-windows-installer]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine version and channel
+        id: version
+        run: |
+          tag="${{ github.ref_name }}"
+          version="$tag"
+          version="${version#v}"
+          channel="stable"
+          if [[ "$version" =~ -(.+)$ ]]; then
+            channel="${BASH_REMATCH[1]}"
+            version="${version%-$channel}"
+          fi
+          [[ "$channel" =~ ^(stable|beta|canary)$ ]] || channel="stable"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          # Windows installer
+          cp artifacts/Astra-System-Setup/Astra-System-Setup.exe release/
+          cp artifacts/Astra-System-Setup/Astra-System-Setup.exe.sha256 release/
+          cp artifacts/Astra-System-Setup/update-manifest.json release/
+          # macOS binaries
+          cp artifacts/astra-installer-darwin-amd64/astra-installer release/astra-installer-darwin-amd64
+          cp artifacts/astra-installer-darwin-arm64/astra-installer release/astra-installer-darwin-arm64
+          # Linux binaries
+          cp artifacts/astra-installer-linux-amd64/astra-installer release/astra-installer-linux-amd64
+          cp artifacts/astra-installer-linux-arm64/astra-installer release/astra-installer-linux-arm64
+          # install.sh
+          cp installer/scripts/install.sh release/install.sh
+          # Checksums for all
+          cd release
+          sha256sum * > checksums.txt
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          body: |
+            ## Astra-System ${{ steps.version.outputs.version }}
+
+            ### ${{ steps.version.outputs.channel }} Channel Release
+
+            ### Assets
+            - `Astra-System-Setup.exe` — Windows installer
+            - `astra-installer-darwin-{amd64,arm64}` — macOS binaries
+            - `astra-installer-linux-{amd64,arm64}` — Linux binaries
+            - `install.sh` — Cross-platform bootstrap script
+            - `update-manifest.json` — Update manifest for auto-updater
+          prerelease: ${{ steps.version.outputs.channel != 'stable' }}
+          files: release/*
+          generate_release_notes: true
+
+      - name: Upload all artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: release/*

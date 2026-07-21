@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 type Config struct {
@@ -227,6 +226,4 @@ volumes:
 		pImg(cfg.KioskImage), cfg.KioskPort)
 }
 
-func sanitizeImageName(name string) string {
-	return strings.ReplaceAll(strings.TrimSpace(name), " ", "-")
-}
+

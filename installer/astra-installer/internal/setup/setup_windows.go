@@ -1,3 +1,5 @@
+//go:build windows
+
 package setup
 
 import (
@@ -34,5 +36,16 @@ func Install(installDir, dataDir, channel string, silent bool) error {
 		}
 	}
 
+	return nil
+}
+
+func Remove(dataDir string) error {
+	updaterSrc := filepath.Join(filepath.Dir(dataDir), "bin", "astra-updater.exe")
+	if _, err := os.Stat(updaterSrc); err == nil {
+		cmd := exec.Command(updaterSrc, "remove")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		return cmd.Run()
+	}
 	return nil
 }
