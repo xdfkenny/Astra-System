@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "channel": "stable",
+  "releasedAt": "",
+  "artifacts": {
+    "astra-installer": {
+      "url": "",
+      "checksum": "",
+      "platforms": ["windows/amd64"]
+    }
+  },
+  "rollout": {
+    "strategy": "idle-only",
+    "maxConcurrent": 10,
+    "healthCheckSeconds": 300
+  }
+}

@@ -55,3 +55,10 @@ secrets/
 *.key
 *.pem
 !infra/certs/.gitkeep
+
+# Installer build outputs
+installer/bin/
+installer/*.exe
+installer/*.sha256
+installer/astra-installer/astra-installer.exe
+installer/astra-updater/astra-updater.exe

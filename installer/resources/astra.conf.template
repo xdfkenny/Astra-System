@@ -1,0 +1,9 @@
+# Astra-System Runtime Configuration
+# Managed by the update agent — do not edit manually.
+
+ASTRA_INSTALL_DIR={install_dir}
+ASTRA_DATA_DIR={data_dir}
+ASTRA_UPDATE_CHANNEL={channel}
+ASTRA_COMPOSE_DIR={compose_dir}
+ASTRA_LOG_DIR={log_dir}
+ASTRA_CURRENT_VERSION={version}

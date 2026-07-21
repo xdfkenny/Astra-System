@@ -1,0 +1,156 @@
+# Builds the Astra-System Windows Installer (.exe)
+# Triggered by:
+#   - Pushing a tag matching v* (e.g., v0.2.0-stable, v0.2.0-beta)
+#   - Manual workflow_dispatch with a version and channel
+
+name: Build Windows Installer
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semantic version (e.g., 0.2.0)"
+        required: true
+        type: string
+      channel:
+        description: "Release channel"
+        required: true
+        type: choice
+        options:
+          - stable
+          - beta
+          - canary
+      prerelease:
+        description: "Mark as prerelease"
+        required: false
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  GO_VERSION: "1.25"
+  INSTALLER_VERSION: "0.2.0"
+
+jobs:
+  build-installer:
+    name: Build Windows Installer
+    runs-on: windows-2025
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: |
+            installer/astra-installer/go.sum
+            installer/astra-updater/go.sum
+
+      - name: Build astra-installer
+        working-directory: installer/astra-installer
+        run: |
+          go build -ldflags="-s -w -X main.Version=${{ github.ref_name }}" -o ../bin/astra-installer.exe ./cmd/astra-installer
+
+      - name: Build astra-updater
+        working-directory: installer/astra-updater
+        run: |
+          go build -ldflags="-s -w -X main.Version=${{ github.ref_name }}" -o ../bin/astra-updater.exe ./cmd/astra-updater
+
+      - name: Download Inno Setup
+        run: |
+          $url = "https://jrsoftware.org/download.php/is.exe"
+          $out = "$env:TEMP\innosetup.exe"
+          Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing
+          Start-Process -FilePath $out -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/DIR=$env:TEMP\InnoSetup" -Wait
+          echo "$env:TEMP\InnoSetup" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Update version in setup.iss
+        run: |
+          $issPath = "installer\setup.iss"
+          (Get-Content $issPath) -replace '#define MyAppVersion ".*"', '#define MyAppVersion "${{ github.ref_name }}"' | Set-Content $issPath
+
+      - name: Compile Inno Setup installer
+        run: |
+          ISCC.exe "installer\setup.iss"
+        env:
+          SOURCE_DIR: ${{ github.workspace }}
+
+      - name: Determine channel from tag
+        id: channel
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $channel = "stable"
+          if ($tag -match '-(\w+)$') { $channel = $matches[1] }
+          if ($channel -notin @('stable','beta','canary')) { $channel = 'stable' }
+          Write-Output "channel=$channel" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Generate checksums and manifest
+        working-directory: dist
+        run: |
+          $hash = (Get-Item "Astra-System-Setup.exe" | Get-FileHash -Algorithm SHA256).Hash.ToLower()
+          "$hash  Astra-System-Setup.exe" | Out-File -FilePath "Astra-System-Setup.exe.sha256" -Encoding ascii
+
+          $channel = "${{ steps.channel.outputs.channel }}"
+          $releasedAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+
+          $manifest = @{
+            version = "${{ github.ref_name }}"
+            channel = $channel
+            releasedAt = $releasedAt
+            artifacts = @{
+              "astra-installer" = @{
+                url = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Astra-System-Setup.exe"
+                checksum = "sha256:$hash"
+                platforms = @("windows/amd64")
+              }
+            }
+            rollout = @{
+              strategy = "idle-only"
+              maxConcurrent = 10
+              healthCheckSeconds = 300
+            }
+          }
+          $manifest | ConvertTo-Json -Depth 10 | Out-File -FilePath "update-manifest.json" -Encoding utf8
+          Get-Content "update-manifest.json"
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body: |
+            ## Astra-System ${{ github.ref_name }}
+
+            ### ${{ steps.channel.outputs.channel }} Channel Release
+
+            ### Assets
+            - `Astra-System-Setup.exe` — Windows installer
+            - `Astra-System-Setup.exe.sha256` — SHA-256 checksum
+            - `update-manifest.json` — Update manifest for auto-updater
+          prerelease: ${{ steps.channel.outputs.channel != 'stable' }}
+          files: |
+            dist/Astra-System-Setup.exe
+            dist/Astra-System-Setup.exe.sha256
+            dist/update-manifest.json
+          generate_release_notes: true
+
+      - name: Upload installer as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astra-System-Setup-${{ github.ref_name }}
+          path: |
+            dist/Astra-System-Setup.exe
+            dist/Astra-System-Setup.exe.sha256
+            dist/update-manifest.json
