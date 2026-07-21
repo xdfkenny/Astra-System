@@ -24,6 +24,7 @@ type Config struct {
 	Silent     bool
 	NoDocker   bool
 	Version    bool
+	LogFile    string
 }
 
 func main() {
@@ -83,7 +84,18 @@ func parseFlags() Config {
 	flag.BoolVar(&cfg.Silent, "silent", false, "Silent installation (no prompts)")
 	flag.BoolVar(&cfg.NoDocker, "no-docker", false, "Skip Docker Desktop check and install")
 	flag.BoolVar(&cfg.Version, "version", false, "Print version and exit")
+	flag.StringVar(&cfg.LogFile, "log-file", "", "Path to write installation log")
 	flag.Parse()
+
+	if cfg.LogFile != "" {
+		logDir := filepath.Dir(cfg.LogFile)
+		os.MkdirAll(logDir, 0755)
+		f, err := os.Create(cfg.LogFile)
+		if err == nil {
+			log.SetOutput(f)
+			defer f.Close()
+		}
+	}
 	return cfg
 }
 

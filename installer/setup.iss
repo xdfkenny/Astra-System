@@ -72,14 +72,14 @@ Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\bin\{#MyAppExeName}"; Parameters: "--channel stable"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-; Deploy Astra-System (pulls Docker images, starts services)
-Filename: "{app}\bin\astra-installer.exe"; Parameters: "--install-dir ""{app}"" --data-dir ""{commonappdata}\Astra-System"" --silent"; Flags: runhidden runascurrentuser; StatusMsg: "Deploying Astra-System services (this may take several minutes)..."
+; Deploy Astra-System — console window shows WSL/Docker/progress
+Filename: "{app}\bin\astra-installer.exe"; Parameters: "--install-dir ""{app}"" --data-dir ""{commonappdata}\Astra-System"" --log-file ""{commonappdata}\Astra-System\logs\install.log"""; StatusMsg: "Deploying Astra-System (check the console window for progress)..."
 ; Open the kiosk dashboard
-Filename: "http://localhost"; Flags: shellexec postinstall; Description: "Open Astra-System kiosk (after services are ready)"
+Filename: "http://localhost"; Flags: shellexec postinstall; Description: "Open Astra-System kiosk"
 
 [UninstallRun]
 ; Stop and remove the update agent service
-Filename: "{app}\bin\astra-updater.exe"; Parameters: "remove"; Flags: runhidden runascurrentuser
+Filename: "{app}\bin\astra-updater.exe"; Parameters: "remove"; Flags: runascurrentuser
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{commonappdata}\Astra-System\config"
