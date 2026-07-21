@@ -66,16 +66,16 @@ export function ViewportLock({ children }: PropsWithChildren): React.JSX.Element
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-black" aria-hidden={false}>
+    <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-background" aria-hidden={false}>
       <div
         ref={canvasRef}
         style={{
-          width: LOGICAL_WIDTH,
-          height: LOGICAL_HEIGHT,
-          transform: `scale(${scale})`,
+          width: "100%",
+          height: "100%",
+          transform: "none",
           transformOrigin: "center center",
         }}
-        className="relative flex flex-col overflow-hidden bg-background"
+        className="relative flex flex-col w-full h-full overflow-hidden bg-background"
         data-testid="viewport-lock-canvas"
       >
         <ViewportCtx.Provider value={viewport}>

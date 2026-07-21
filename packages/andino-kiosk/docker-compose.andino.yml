@@ -1,0 +1,41 @@
+# Andino Kiosk — extends the Astra-System compose stack
+# Usage: docker compose -f docker-compose.yml -f packages/andino-kiosk/docker-compose.andino.yml up -d
+
+services:
+  andino-kiosk:
+    build:
+      context: ../../
+      dockerfile: packages/andino-kiosk/Dockerfile
+    image: ghcr.io/xdfkenny/astra-system/andino-kiosk:latest
+    container_name: astra-andino-kiosk
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    environment:
+      NUXT_PUBLIC_PRODUCT_SERVICE_MODE: ${ANDINO_PRODUCT_MODE:-api}
+      ANDINO_BASE_URL: ${ANDINO_BASE_URL:-https://andinoapp.com}
+      ANDINO_ACCESS_TOKEN: ${ANDINO_ACCESS_TOKEN:-}
+      ANDINO_SCHOOL_ID: ${ANDINO_SCHOOL_ID:-9}
+      ANDINO_PROTOTYPE_USER_ID: ${ANDINO_PROTOTYPE_USER_ID:-}
+      ANDINO_PROTOTYPE_PIN: ${ANDINO_PROTOTYPE_PIN:-123456}
+      NUXT_ADMIN_CREDENTIALS: ${ANDINO_ADMIN_CREDENTIALS:-admin:changeme}
+      NUXT_ADMIN_SESSION_SECRET: ${ANDINO_ADMIN_SESSION_SECRET:-}
+      NODE_ENV: production
+      KIOSK_DATA_ROOT: /app/data
+      KIOSK_LOG_LEVEL: ${ANDINO_LOG_LEVEL:-info}
+      VERIFONE_POS_ENABLED: ${ANDINO_POS_ENABLED:-false}
+      KIOSK_RECEIPT_PRINTER_ENABLED: ${ANDINO_PRINTER_ENABLED:-false}
+      P2P_ENABLED: ${ANDINO_P2P_ENABLED:-false}
+      KIOSK_FACE_CAMERA_ENABLED: ${ANDINO_FACE_ENABLED:-false}
+    volumes:
+      - andino_kiosk_data:/app/data
+    networks:
+      - astra-net
+
+volumes:
+  andino_kiosk_data:
+
+networks:
+  astra-net:
+    external: true
