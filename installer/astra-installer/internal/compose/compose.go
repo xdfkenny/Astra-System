@@ -102,6 +102,28 @@ func buildCompose(cfg Config) string {
       - "4222:4222"
       - "8222:8222"
 
+  nats-init:
+    image: natsio/nats-box:latest
+    container_name: astra-nats-init
+    restart: "no"
+    depends_on:
+      nats:
+        condition: service_started
+    entrypoint:
+      - sh
+      - -c
+      - |
+        sleep 3
+        nats stream add --server nats://astra-nats:4222 ASTRA_CART --subjects 'astra.cart.>' --storage file --replicas 1 --retention limits --max-age 30d --defaults
+        nats stream add --server nats://astra-nats:4222 ASTRA_INVENTORY --subjects 'astra.inventory.>' --storage file --replicas 1 --retention limits --max-age 90d --defaults
+        nats stream add --server nats://astra-nats:4222 ASTRA_PAYMENT --subjects 'astra.payment.>' --storage file --replicas 1 --retention limits --max-age 2555d --defaults
+        nats stream add --server nats://astra-nats:4222 ASTRA_ORDER --subjects 'astra.order.>' --storage file --replicas 1 --retention limits --max-age 2555d --defaults
+        nats stream add --server nats://astra-nats:4222 ASTRA_MENU --subjects 'astra.menu.>' --storage file --replicas 1 --retention limits --max-age 90d --defaults
+        nats stream add --server nats://astra-nats:4222 ASTRA_SYSTEM --subjects 'astra.sync.>,astra.kiosk.>' --storage file --replicas 1 --retention limits --max-age 7d --defaults
+        echo "NATS streams initialized"
+    networks:
+      - default
+
   gateway:
     image: %[2]s
     container_name: astra-gateway
@@ -110,7 +132,7 @@ func buildCompose(cfg Config) string {
       - "8080:8080"
     environment:
       DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
-      REDIS_URL: redis:6379
+      REDIS_URL: redis://redis:6379/0
       REDIS_ADDR: redis:6379
       NATS_URL: nats://nats:4222
       GATEWAY_JWT_EDDSA_PUBLIC_KEY: %[10]s
@@ -128,7 +150,7 @@ func buildCompose(cfg Config) string {
       - "8085:8085"
     environment:
       DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
-      REDIS_URL: redis:6379
+      REDIS_URL: redis://redis:6379/0
       NATS_URL: nats://nats:4222
       NATS_STREAM_REPLICAS: "1"
     depends_on:
@@ -172,7 +194,7 @@ func buildCompose(cfg Config) string {
       - "8082:8082"
     environment:
       DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
-      REDIS_URL: redis:6379
+      REDIS_URL: redis://redis:6379/0
       NATS_URL: nats://nats:4222
       NATS_STREAM_REPLICAS: "1"
     depends_on:
@@ -187,7 +209,7 @@ func buildCompose(cfg Config) string {
       - "8087:8087"
     environment:
       DATABASE_URL: postgres://astra:%[1]s@postgres:5432/astra_service?sslmode=disable
-      REDIS_URL: redis:6379
+      REDIS_URL: redis://redis:6379/0
       NATS_URL: nats://nats:4222
       NATS_STREAM_REPLICAS: "1"
     depends_on:

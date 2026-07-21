@@ -61,7 +61,7 @@ func main() {
 func parseAndValidate() Config {
 	cfg := Config{
 		KioskPort:  "80",
-		PostgresPW: fmt.Sprintf("astra_%d", time.Now().Unix()),
+		PostgresPW: "astra-system",
 		Channel:    "stable",
 		Registry:   "ghcr.io/xdfkenny/astra-system",
 		Tag:        "latest",
