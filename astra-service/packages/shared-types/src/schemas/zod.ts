@@ -49,6 +49,7 @@ export const PaymentStatusSchema = z.enum([
   "pending",
   "authorized",
   "captured",
+  "queued_offline",
   "declined",
   "voided",
   "refunded",
