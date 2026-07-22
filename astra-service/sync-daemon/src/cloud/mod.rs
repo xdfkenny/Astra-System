@@ -118,8 +118,10 @@ impl CloudSync {
                             continue;
                         }
 
-                        if let Err(e) = flush_to_cloud(&db, jetstream.as_ref().unwrap(), &config).await {
-                            error!(%e, "Cloud flush failed");
+                        if let Some(js) = jetstream.as_ref() {
+                            if let Err(e) = flush_to_cloud(&db, js, &config).await {
+                                error!(%e, "Cloud flush failed");
+                            }
                         }
                     }
                     _ = reconnect_timer.tick() => {
