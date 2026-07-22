@@ -109,7 +109,11 @@ func (h *PaymentHandler) HandleRecordAuthorization(ctx context.Context, msg jets
 		"method":      cmd.Method,
 		"recordedAt":  time.Now().UTC().Format(time.RFC3339Nano),
 	}
-	eventBytes, _ := json.Marshal(event)
+	eventBytes, err := json.Marshal(event)
+		if err != nil {
+			log.Printf("payment_handler: failed to marshal recorded event: %v", err)
+			return nil
+		}
 	if err := h.bus.Publish(ctx, "astra.payment.recorded.v1", eventBytes); err != nil {
 		// Log but do not fail: the payment is already persisted; a missing
 		// downstream event will be reconciled by the outbox/audit pipeline.
@@ -203,7 +207,11 @@ func (h *PaymentHandler) settleBatch(ctx context.Context) error {
 			Success:     true,
 			ProcessorID: "simulated-settlement",
 		}
-		resultBytes, _ := json.Marshal(result)
+		resultBytes, err := json.Marshal(result)
+			if err != nil {
+				log.Printf("payment_handler: failed to marshal settlement result for token %s: %v", token.TokenID, err)
+				continue
+			}
 		if err := h.repo.MarkOfflineSettled(ctx, token.TokenID, resultBytes); err != nil {
 			log.Printf("payment_handler: mark settled %s: %v", token.TokenID, err)
 			continue

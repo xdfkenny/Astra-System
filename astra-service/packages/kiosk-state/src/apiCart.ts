@@ -176,8 +176,8 @@ export class ApiCart {
       })),
       version: response.version,
       currency: "USD",
-      createdAtMs: new Date(response.expiresAt).getTime(),
-      updatedAtMs: new Date(response.expiresAt).getTime(),
+      createdAtMs: response.expiresAt ? new Date(response.expiresAt).getTime() : Date.now(),
+      updatedAtMs: response.expiresAt ? new Date(response.expiresAt).getTime() : Date.now(),
     };
   }
 

@@ -308,7 +308,7 @@ func mapStatus(s domain.PaymentStatus) payment.PaymentStatus {
 	case domain.StatusCaptured:
 		return payment.PaymentStatus_PAYMENT_STATUS_CAPTURED
 	case domain.StatusSettled:
-		return payment.PaymentStatus_PAYMENT_STATUS_AUTHORIZED
+		return payment.PaymentStatus_PAYMENT_STATUS_CAPTURED
 	case domain.StatusFailed:
 		return payment.PaymentStatus_PAYMENT_STATUS_DECLINED
 	default:

@@ -23,3 +23,7 @@ test-results/
 *.age
 secrets/*.enc.yaml
 !secrets/*.example.yaml
+# Compiled binaries
+gateway-linux
+*.exe
+*.bin

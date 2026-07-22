@@ -285,10 +285,8 @@ export const kioskMachine = createMachine(
                   errorMessage: ({ event }) =>
                     event.error instanceof Error ? event.error.message : "Order finalization failed.",
                 }),
-                 () => {
-                   log.error("Order finalization failed", undefined, {
-                     sessionId: undefined,
-                   });
+                 ({ event }) => {
+                   log.error("Order finalization failed", event.error instanceof Error ? event.error : undefined);
                  },
               ],
             },

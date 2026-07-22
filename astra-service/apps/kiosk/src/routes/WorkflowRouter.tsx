@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense, useMemo } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useKioskMachine } from "../machines/KioskMachineProvider";
 import { LanguageSelectScreen } from "./LanguageSelectScreen";
@@ -11,75 +11,69 @@ import { ReceiptScreen } from "./ReceiptScreen";
 import { AdminScreen } from "./AdminScreen";
 import { ItemModal } from "./ItemModal";
 
-const DEV_MODE = import.meta.env.DEV || (import.meta.env as Record<string, string | undefined>)["VITE_ASTRA_DEV_MODE"] === "true";
+// Remote micro-frontends — lazily loaded only when enabled via env var.
+// Defined at module level (not inside useMemo) so React doesn't recreate
+// them on every render, which would cause remounting.
+const RemoteMenuApp = lazy(() =>
+  import("astra_menu/MenuApp").catch(() => ({
+    default: MenuScreen,
+  })),
+);
+
+const RemoteCartApp = lazy(() =>
+  import("astra_cart/CartApp").catch(() => ({
+    default: CartReviewScreen,
+  })),
+);
+
+const useRemote =
+  (import.meta.env as Record<string, string | undefined>)["VITE_ENABLE_REMOTES"] === "true";
 
 export function WorkflowRouter(): React.JSX.Element {
   const { state, send } = useKioskMachine();
-  const stage = state.value as string;
+  const stage = String(state.value);
   const reduceMotion = useReducedMotion();
 
-  const useRemote = !DEV_MODE;
-
   const baseScreen = useMemo(() => {
-    if (stage === "LANGUAGE_SELECT") return <LanguageSelectScreen />;
-    if (stage === "ATTRACT") return <AttractScreen />;
-    if (stage === "ADMIN") return <AdminScreen />;
+    if (state.matches("LANGUAGE_SELECT")) return <LanguageSelectScreen />;
+    if (state.matches("ATTRACT")) return <AttractScreen />;
+    if (state.matches("ADMIN")) return <AdminScreen />;
 
-    if (stage === "MENU" || stage === "ITEM_DETAIL") {
+    if (state.matches("MENU") || state.matches("ITEM_DETAIL")) {
       if (useRemote) {
-        const MenuApp = lazy(() =>
-          import("astra_menu/MenuApp").then((m) => ({
-            default: () => {
-              const C = m.default;
-              return (
-                <C
-                  laneMode={state.context.laneMode}
-                  silentAssistArmed={false}
-                  onSelectItem={(item) => { send({ type: "SELECT_ITEM", item }); }}
-                />
-              );
-            },
-          })),
-        );
         return (
           <Suspense fallback={<div className="flex flex-1 items-center justify-center bg-linen" />}>
-            <MenuApp />
+            <RemoteMenuApp
+              laneMode={state.context.laneMode}
+              silentAssistArmed={false}
+              onSelectItem={(item) => { send({ type: "SELECT_ITEM", item }); }}
+            />
           </Suspense>
         );
       }
       return <MenuScreen />;
     }
 
-    if (stage === "CART") {
+    if (state.matches("CART")) {
       if (useRemote) {
-        const CartApp = lazy(() =>
-          import("astra_cart/CartApp").then((m) => ({
-            default: () => {
-              const C = m.default;
-              return (
-                <C
-                  onBackToMenu={() => { send({ type: "BACK_TO_MENU" }); }}
-                  onProceedToPayment={() => { send({ type: "PROCEED_TO_PAYMENT" }); }}
-                />
-              );
-            },
-          })),
-        );
         return (
           <Suspense fallback={<div className="flex flex-1 items-center justify-center bg-linen" />}>
-            <CartApp />
+            <RemoteCartApp
+              onBackToMenu={() => { send({ type: "BACK_TO_MENU" }); }}
+              onProceedToPayment={() => { send({ type: "PROCEED_TO_PAYMENT" }); }}
+            />
           </Suspense>
         );
       }
       return <CartReviewScreen />;
     }
 
-    if (stage === "PAYMENT") return <PaymentAuthScreen />;
-    if (stage === "PROCESSING") return <ProcessingScreen />;
-    if (stage === "RECEIPT") return <ReceiptScreen />;
+    if (state.matches("PAYMENT")) return <PaymentAuthScreen />;
+    if (state.matches("PROCESSING")) return <ProcessingScreen />;
+    if (state.matches("RECEIPT")) return <ReceiptScreen />;
 
     return <AttractScreen />;
-  }, [stage, useRemote, state.context.laneMode, send]);
+  }, [state, send]);
 
   return (
     <>
@@ -95,8 +89,7 @@ export function WorkflowRouter(): React.JSX.Element {
           {baseScreen}
         </motion.div>
       </AnimatePresence>
-      {stage === "ITEM_DETAIL" && <ItemModal />}
+      {state.matches("ITEM_DETAIL") && <ItemModal />}
     </>
   );
 }
-
