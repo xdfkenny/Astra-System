@@ -3,7 +3,7 @@ package service
 
 import (
 	"context"
-	"database/sql"
+	_ "database/sql"
 	"encoding/json"
 	"errors"
 	"time"
